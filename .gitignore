@@ -1,0 +1,6 @@
+.eggs
+*.egg-info
+db.sqlite3
+.python-version
+__pycache__
+settings.py
