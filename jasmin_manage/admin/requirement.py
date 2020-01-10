@@ -52,6 +52,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'start_date_formatted',
         'end_date_formatted'
     )
+    save_as = True
 
     def get_exclude(self, request, obj = None):
         if obj and not self.has_change_permission(request, obj):
