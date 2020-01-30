@@ -5,9 +5,10 @@ from dateutil.relativedelta import relativedelta
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from .service import Service
-from .resource import Resource
+from .consortium import Consortium
 from .project import Project
+from .resource import Resource
+from .service import Service
 
 
 def _five_years():
@@ -45,6 +46,14 @@ class Requirement(models.Model):
         related_name = 'requirements',
         related_query_name = 'requirement'
     )
+    consortium = models.ForeignKey(
+        Consortium,
+        models.CASCADE,
+        blank = True,
+        related_name = 'requirements',
+        related_query_name = 'requirement',
+        help_text = 'Leave blank to use project default consortium, if set.'
+    )
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.REQUESTED)
     amount = models.PositiveIntegerField()
     # Default start date is today
@@ -54,8 +63,8 @@ class Requirement(models.Model):
     created_at = models.DateTimeField(auto_now_add = True)
 
     def get_event_aggregates(self):
-        # Aggregate requirement events over the service and resource
-        return self.service, self.resource
+        # Aggregate requirement events over the service, resource and consortium
+        return self.service, self.resource, self.consortium
 
     def get_event_type(self, diff):
         # If the status is in the diff, use it as the event type, otherwise use the default
@@ -63,44 +72,69 @@ class Requirement(models.Model):
             return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
 
     def clean(self):
+        errors = dict()
         # Edits cannot be made to requirements in completed projects
         # This is combined with a check in Project.clean that ensures all requirements
         # are decommisioned before a project can be closed
-        if self.service and self.service.project.status == Project.Status.COMPLETED:
-            raise ValidationError('Cannot modify the requirements of a completed project.')
-        if self.service and self.resource:
+        if self.service_id and self.service.project.status == Project.Status.COMPLETED:
+            errors.setdefault('__all__', []).append('Cannot modify the requirements of a completed project.')
+        # Make sure that the selected resource is compatible with the category of the selected service
+        if self.service_id and self.resource_id:
             # For new requirements, the selected resource must belong to the category of the service
             # For existing requirements, it is also allowed to be the current resource
             allowed_resources = self.service.category.resources.all()
             if not self._state.adding:
-                allowed_resources = (
-                    allowed_resources |
-                    Resource.objects.filter(requirement = self)
-                )
+                allowed_resources = allowed_resources | Resource.objects.filter(requirement = self)
             if not allowed_resources.filter(pk = self.resource.pk).exists():
-                raise ValidationError({
-                    'resource': 'Resource is not valid for the selected service.'
-                })
-            # The total provisioned for a resource/consortium combo cannot exceed the quota
-            # Combined with the fact that the quotas cannot exceed the total available, this means
-            # that the total provisioned for a resource cannot exceed the total available
-            if self.status == self.Status.PROVISIONED and self.amount is not None:
-                quota = self.service.project.consortium.quotas.filter(resource = self.resource).first()
-                quota_amount = getattr(quota, 'amount', 0)
-                # Get the total provisioned for the consortium/resource
-                provisioned = self.resource.requirements.filter(
-                    service__project__consortium = self.service.project.consortium,
-                    status = self.Status.PROVISIONED
+                errors.setdefault('resource', []).append('Resource is not valid for the selected service.')
+        # Consortium must be set if there is no project default
+        if not self.consortium_id and \
+           self.service_id and \
+           not self.service.project.default_consortium:
+            errors.setdefault('consortium', []).append('Project does not have a default consortium.')
+        # The total provisioned for a resource/consortium combo cannot exceed the quota
+        # Combined with the fact that the quotas cannot exceed the total available, this means
+        # that the total provisioned for a resource cannot exceed the total available
+        if self.consortium_id:
+            consortium = self.consortium
+        elif self.service_id:
+            consortium = self.service.project.default_consortium
+        else:
+            consortium = None
+        if consortium and \
+           self.resource_id and \
+           self.status == self.Status.PROVISIONED and \
+           self.amount is not None:
+            # Get the quota of the resource for the consortium, or 0 if there isn't one
+            quota = self.resource.quotas.filter(consortium = consortium).first()
+            quota_amount = getattr(quota, 'amount', 0)
+            # Get the total provisioned for the consortium/resource
+            provisioned = self.resource.requirements.filter(
+                consortium = consortium,
+                status = self.Status.PROVISIONED
+            )
+            # If the current requirement has already been saved, exclude it from the sum
+            # We will add the current amount after, as it may have changed
+            if not self._state.adding:
+                provisioned = provisioned.exclude(pk = self.pk)
+            # Sum the discovered amounts
+            total_provisioned = provisioned.aggregate(total = models.Sum('amount'))['total'] or 0
+            # Add on the current amount for this requirement
+            total_provisioned = total_provisioned + self.amount
+            # Check if it exceeds the quota
+            if total_provisioned > quota_amount:
+                errors.setdefault('amount', []).append(
+                    'Total provisioned ({}) cannot exceed consortium quota ({}).'.format(
+                        self.resource.format_amount(total_provisioned),
+                        self.resource.format_amount(quota_amount)
+                    )
                 )
-                if not self._state.adding:
-                    provisioned = provisioned.exclude(pk = self.pk)
-                total_provisioned = provisioned.aggregate(total = models.Sum('amount'))['total'] or 0
-                # Add on the current amount for this requirement
-                total_provisioned = total_provisioned + self.amount
-                if total_provisioned > quota_amount:
-                    raise ValidationError({
-                        'amount': 'Total provisioned ({}) cannot exceed consortium quota ({}).'.format(
-                            self.resource.format_amount(total_provisioned),
-                            self.resource.format_amount(quota_amount)
-                        )
-                    })
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        # If there is no consortium set, use the project default
+        if not self.consortium_id:
+            self.consortium = self.service.project.default_consortium
+        return super().save(*args, **kwargs)
+

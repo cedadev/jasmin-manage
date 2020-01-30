@@ -26,7 +26,6 @@ class ProjectAdmin(admin.ModelAdmin):
 
     list_display = (
         'name',
-        'consortium_link',
         'status_formatted',
         'num_services',
         'num_requirements',
@@ -34,24 +33,24 @@ class ProjectAdmin(admin.ModelAdmin):
         'created_at'
     )
     list_filter = (
-        ('consortium', RelatedDropdownFilter),
+        ('service__requirement__consortium', RelatedDropdownFilter),
         'status',
     )
     autocomplete_fields = ('owner', )
-    search_fields = ('consortium__name', 'name')
+    search_fields = ('name', )
     readonly_fields = ('num_services', 'num_requirements', 'created_at')
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('consortium', 'status', 'owner', 'description_markup_type')
+            return exclude + ('status', 'owner', 'description_markup_type')
         else:
             return exclude
 
     def get_readonly_fields(self, request, obj = None):
         readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj and not self.has_change_permission(request, obj):
-            return ('consortium_link', 'status_formatted', 'owner_link') + readonly_fields
+            return ('status_formatted', 'owner_link') + readonly_fields
         if not obj:
             return ()
         else:
@@ -79,10 +78,6 @@ class ProjectAdmin(admin.ModelAdmin):
                 output_field = IntegerField()
             )
         )
-
-    def consortium_link(self, obj):
-        return change_link(obj.consortium)
-    consortium_link.short_description = 'consortium'
 
     def status_formatted(self, obj):
         return format_html('<code>{}</code>', Project.Status(obj.status).label)

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.utils import html
 
 from markupfield.fields import MarkupField
 
@@ -11,8 +12,8 @@ class ProjectManager(models.Manager):
     """
     Manager for the project model.
     """
-    def get_by_natural_key(self, consortium_name, name):
-        return self.get(consortium__name = consortium_name, name = name)
+    def get_by_natural_key(self, name):
+        return self.get(name = name)
 
 
 class Project(models.Model):
@@ -21,7 +22,6 @@ class Project(models.Model):
     """
     class Meta:
         ordering = ('name', )
-        unique_together = ('consortium', 'name')
 
     # The statuses are ordered, as they represent a progression
     # So use an integer enum to represent them
@@ -32,22 +32,25 @@ class Project(models.Model):
 
     objects = ProjectManager()
 
-    consortium = models.ForeignKey(
-        Consortium,
-        models.CASCADE,
-        related_name = 'projects',
-        related_query_name = 'project'
-    )
-    name = models.CharField(max_length = 250)
+    name = models.CharField(max_length = 250, unique = True)
     description = MarkupField(default_markup_type = 'markdown', escape_html = True)
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.EDITABLE)
+    # Projects can optionally have a default consortium that will be applied to new requirements
+    default_consortium = models.ForeignKey(
+        Consortium,
+        models.CASCADE,
+        null = True,
+        blank = True,
+        related_name = '+',
+        help_text = html.format_html(
+            '{}<br />{}',
+            'Default consortium for requirements in the project, if known.',
+            'Can be overridden on a per-requirement basis.'
+        )
+    )
     # Prevent a user being deleted if they are a project owner
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
     created_at = models.DateTimeField(auto_now_add = True)
-
-    def get_event_aggregates(self):
-        # Aggregate project events over the consortium
-        return (self.consortium, )
 
     def get_event_type(self, diff):
         # If the status is in the diff, use it as the event type, otherwise use the default
@@ -55,11 +58,10 @@ class Project(models.Model):
             return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
 
     def natural_key(self):
-        return self.consortium.name, self.name
-    natural_key.dependencies = (Consortium._meta.label_lower, )
+        return (self.name, )
 
     def __str__(self):
-        return "{} / {}".format(self.consortium.name, self.name)
+        return self.name
 
     def clean(self):
         # For a project to be in the COMPLETED status, all the requirements must be decommisioned
@@ -67,7 +69,7 @@ class Project(models.Model):
             from .requirement import Requirement
             requirements = (Requirement.objects
                 .filter(service__project = self)
-                .exclude(status = Requirement.Status.DECOMMISSIONED)
+                .exclude(status__gte = Requirement.Status.DECOMMISSIONED)
             )
             if requirements.exists():
                 raise ValidationError(

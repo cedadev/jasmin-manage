@@ -3,6 +3,7 @@ from datetime import date
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import formats
+from django import forms
 
 from django_admin_listfilter_dropdown.filters import (
     RelatedDropdownFilter,
@@ -27,6 +28,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'id',
         'project_link',
         'service_link',
+        'consortium_link',
         'resource_link',
         'status_formatted',
         'amount_formatted',
@@ -34,7 +36,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'end_date_formatted',
     )
     list_filter = (
-        ('service__project__consortium', RelatedDropdownFilter),
+        ('consortium', RelatedDropdownFilter),
         ('service__project', RelatedOnlyDropdownFilter),
         ('resource', RelatedDropdownFilter),
         'status',
@@ -42,10 +44,11 @@ class RequirementAdmin(admin.ModelAdmin):
         ('end_date', DateRangeFilter),
     )
     autocomplete_fields = ('service', )
-    exclude = ('service', 'resource', 'status', 'amount', 'start_date', 'end_date')
+    exclude = ('service', 'consortium', 'resource', 'status', 'amount', 'start_date', 'end_date')
     readonly_fields = (
         'project_link',
         'service_link',
+        'consortium_link',
         'resource_link',
         'status_formatted',
         'amount_formatted',
@@ -73,6 +76,10 @@ class RequirementAdmin(admin.ModelAdmin):
     def service_link(self, obj):
         return change_link(obj.service, obj.service.name)
     service_link.short_description = 'service'
+
+    def consortium_link(self, obj):
+        return change_link(obj.consortium, obj.consortium.name)
+    consortium_link.short_description = 'consortium'
 
     def resource_link(self, obj):
         return change_link(obj.resource)

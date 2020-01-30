@@ -77,7 +77,7 @@ class QuotaAdmin(admin.ModelAdmin):
                     Requirement,
                     '{} requirement{}'.format(count, pluralize(count)),
                     dict(
-                        service__project__consortium__id__exact = obj.consortium.pk,
+                        consortium__id__exact = obj.consortium.pk,
                         resource__id__exact = obj.resource.pk,
                         status__exact = status
                     )

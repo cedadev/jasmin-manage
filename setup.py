@@ -36,5 +36,7 @@ if __name__ == "__main__":
             'django-admin-list-filter-dropdown',
             'django-admin-rangefilter',
             'django-debug-toolbar',
+            'jasmin-auth-django-admin',
+            'django-tsunami',
         ],
     )

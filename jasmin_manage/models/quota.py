@@ -40,11 +40,11 @@ class QuotaQuerySet(models.QuerySet):
         # This subquery fetches the count and total of all requirements for the quota
         requirements = (Requirement.objects
             .filter(
-                service__project__consortium = models.OuterRef('consortium'),
+                consortium = models.OuterRef('consortium'),
                 resource = models.OuterRef('resource')
             )
             .order_by()
-            .values('service__project__consortium', 'resource')
+            .values('consortium', 'resource')
             .annotate(**annotations)
         )
         # Apply the annotations to the current query
@@ -95,7 +95,7 @@ class Quota(models.Model):
 
     def clean(self):
         # The sum of the quotas for a resource must be <= the total available resource
-        if self.resource and self.amount is not None:
+        if self.resource_id and self.amount is not None:
             # Get the sum of all the quotas for the resource, excluding this one
             quotas = Quota.objects.filter(resource = self.resource)
             if not self._state.adding:

@@ -27,10 +27,9 @@ class ServiceAdmin(admin.ModelAdmin):
     list_display = ('name', 'project_link', 'category_link', 'num_requirements')
     list_filter = (
         ('category', RelatedDropdownFilter),
-        ('project__consortium', RelatedDropdownFilter),
         ('project', RelatedDropdownFilter),
     )
-    search_fields = ('project__consortium__name', 'project__name', 'name')
+    search_fields = ('project__name', 'name')
     autocomplete_fields = ('project', )
     readonly_fields = ('num_requirements', )
 

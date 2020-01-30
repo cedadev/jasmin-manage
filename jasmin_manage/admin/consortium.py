@@ -14,7 +14,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
 
-from ..models import Consortium, Project, Quota
+from ..models import Consortium, Project, Quota, Requirement
 from .util import changelist_link, change_link
 
 
@@ -29,7 +29,7 @@ class ConsortiumAdmin(admin.ModelAdmin):
     list_display = ('name', 'manager_link', 'num_quotas', 'num_projects')
     search_fields = ('name', )
     autocomplete_fields = ('manager', )
-    readonly_fields = ('num_quotas', 'num_projects')
+    readonly_fields = ('num_quotas', 'num_projects', 'num_requirements')
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
@@ -49,10 +49,12 @@ class ConsortiumAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Annotate the consortia with information about the number of quotas and projects
+        # Annotate the consortia with information about the number of quotas, projects and requirements
         qs = qs.annotate(
             quota_count = Count('quota', distinct = True),
-            project_count = Count('project', distinct = True)
+            # Count projects with at least one requirement in the consortium
+            project_count = Count('requirement__service__project', distinct = True),
+            requirement_count = Count('requirement', distinct = True)
         )
         # Also annotate with information about the number of overprovisioned quotas
         overprovisioned_quotas = (Quota.objects
@@ -98,9 +100,18 @@ class ConsortiumAdmin(admin.ModelAdmin):
         return changelist_link(
             Project,
             '{} project{}'.format(obj.project_count, pluralize(obj.project_count)),
-            dict(consortium__id__exact = obj.pk)
+            # Find all the projects with at least one requirement
+            dict(service__requirement__consortium__id__exact = obj.pk)
         )
     num_projects.short_description = '# projects'
+
+    def num_requirements(self, obj):
+        return changelist_link(
+            Requirement,
+            '{} requirement{}'.format(obj.requirement_count, pluralize(obj.requirement_count)),
+            dict(consortium__id__exact = obj.pk)
+        )
+    num_requirements.short_description = '# requirements'
 
     def manager_link(self, obj):
         return change_link(obj.manager)
