@@ -13,8 +13,32 @@ class ResourceManager(models.Manager):
     def get_by_natural_key(self, name):
         return self.get(name = name)
 
+    def get_queryset(self):
+        # By default, annotate the queryset with the total available from the chunks
+        return super().get_queryset().annotate_available()
+
 
 class ResourceQuerySet(models.QuerySet):
+    def annotate_available(self):
+        """
+        Returns the current queryset annotated with information about the total amount
+        available from all the chunks for that resource.
+        """
+        # This subquery returns the total of all the chunks for the outer resource
+        from .resource_chunk import ResourceChunk
+        chunks = (ResourceChunk.objects
+            .filter(resource = models.OuterRef('pk'))
+            .order_by()
+            .values('resource')
+            .annotate(total = models.Sum('amount'))
+        )
+        return self.annotate(
+            total_available = functions.Coalesce(
+                models.Subquery(chunks.values('total')),
+                models.Value(0)
+            )
+        )
+
     def annotate_usage(self):
         """
         Returns the current queryset annotated with usage information from
@@ -77,6 +101,9 @@ class Resource(models.Model):
     """
     class Meta:
         ordering = ('name', )
+        # Use the objects manager as the base manager in order to get the total_available
+        # annotation on related object accesses
+        base_manager_name = 'objects'
 
     objects = ResourceManager.from_queryset(ResourceQuerySet)()
 
@@ -108,9 +135,6 @@ class Resource(models.Model):
             'Leave blank for a unit-less resource, e.g. CPUs.'
         )
     )
-    total_available = models.PositiveIntegerField(
-        help_text = 'The total amount of the resource that is available.'
-    )
 
     def format_amount(self, amount):
         """
@@ -129,12 +153,3 @@ class Resource(models.Model):
             return '{} ({})'.format(self.name, self.units)
         else:
             return self.name
-
-    def clean(self):
-        # The total available must be >= the sum of the quotas
-        if not self._state.adding and self.total_available is not None:
-            total_quotas = self.quotas.aggregate(total = models.Sum('amount'))['total'] or 0
-            if self.total_available < total_quotas:
-                raise ValidationError({
-                    'total_available': 'Total available cannot be less than total quotas.'
-                })
