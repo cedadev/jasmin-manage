@@ -2,8 +2,12 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.template.defaultfilters import pluralize
 
-from ..models import Quota, Requirement, Resource
+from ..models import Quota, Requirement, Resource, ResourceChunk
 from .util import changelist_link
+
+
+class ResourceChunkInline(admin.TabularInline):
+    model = ResourceChunk
 
 
 @admin.register(Resource)
@@ -24,25 +28,26 @@ class ResourceAdmin(admin.ModelAdmin):
     )
     show_full_result_count = False
     readonly_fields = (
+        'total_available_formatted',
         'total_quotas',
         'total_provisioned',
         'total_awaiting',
         'total_approved'
     )
+    inlines = (ResourceChunkInline, )
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('short_name', 'units', 'total_available', )
+            return exclude + ('short_name', 'units')
         return exclude
 
     def get_readonly_fields(self, request, obj = None):
         readonly_fields = super().get_readonly_fields(request, obj)
-        if obj and not self.has_change_permission(request, obj):
-            return ('total_available_formatted', ) + readonly_fields
-        elif not obj:
+        if obj:
+            return readonly_fields
+        else:
             return ()
-        return readonly_fields
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate_usage()
