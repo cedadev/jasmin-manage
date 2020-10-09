@@ -12,12 +12,14 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
+from concurrency.admin import ConcurrentModelAdmin
+
 from ..models import Requirement, Service
 from .util import changelist_link, change_link
 
 
 @admin.register(Service)
-class ServiceAdmin(admin.ModelAdmin):
+class ServiceAdmin(ConcurrentModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )

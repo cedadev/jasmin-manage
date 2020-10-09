@@ -5,6 +5,8 @@ from django.db.models import functions
 from django.utils import html
 from django.core.exceptions import ValidationError
 
+from concurrency.fields import IntegerVersionField
+
 
 class ResourceManager(models.Manager):
     """
@@ -135,6 +137,8 @@ class Resource(models.Model):
             'Leave blank for a unit-less resource, e.g. CPUs.'
         )
     )
+    # Version field for optimistic concurrency
+    version = IntegerVersionField()
 
     def format_amount(self, amount):
         """

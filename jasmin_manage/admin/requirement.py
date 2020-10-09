@@ -12,12 +12,14 @@ from django_admin_listfilter_dropdown.filters import (
 
 from rangefilter.filter import DateRangeFilter
 
+from concurrency.admin import ConcurrentModelAdmin
+
 from ..models import Requirement
 from .util import change_link
 
 
 @admin.register(Requirement)
-class RequirementAdmin(admin.ModelAdmin):
+class RequirementAdmin(ConcurrentModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
@@ -27,9 +29,10 @@ class RequirementAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'project_link',
+        'number',
         'service_link',
-        'consortium_link',
         'resource_link',
+        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',
@@ -44,12 +47,21 @@ class RequirementAdmin(admin.ModelAdmin):
         ('end_date', DateRangeFilter),
     )
     autocomplete_fields = ('service', )
-    exclude = ('service', 'consortium', 'resource', 'status', 'amount', 'start_date', 'end_date')
+    exclude = (
+        'service',
+        'consortium',
+        'resource',
+        'status',
+        'amount',
+        'start_date',
+        'end_date'
+    )
     readonly_fields = (
         'project_link',
+        'number',
         'service_link',
-        'consortium_link',
         'resource_link',
+        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',

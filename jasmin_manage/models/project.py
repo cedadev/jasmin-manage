@@ -5,6 +5,8 @@ from django.utils import html
 
 from markupfield.fields import MarkupField
 
+from concurrency.fields import IntegerVersionField
+
 from .consortium import Consortium
 
 
@@ -48,6 +50,13 @@ class Project(models.Model):
             'Can be overridden on a per-requirement basis.'
         )
     )
+    # The number of the next requirement for this project
+    # Maintaining this field on the project (vs using MAX of the existing requirement numbers)
+    # allows us to have monotonically increasing requirement numbers even when requirements
+    # are deleted
+    next_requirement_number = models.PositiveIntegerField(default = 1, editable = False)
+    # Version field for optimistic concurrency
+    version = IntegerVersionField()
     # Prevent a user being deleted if they are a project owner
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
     created_at = models.DateTimeField(auto_now_add = True)

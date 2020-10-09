@@ -38,5 +38,6 @@ if __name__ == "__main__":
             'django-debug-toolbar',
             'jasmin-auth-django-admin',
             'django-tsunami',
+            'django-concurrency',
         ],
     )

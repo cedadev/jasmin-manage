@@ -1,6 +1,8 @@
 from django.db import models
 from django.core import validators
 
+from concurrency.fields import IntegerVersionField
+
 from .category import Category
 from .project import Project
 
@@ -18,7 +20,7 @@ class Service(models.Model):
     Represents a service requested by a project.
     """
     class Meta:
-        # Services in the same project can have the same name iff they are in different categories
+        # Services in the same project can have the same name if they are in different categories
         # But service names must be unique within a category
         unique_together = ('category', 'name')
 
@@ -46,6 +48,8 @@ class Service(models.Model):
             ),
         )
     )
+    # Version field for optimistic concurrency
+    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         # Aggregate service events over the category and project

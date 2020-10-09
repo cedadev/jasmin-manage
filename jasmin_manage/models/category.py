@@ -1,5 +1,7 @@
 from django.db import models
 
+from concurrency.fields import IntegerVersionField
+
 from .resource import Resource
 
 
@@ -25,6 +27,8 @@ class Category(models.Model):
 
     name = models.CharField(max_length = 250, unique = True)
     resources = models.ManyToManyField(Resource, related_name = '+')
+    # Version field for optimistic concurrency
+    version = IntegerVersionField()
 
     def natural_key(self):
         return (self.name, )

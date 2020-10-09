@@ -4,12 +4,14 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
+from concurrency.admin import ConcurrentModelAdmin
+
 from ..models import Quota, Requirement
 from .util import changelist_link, change_link
 
 
 @admin.register(Quota)
-class QuotaAdmin(admin.ModelAdmin):
+class QuotaAdmin(ConcurrentModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
