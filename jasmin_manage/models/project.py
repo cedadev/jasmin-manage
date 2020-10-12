@@ -3,8 +3,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import html
 
-from markupfield.fields import MarkupField
-
 from concurrency.fields import IntegerVersionField
 
 from .consortium import Consortium
@@ -35,7 +33,7 @@ class Project(models.Model):
     objects = ProjectManager()
 
     name = models.CharField(max_length = 250, unique = True)
-    description = MarkupField(default_markup_type = 'markdown', escape_html = True)
+    description = models.TextField(help_text = "Can contain markdown syntax.")
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.EDITABLE)
     # Projects can optionally have a default consortium that will be applied to new requirements
     default_consortium = models.ForeignKey(

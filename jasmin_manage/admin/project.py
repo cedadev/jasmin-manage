@@ -45,7 +45,7 @@ class ProjectAdmin(ConcurrentModelAdmin):
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('status', 'owner', 'description_markup_type')
+            return exclude + ('status', 'owner')
         else:
             return exclude
 
