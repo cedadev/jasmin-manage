@@ -7,7 +7,6 @@ from django.core.exceptions import ValidationError
 
 from concurrency.fields import IntegerVersionField
 
-from .consortium import Consortium
 from .project import Project
 from .resource import Resource
 from .service import Service
@@ -58,14 +57,6 @@ class Requirement(models.Model):
         related_name = 'requirements',
         related_query_name = 'requirement'
     )
-    consortium = models.ForeignKey(
-        Consortium,
-        models.CASCADE,
-        blank = True,
-        related_name = 'requirements',
-        related_query_name = 'requirement',
-        help_text = 'Leave blank to use project default consortium, if set.'
-    )
     number = models.PositiveIntegerField(
         blank = True,
         help_text = 'The number of the requirement within the parent project.'
@@ -81,8 +72,8 @@ class Requirement(models.Model):
     version = IntegerVersionField()
 
     def get_event_aggregates(self):
-        # Aggregate requirement events over the service, resource and consortium
-        return self.service, self.resource, self.consortium
+        # Aggregate requirement events over the service and resource
+        return self.service, self.resource
 
     def get_event_type(self, diff):
         # If the status is in the diff, use it as the event type, otherwise use the default
@@ -112,11 +103,6 @@ class Requirement(models.Model):
                 allowed_resources = allowed_resources | Resource.objects.filter(requirement = self)
             if not allowed_resources.filter(pk = self.resource.pk).exists():
                 errors.setdefault('resource', []).append('Resource is not valid for the selected service.')
-        # Consortium must be set if there is no project default
-        if not self.consortium_id and \
-           self.service_id and \
-           not self.service.project.default_consortium:
-            errors.setdefault('consortium', []).append('Project does not have a default consortium.')
         # Make sure that the requirement number doesn't change
         if not self._state.adding:
             prev_number = Requirement.objects.filter(pk = self.pk).values_list('number', flat = True)[0]
@@ -163,9 +149,6 @@ class Requirement(models.Model):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
-        # If there is no consortium set, use the project default
-        if not self.consortium_id:
-            self.consortium = self.service.project.default_consortium
         # We will be potentially saving the requirement and the project in order to
         # update the next requirement number for the project
         # We want to make sure this happens inside a transaction so either both succeed

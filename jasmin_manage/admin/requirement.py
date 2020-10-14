@@ -32,14 +32,13 @@ class RequirementAdmin(ConcurrentModelAdmin):
         'number',
         'service_link',
         'resource_link',
-        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',
         'end_date_formatted',
     )
     list_filter = (
-        ('consortium', RelatedDropdownFilter),
+        ('service__project__consortium', RelatedDropdownFilter),
         ('service__project', RelatedOnlyDropdownFilter),
         ('resource', RelatedDropdownFilter),
         'status',
@@ -49,7 +48,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
     autocomplete_fields = ('service', )
     exclude = (
         'service',
-        'consortium',
         'resource',
         'status',
         'amount',
@@ -61,7 +59,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
         'number',
         'service_link',
         'resource_link',
-        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',
@@ -88,10 +85,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
     def service_link(self, obj):
         return change_link(obj.service, obj.service.name)
     service_link.short_description = 'service'
-
-    def consortium_link(self, obj):
-        return change_link(obj.consortium, obj.consortium.name)
-    consortium_link.short_description = 'consortium'
 
     def resource_link(self, obj):
         return change_link(obj.resource)

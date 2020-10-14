@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.utils import html
 
 from concurrency.fields import IntegerVersionField
 
@@ -35,18 +34,11 @@ class Project(models.Model):
     name = models.CharField(max_length = 250, unique = True)
     description = models.TextField(help_text = "Can contain markdown syntax.")
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.EDITABLE)
-    # Projects can optionally have a default consortium that will be applied to new requirements
-    default_consortium = models.ForeignKey(
+    consortium = models.ForeignKey(
         Consortium,
         models.CASCADE,
-        null = True,
-        blank = True,
-        related_name = '+',
-        help_text = html.format_html(
-            '{}<br />{}',
-            'Default consortium for requirements in the project, if known.',
-            'Can be overridden on a per-requirement basis.'
-        )
+        related_name = 'projects',
+        related_query_name = 'project'
     )
     # The number of the next requirement for this project
     # Maintaining this field on the project (vs using MAX of the existing requirement numbers)
@@ -63,6 +55,10 @@ class Project(models.Model):
         # If the status is in the diff, use it as the event type, otherwise use the default
         if 'status' in diff:
             return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
+
+    def get_event_aggregates(self):
+        # Aggregate project events over the consortium
+        return (self.consortium, )
 
     def natural_key(self):
         return (self.name, )

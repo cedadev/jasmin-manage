@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import html
 from django.core.exceptions import ValidationError
 
 from concurrency.fields import IntegerVersionField
@@ -15,14 +14,6 @@ class ResourceChunkManager(models.Manager):
         return self.get(resource__name = resource_name, name = name)
 
 
-class ResourceChunkQuerySet(models.QuerySet):
-    def annotate_usage(self):
-        """
-        Returns the current queryset annotated with usage information from
-        requirements that reference the resource chunk.
-        """
-
-
 class ResourceChunk(models.Model):
     """
     Represents a chunk of a resource, i.e. from a particular procurement.
@@ -30,8 +21,6 @@ class ResourceChunk(models.Model):
     class Meta:
         ordering = ('resource__name', 'name')
         unique_together = ('resource', 'name')
-
-    objects = ResourceChunkManager.from_queryset(ResourceChunkQuerySet)()
 
     resource = models.ForeignKey(
         Resource,

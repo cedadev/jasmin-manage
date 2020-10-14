@@ -29,13 +29,14 @@ class ProjectAdmin(ConcurrentModelAdmin):
     list_display = (
         'name',
         'status_formatted',
+        'consortium',
         'num_services',
         'num_requirements',
         'owner_link',
         'created_at'
     )
     list_filter = (
-        ('service__requirement__consortium', RelatedDropdownFilter),
+        ('consortium', RelatedDropdownFilter),
         'status',
     )
     autocomplete_fields = ('owner', )

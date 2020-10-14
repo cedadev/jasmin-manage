@@ -42,11 +42,11 @@ class QuotaQuerySet(models.QuerySet):
         # This subquery fetches the count and total of all requirements for the quota
         requirements = (Requirement.objects
             .filter(
-                consortium = models.OuterRef('consortium'),
+                service__project__consortium = models.OuterRef('consortium'),
                 resource = models.OuterRef('resource')
             )
             .order_by()
-            .values('consortium', 'resource')
+            .values('service__project__consortium', 'resource')
             .annotate(**annotations)
         )
         # Apply the annotations to the current query

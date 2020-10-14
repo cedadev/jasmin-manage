@@ -2,7 +2,6 @@ from itertools import chain
 
 from django.db import models
 from django.db.models import functions
-from django.utils import html
 from django.core.exceptions import ValidationError
 
 from concurrency.fields import IntegerVersionField
@@ -119,10 +118,9 @@ class Resource(models.Model):
     short_name = models.CharField(
         max_length = 50,
         blank = True,
-        help_text = html.format_html(
-            '{}<br />{}',
+        help_text = (
             'Short resource name, used when the resource is referenced in the context '
-            'of a category or service, e.g. "Disk".',
+            'of a category or service, e.g. "Disk". '
             'If not given, the full name is used in all contexts.'
         )
     )
@@ -131,9 +129,8 @@ class Resource(models.Model):
         max_length = 10,
         null = True,
         blank = True,
-        help_text = html.format_html(
-            '{}<br />{}',
-            'Canonical units for the resource.',
+        help_text = (
+            'Canonical units for the resource. '
             'Leave blank for a unit-less resource, e.g. CPUs.'
         )
     )
