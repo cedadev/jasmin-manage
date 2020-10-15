@@ -39,5 +39,8 @@ if __name__ == "__main__":
             'jasmin-auth-django-admin',
             'django-tsunami',
             'django-concurrency',
+            'djangorestframework',
+            'drf-nested-routers',
+            'drf-spectacular',
         ],
     )

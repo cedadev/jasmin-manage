@@ -59,6 +59,7 @@ class Requirement(models.Model):
     )
     number = models.PositiveIntegerField(
         blank = True,
+        editable = False,
         help_text = 'The number of the requirement within the parent project.'
     )
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.REQUESTED)

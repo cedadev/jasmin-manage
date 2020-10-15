@@ -26,7 +26,11 @@ class Category(models.Model):
     objects = CategoryManager()
 
     name = models.CharField(max_length = 250, unique = True)
-    resources = models.ManyToManyField(Resource, related_name = '+')
+    resources = models.ManyToManyField(
+        Resource,
+        related_name = 'categories',
+        related_query_name = 'category'
+    )
     # Version field for optimistic concurrency
     version = IntegerVersionField()
 
