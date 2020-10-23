@@ -37,6 +37,7 @@ class ResourceAdmin(ConcurrentModelAdmin):
         'total_approved'
     )
     inlines = (ResourceChunkInline, )
+    search_fields = ('name', )
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())

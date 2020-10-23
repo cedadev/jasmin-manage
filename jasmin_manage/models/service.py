@@ -20,6 +20,7 @@ class Service(models.Model):
     Represents a service requested by a project.
     """
     class Meta:
+        ordering = ('category__name', 'name')
         # Services in the same project can have the same name if they are in different categories
         # But service names must be unique within a category
         unique_together = ('category', 'name')

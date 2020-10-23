@@ -1,5 +1,4 @@
 from django.db import models
-from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from concurrency.fields import IntegerVersionField
@@ -22,9 +21,12 @@ class Project(models.Model):
     class Meta:
         ordering = ('name', )
 
-    # The statuses are ordered, as they represent a progression
-    # So use an integer enum to represent them
     class Status(models.IntegerChoices):
+        """
+        Represents the status of a project.
+
+        The statuses are ordered as they represent a progression.
+        """
         EDITABLE = 10
         UNDER_REVIEW = 20
         COMPLETED = 30
@@ -47,8 +49,6 @@ class Project(models.Model):
     next_requirement_number = models.PositiveIntegerField(default = 1, editable = False)
     # Version field for optimistic concurrency
     version = IntegerVersionField()
-    # Prevent a user being deleted if they are a project owner
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
     created_at = models.DateTimeField(auto_now_add = True)
 
     def get_event_type(self, diff):

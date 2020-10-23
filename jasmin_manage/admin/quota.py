@@ -34,6 +34,7 @@ class QuotaAdmin(ConcurrentModelAdmin):
     list_select_related = ('resource', 'consortium')
     show_full_result_count = False
     readonly_fields = ('provisioned', 'awaiting', 'approved')
+    autocomplete_fields = ('consortium', 'resource')
 
     def get_readonly_fields(self, request, obj):
         readonly_fields = super().get_readonly_fields(request, obj)

@@ -4,5 +4,6 @@ from .category import Category
 from .consortium import Consortium
 from .quota import Quota
 from .project import Project
+from .collaborator import Collaborator
 from .service import Service
 from .requirement import Requirement

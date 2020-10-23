@@ -14,7 +14,7 @@ from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
 from concurrency.admin import ConcurrentModelAdmin
 
-from ..models import Project, Requirement, Service
+from ..models import Collaborator, Project, Requirement, Service
 from .util import changelist_link, change_link
 
 
@@ -29,31 +29,36 @@ class ProjectAdmin(ConcurrentModelAdmin):
     list_display = (
         'name',
         'status_formatted',
-        'consortium',
+        'consortium_link',
         'num_services',
         'num_requirements',
-        'owner_link',
+        'num_collaborators',
         'created_at'
     )
     list_filter = (
         ('consortium', RelatedDropdownFilter),
         'status',
     )
-    autocomplete_fields = ('owner', )
+    autocomplete_fields = ('consortium', )
     search_fields = ('name', )
-    readonly_fields = ('num_services', 'num_requirements', 'created_at')
+    readonly_fields = (
+        'num_services',
+        'num_requirements',
+        'num_collaborators',
+        'created_at'
+    )
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('status', 'owner')
+            return exclude + ('status', 'consortium')
         else:
             return exclude
 
     def get_readonly_fields(self, request, obj = None):
         readonly_fields = tuple(super().get_readonly_fields(request, obj))
         if obj and not self.has_change_permission(request, obj):
-            return ('status_formatted', 'owner_link') + readonly_fields
+            return ('status_formatted', 'consortium_link') + readonly_fields
         if not obj:
             return ()
         else:
@@ -61,8 +66,9 @@ class ProjectAdmin(ConcurrentModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(
-            # Annotate the queryset with information about the number of services and requirements
+        qs = qs.annotate(
+            # Annotate the queryset with information about the number of collaborators, services and requirements
+            collaborator_count = Count('collaborator', distinct = True),
             service_count = Count('service', distinct = True),
             requirement_count = Count('service__requirement', distinct = True),
             # Also annotate with information about the number of requirements awaiting provisioning
@@ -81,10 +87,16 @@ class ProjectAdmin(ConcurrentModelAdmin):
                 output_field = IntegerField()
             )
         )
+        # The annotations clear the ordering, so re-apply the default one
+        return qs.order_by(*qs.query.get_meta().ordering)
 
     def status_formatted(self, obj):
         return format_html('<code>{}</code>', Project.Status(obj.status).label)
     status_formatted.short_description = 'status'
+
+    def consortium_link(self, obj):
+        return change_link(obj.consortium)
+    consortium_link.short_description = 'consortium'
 
     def num_services(self, obj):
         return changelist_link(
@@ -110,6 +122,10 @@ class ProjectAdmin(ConcurrentModelAdmin):
             return content
     num_requirements.short_description = '# requirements'
 
-    def owner_link(self, obj):
-        return change_link(obj.owner)
-    owner_link.short_description = 'owner'
+    def num_collaborators(self, obj):
+        return changelist_link(
+            Collaborator,
+            "{} collaborator{}".format(obj.collaborator_count, pluralize(obj.collaborator_count)),
+            dict(project__id__exact = obj.pk)
+        )
+    num_collaborators.short_description = '# collaborators'
