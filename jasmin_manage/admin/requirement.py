@@ -45,7 +45,7 @@ class RequirementAdmin(ConcurrentModelAdmin):
         ('start_date', DateRangeFilter),
         ('end_date', DateRangeFilter),
     )
-    autocomplete_fields = ('service', )
+    autocomplete_fields = ('service', 'resource')
     exclude = (
         'service',
         'resource',

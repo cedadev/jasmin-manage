@@ -69,7 +69,7 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
                 )
             )
         )
-        return qs.annotate(
+        qs = qs.annotate(
             overprovisioned_count = Coalesce(
                 Subquery(overprovisioned_quotas
                     .order_by()
@@ -80,6 +80,8 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
                 Value(0)
             )
         )
+        # The annotations remove the ordering, so re-apply the default ones
+        return qs.order_by(*qs.query.get_meta().ordering)
 
     def num_quotas(self, obj):
         text = '{} quota{}'.format(obj.quota_count, pluralize(obj.quota_count))

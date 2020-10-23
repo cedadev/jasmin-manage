@@ -32,7 +32,7 @@ class ServiceAdmin(ConcurrentModelAdmin):
         ('project', RelatedDropdownFilter),
     )
     search_fields = ('project__name', 'name')
-    autocomplete_fields = ('project', )
+    autocomplete_fields = ('category', 'project')
     readonly_fields = ('num_requirements', )
 
     def get_exclude(self, request, obj = None):
@@ -53,7 +53,7 @@ class ServiceAdmin(ConcurrentModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(
+        qs = qs.annotate(
             # Annotate the queryset with information about the number of requirements
             requirement_count = Count('requirement', distinct = True),
             # Also annotate with information about the number of requirements awaiting provisioning
@@ -72,6 +72,8 @@ class ServiceAdmin(ConcurrentModelAdmin):
                 output_field = IntegerField()
             )
         )
+        # The annotations remove the ordering, so re-apply the default one
+        return qs.order_by(*qs.query.get_meta().ordering)
 
     def category_link(self, obj):
         return change_link(obj.category)
