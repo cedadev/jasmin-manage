@@ -40,7 +40,6 @@ if __name__ == "__main__":
             'django-tsunami',
             'django-concurrency',
             'djangorestframework',
-            'drf-nested-routers',
             'drf-spectacular',
         ],
     )

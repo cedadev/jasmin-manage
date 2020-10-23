@@ -1,15 +1,7 @@
-from django.urls import get_resolver, URLPattern
+from django.urls import get_resolver, NoReverseMatch
 
 from rest_framework import fields, relations, serializers
 from rest_framework.reverse import reverse
-
-
-def get_url_patterns(resolver):
-    for pattern in resolver.url_patterns:
-        if isinstance(pattern, URLPattern):
-            yield pattern
-        else:
-            yield from get_url_patterns(pattern)
 
 
 class EnumField(fields.Field):
@@ -57,18 +49,10 @@ class LinksField(fields.ReadOnlyField):
     """
     def __init__(self, **kwargs):
         self.basename = kwargs.pop('basename')
-        self.extra_actions = kwargs.pop('extra_actions', [])
+        self.related_links = kwargs.pop('related_links', [])
+        self.action_links = kwargs.pop('action_links', [])
         kwargs['source'] = '*'
         super().__init__(**kwargs)
-
-    def get_action_url(self, obj, action, request, format):
-        view_name = "{}-{}".format(self.basename, action)
-        return reverse(
-            view_name,
-            kwargs = dict(pk = obj.pk),
-            request = request,
-            format = format
-        )
 
     def to_representation(self, value):
         request = self.context['request']
@@ -76,11 +60,36 @@ class LinksField(fields.ReadOnlyField):
         if format and self.format and self.format != format:
             format = self.format
         # Always start with the self link
-        links = dict(self = self.get_action_url(value, 'detail', request, format))
-        # Add the links for the specified actions
+        links = dict(
+            self = reverse(
+                "{}-detail".format(self.basename),
+                kwargs = dict(pk = value.pk),
+                request = request,
+                format = format
+            )
+        )
+        # Add links to the related objects
+        for name, model, attr in self.related_links:
+            try:
+                links.update({
+                    name: reverse(
+                        "{}-detail".format(model._meta.object_name.lower()),
+                        kwargs = dict(pk = getattr(value, attr)),
+                        request = request,
+                        format = format
+                    )
+                })
+            except NoReverseMatch:
+                pass
+        # Add links to the additional actions
         links.update({
-            action: self.get_action_url(value, action, request, format)
-            for action in self.extra_actions
+            action: reverse(
+                "{}-{}".format(self.basename, action),
+                kwargs = dict(pk = value.pk),
+                request = request,
+                format = format
+            )
+            for action in self.action_links
         })
         return links
 
@@ -103,18 +112,28 @@ class BaseSerializer(serializers.ModelSerializer):
         Create a field representing the object's own URL.
         """
         basename = model_class._meta.object_name.lower()
+        # Calculate the list of foreign key fields for which related links should be added
+        related_links = [
+            (f.name, f.related_model, f.get_attname())
+            for f in model_class._meta.get_fields()
+            if f.many_to_one or f.one_to_one
+        ]
         # Get the names of all the views that define actions for the model
         actions = set(
-            key.replace(basename + '-', '')
+            key[len(basename) + 1:]
             for key in get_resolver('jasmin_manage.urls').reverse_dict.keys()
             if isinstance(key, str) and key.startswith(basename + '-')
         )
         # Remove the list and detail views
-        extra_actions = actions - {'list', 'detail'}
-        # Pass the basename and extra actions to the links field
+        action_links = actions - {'list', 'detail'}
+        # Pass the basename and extra links to the field constructor
         return (
             self.serializer_links_field,
-            dict(basename = basename, extra_actions = extra_actions)
+            dict(
+                basename = basename,
+                related_links = related_links,
+                action_links = action_links
+            )
         )
 
     def build_field(self, field_name, info, model_class, nested_depth):
