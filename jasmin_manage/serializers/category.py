@@ -9,4 +9,4 @@ class CategorySerializer(BaseSerializer):
     """
     class Meta:
         model = Category
-        exclude = ('version', 'resources')
+        fields = '__all__'

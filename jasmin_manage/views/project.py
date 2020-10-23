@@ -2,8 +2,13 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ..models import Project, Requirement, Service
-from ..serializers import ProjectSerializer, RequirementSerializer, ServiceSerializer
+from ..models import Collaborator, Project, Requirement, Service
+from ..serializers import (
+    CollaboratorSerializer,
+    ProjectSerializer,
+    RequirementSerializer,
+    ServiceSerializer
+)
 
 
 class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
@@ -12,6 +17,16 @@ class ProjectViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+
+    @action(detail = True, methods = ['GET'])
+    def collaborators(self, request, pk = None):
+        """
+        Returns the collaborators for the project.
+        """
+        queryset = Collaborator.objects.filter(project = pk)
+        context = self.get_serializer_context()
+        serializer = CollaboratorSerializer(queryset, many = True, context = context)
+        return Response(serializer.data)
 
     @action(detail = True, methods = ['GET'])
     def services(self, request, pk = None):

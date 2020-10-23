@@ -1,4 +1,5 @@
 from .category import CategorySerializer
+from .collaborator import CollaboratorSerializer
 from .consortium import ConsortiumSerializer
 from .project import ProjectSerializer
 from .quota import QuotaSerializer

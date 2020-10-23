@@ -11,6 +11,6 @@ class ResourceSerializer(BaseSerializer):
     """
     class Meta:
         model = Resource
-        exclude = ('version', )
+        fields = '__all__'
 
     total_available = serializers.IntegerField(read_only = True)

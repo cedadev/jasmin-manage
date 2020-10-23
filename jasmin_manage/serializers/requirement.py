@@ -9,6 +9,6 @@ class RequirementSerializer(BaseSerializer):
     """
     class Meta:
         model = Requirement
-        exclude = ('version', )
+        fields = '__all__'
 
     status = EnumField(Requirement.Status)

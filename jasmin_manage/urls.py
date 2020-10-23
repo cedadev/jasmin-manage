@@ -10,6 +10,7 @@ from . import views
 # Top-level router
 router = routers.DefaultRouter()
 router.register(r'categories', views.CategoryViewSet)
+router.register(r'collaborators', views.CollaboratorViewSet)
 router.register(r'consortia', views.ConsortiumViewSet)
 router.register(r'projects', views.ProjectViewSet)
 router.register(r'quotas', views.QuotaViewSet)

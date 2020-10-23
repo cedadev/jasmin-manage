@@ -9,4 +9,4 @@ class ServiceSerializer(BaseSerializer):
     """
     class Meta:
         model = Service
-        exclude = ('version', )
+        fields = '__all__'
