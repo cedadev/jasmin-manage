@@ -1,6 +1,4 @@
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework import mixins, viewsets
 
 from ..models import Consortium, Project, Quota
 from ..serializers import (
@@ -17,22 +15,26 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Consortium.objects.all()
     serializer_class = ConsortiumSerializer
 
-    @action(detail = True, methods = ['GET'])
-    def projects(self, request, pk = None):
-        """
-        Returns the projects for the consortium.
-        """
-        queryset = Project.objects.filter(consortium = pk)
-        context = self.get_serializer_context()
-        serializer = ProjectSerializer(queryset, many = True, context = context)
-        return Response(serializer.data)
 
-    @action(detail = True, methods = ['GET'])
-    def quotas(self, request, pk = None):
-        """
-        Returns the quotas for the consortium.
-        """
-        queryset = Quota.objects.filter(consortium = pk)
-        context = self.get_serializer_context()
-        serializer = QuotaSerializer(queryset, many = True, context = context)
-        return Response(serializer.data)
+class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    View set for listing projects for a consortium.
+    """
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+
+    def get_queryset(self):
+        # Filter the resources by consortium
+        return super().get_queryset().filter(consortium = self.kwargs['consortium_pk'])
+
+
+class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    View set for listing the quotas for a consortium.
+    """
+    queryset = Quota.objects.all()
+    serializer_class = QuotaSerializer
+
+    def get_queryset(self):
+        # Filter the resources by consortium
+        return super().get_queryset().filter(consortium = self.kwargs['consortium_pk'])

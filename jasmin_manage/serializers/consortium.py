@@ -9,4 +9,4 @@ class ConsortiumSerializer(BaseSerializer):
     """
     class Meta:
         model = Consortium
-        fields = '__all__'
+        exclude = ('version', )

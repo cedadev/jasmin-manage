@@ -30,7 +30,7 @@ class Collaborator(models.Model):
         related_query_name = 'collaborator'
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
-    role = models.PositiveSmallIntegerField(choices = Role.choices)
+    role = models.PositiveSmallIntegerField(choices = Role.choices, default = Role.CONTRIBUTOR)
     # Version field for optimistic concurrency
     version = IntegerVersionField()
 

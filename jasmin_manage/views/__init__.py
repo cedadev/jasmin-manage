@@ -1,8 +1,7 @@
-from .category import CategoryViewSet
+from .category import CategoryViewSet, CategoryResourcesViewSet
 from .collaborator import CollaboratorViewSet
-from .consortium import ConsortiumViewSet
-from .project import ProjectViewSet
-from .quota import QuotaViewSet
+from .consortium import ConsortiumViewSet, ConsortiumProjectsViewSet, ConsortiumQuotasViewSet
+from .project import ProjectViewSet, ProjectCollaboratorsViewSet, ProjectServicesViewSet
 from .requirement import RequirementViewSet
 from .resource import ResourceViewSet
-from .service import ServiceViewSet
+from .service import ServiceViewSet, ServiceRequirementsViewSet

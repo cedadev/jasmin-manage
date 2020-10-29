@@ -14,6 +14,19 @@ class ProjectManager(models.Manager):
         return self.get(name = name)
 
 
+class ProjectQuerySet(models.QuerySet):
+    """
+    Queryset for the project model.
+    """
+    def create(self, *, owner, **kwargs):
+        # Import here to avoid circular dependencies
+        from .collaborator import Collaborator
+        project = super().create(**kwargs)
+        # Make a collaborator object for the given owner
+        Collaborator.objects.create(project = project, user = owner, role = Collaborator.Role.OWNER)
+        return project
+
+
 class Project(models.Model):
     """
     Represents a project within a consortium.
@@ -31,7 +44,7 @@ class Project(models.Model):
         UNDER_REVIEW = 20
         COMPLETED = 30
 
-    objects = ProjectManager()
+    objects = ProjectManager.from_queryset(ProjectQuerySet)()
 
     name = models.CharField(max_length = 250, unique = True)
     description = models.TextField(help_text = "Can contain markdown syntax.")

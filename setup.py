@@ -41,5 +41,6 @@ if __name__ == "__main__":
             'django-concurrency',
             'djangorestframework',
             'drf-spectacular',
+            'drf-nested-routers',
         ],
     )

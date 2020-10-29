@@ -90,11 +90,6 @@ class Requirement(models.Model):
 
     def clean(self):
         errors = dict()
-        # Edits cannot be made to requirements in completed projects
-        # This is combined with a check in Project.clean that ensures all requirements
-        # are decommisioned before a project can be closed
-        if self.service_id and self.service.project.status == Project.Status.COMPLETED:
-            errors.setdefault('__all__', []).append('Cannot modify the requirements of a completed project.')
         # Make sure that the selected resource is compatible with the category of the selected service
         if self.service_id and self.resource_id:
             # For new requirements, the selected resource must belong to the category of the service
@@ -109,6 +104,9 @@ class Requirement(models.Model):
             prev_number = Requirement.objects.filter(pk = self.pk).values_list('number', flat = True)[0]
             if self.number != prev_number:
                 errors.setdefault('number', []).append('Requirement number cannot be changed.')
+        # Make sure that the end date is always later than the start date
+        if self.end_date <= self.start_date:
+            errors.setdefault('end_date', []).append('End date must be after start date.')
         # The total provisioned for a resource/consortium combo cannot exceed the quota
         # Combined with the fact that the quotas cannot exceed the total available, this means
         # that the total provisioned for a resource cannot exceed the total available
