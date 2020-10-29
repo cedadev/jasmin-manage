@@ -77,19 +77,16 @@ class LinksField(fields.ReadOnlyField):
             )
             for name, view_name in self.related_list_links
         })
-        # Add links to the additional actions
-        for action in self.action_links:
-            try:
-                links.update({
-                    action: reverse(
-                        "{}-{}".format(self.basename, action),
-                        kwargs = dict(pk = value.pk),
-                        request = request,
-                        format = format
-                    )
-                })
-            except NoReverseMatch:
-                pass
+        # Add additional actions to the links
+        links.update({
+            name: reverse(
+                view_name,
+                kwargs = dict(pk = value.pk),
+                request = request,
+                format = format
+            )
+            for name, view_name in self.action_links
+        })
         return links
 
 
@@ -132,14 +129,20 @@ class BaseSerializer(serializers.ModelSerializer):
                 view_name = "{}-{}-list".format(basename, field_name)
                 if view_name in view_names:
                     related_list_links.append((field_name, view_name))
-        # Get the names of all the views that are for actions
-        actions = set()
-        #     key[len(basename) + 1:]
-        #     for key in get_resolver('jasmin_manage.urls').reverse_dict.keys()
-        #     if isinstance(key, str) and key.startswith(basename + '-')
-        # )
-        # Remove the list and detail views
-        action_links = actions - {'list', 'detail'}
+        # Get the extra actions that are available by inspecting the views
+        # This is the only reliable way to get this to work in different viewsets
+        action_links = []
+        for view_name in view_names:
+            if not view_name.startswith(basename):
+                continue
+            if view_name in {link[1] for link in related_object_links}:
+                continue
+            if view_name in {link[1] for link in related_list_links}:
+                continue
+            action = view_name[len(basename) + 1:]
+            if action in {'list', 'detail'}:
+                continue
+            action_links.append((action, view_name))
         # Pass the basename and extra links to the field constructor
         return (
             self.serializer_links_field,

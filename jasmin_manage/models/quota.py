@@ -19,7 +19,7 @@ class QuotaManager(models.Manager):
 
 
 class QuotaQuerySet(models.QuerySet):
-    def annotate_usage(self):
+    def annotate_usage(self, *statuses):
         """
         Returns the current queryset annotated with usage information from requirements
         that reference the resource.
@@ -37,7 +37,8 @@ class QuotaQuerySet(models.QuerySet):
                     filter = models.Q(status = status)
                 ))
             )
-            for status in Requirement.Status
+            # If no statuses are given, use them all
+            for status in (statuses or Requirement.Status)
         ))
         # This subquery fetches the count and total of all requirements for the quota
         requirements = (Requirement.objects

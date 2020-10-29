@@ -39,7 +39,7 @@ class RequirementAdmin(ConcurrentModelAdmin):
     )
     list_filter = (
         ('service__project__consortium', RelatedDropdownFilter),
-        ('service__project', RelatedOnlyDropdownFilter),
+        ('service__project', RelatedDropdownFilter),
         ('resource', RelatedDropdownFilter),
         'status',
         ('start_date', DateRangeFilter),
