@@ -55,11 +55,6 @@ class Project(models.Model):
         related_name = 'projects',
         related_query_name = 'project'
     )
-    # The number of the next requirement for this project
-    # Maintaining this field on the project (vs using MAX of the existing requirement numbers)
-    # allows us to have monotonically increasing requirement numbers even when requirements
-    # are deleted
-    next_requirement_number = models.PositiveIntegerField(default = 1, editable = False)
     # Version field for optimistic concurrency
     version = IntegerVersionField()
     created_at = models.DateTimeField(auto_now_add = True)

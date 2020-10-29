@@ -12,14 +12,6 @@ from .resource import Resource
 from .service import Service
 
 
-class RequirementManager(models.Manager):
-    """
-    Manager for the requirement model.
-    """
-    def get_by_natural_key(self, project_name, number):
-        return self.get(service__project__name = project_name, number = number)
-
-
 def _five_years():
     return date.today() + relativedelta(years = 5)
 
@@ -43,8 +35,6 @@ class Requirement(models.Model):
         PROVISIONED = 50
         DECOMMISSIONED = 60
 
-    objects = RequirementManager()
-
     service = models.ForeignKey(
         Service,
         models.CASCADE,
@@ -56,11 +46,6 @@ class Requirement(models.Model):
         models.CASCADE,
         related_name = 'requirements',
         related_query_name = 'requirement'
-    )
-    number = models.PositiveIntegerField(
-        blank = True,
-        editable = False,
-        help_text = 'The number of the requirement within the parent project.'
     )
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.REQUESTED)
     amount = models.PositiveIntegerField()
@@ -81,13 +66,6 @@ class Requirement(models.Model):
         if 'status' in diff:
             return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
 
-    def natural_key(self):
-        return self.service.project.name, self.number
-    natural_key.dependencies = (Project._meta.label_lower, )
-
-    def __str__(self):
-        return "{} / #{}".format(self.service.project, self.number)
-
     def clean(self):
         errors = dict()
         # Make sure that the selected resource is compatible with the category of the selected service
@@ -99,11 +77,6 @@ class Requirement(models.Model):
                 allowed_resources = allowed_resources | Resource.objects.filter(requirement = self)
             if not allowed_resources.filter(pk = self.resource.pk).exists():
                 errors.setdefault('resource', []).append('Resource is not valid for the selected service.')
-        # Make sure that the requirement number doesn't change
-        if not self._state.adding:
-            prev_number = Requirement.objects.filter(pk = self.pk).values_list('number', flat = True)[0]
-            if self.number != prev_number:
-                errors.setdefault('number', []).append('Requirement number cannot be changed.')
         # Make sure that the end date is always later than the start date
         if self.end_date <= self.start_date:
             errors.setdefault('end_date', []).append('End date must be after start date.')
@@ -146,19 +119,3 @@ class Requirement(models.Model):
         #         )
         if errors:
             raise ValidationError(errors)
-
-    def save(self, *args, **kwargs):
-        # We will be potentially saving the requirement and the project in order to
-        # update the next requirement number for the project
-        # We want to make sure this happens inside a transaction so either both succeed
-        # or both fail
-        with transaction.atomic():
-            if self._state.adding:
-                project = self.service.project
-                # If adding, set the requirement number based on the project
-                self.number = project.next_requirement_number
-                # Increment the next requirement number for the project
-                project.next_requirement_number = project.next_requirement_number + 1
-                project.save()
-            return super().save(*args, **kwargs)
-

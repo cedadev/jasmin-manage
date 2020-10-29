@@ -11,7 +11,7 @@ class ProjectSerializer(BaseSerializer):
     """
     class Meta:
         model = Project
-        exclude = ('next_requirement_number', )
+        fields = '__all__'
         read_only_fields = ('status', 'version')
         create_only_fields = ('consortium', )
 

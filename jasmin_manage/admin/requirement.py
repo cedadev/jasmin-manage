@@ -29,7 +29,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
     list_display = (
         'id',
         'project_link',
-        'number',
         'service_link',
         'resource_link',
         'status_formatted',
@@ -56,7 +55,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
     )
     readonly_fields = (
         'project_link',
-        'number',
         'service_link',
         'resource_link',
         'status_formatted',
