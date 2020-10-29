@@ -1,8 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-from concurrency.fields import IntegerVersionField
-
 
 class ConsortiumManager(models.Manager):
     """
@@ -29,8 +27,6 @@ class Consortium(models.Model):
     description = models.TextField(help_text = "Can contain markdown syntax.")
     # Prevent a user being deleted if they are a consortium manager
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def natural_key(self):
         return (self.name, )

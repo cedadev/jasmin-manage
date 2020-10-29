@@ -9,5 +9,4 @@ class CategorySerializer(BaseSerializer):
     """
     class Meta:
         model = Category
-        # Categories are readonly in the API, so no version is required
-        exclude = ('version', )
+        fields = '__all__'

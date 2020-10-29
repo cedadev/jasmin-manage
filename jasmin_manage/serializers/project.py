@@ -12,7 +12,7 @@ class ProjectSerializer(BaseSerializer):
     class Meta:
         model = Project
         fields = '__all__'
-        read_only_fields = ('status', 'version')
+        read_only_fields = ('status', )
         create_only_fields = ('consortium', )
 
     status = EnumField(Project.Status)

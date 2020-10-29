@@ -10,7 +10,7 @@ class ServiceSerializer(BaseSerializer):
     class Meta:
         model = Service
         fields = '__all__'
-        read_only_fields = ('project', 'version')
+        read_only_fields = ('project', )
         create_only_fields = ('category', )
 
     def validate(self, data):

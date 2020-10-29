@@ -9,4 +9,4 @@ class QuotaSerializer(BaseSerializer):
     """
     class Meta:
         model = Quota
-        exclude = ('version', )
+        fields = '__all__'

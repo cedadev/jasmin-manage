@@ -14,14 +14,12 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Consortium, Project, Quota, Requirement
 from .util import changelist_link, change_link
 
 
 @admin.register(Consortium)
-class ConsortiumAdmin(ConcurrentModelAdmin):
+class ConsortiumAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )

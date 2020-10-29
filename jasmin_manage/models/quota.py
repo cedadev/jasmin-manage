@@ -4,8 +4,6 @@ from django.db import models
 from django.db.models import functions
 from django.core.exceptions import ValidationError
 
-from concurrency.fields import IntegerVersionField
-
 from .consortium import Consortium
 from .resource import Resource
 
@@ -88,8 +86,6 @@ class Quota(models.Model):
         related_query_name = 'quota'
     )
     amount = models.PositiveIntegerField()
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         return self.consortium, self.resource
@@ -97,22 +93,3 @@ class Quota(models.Model):
     def natural_key(self):
         return self.consortium.name, self.resource.name
     natural_key.dependencies = (Consortium._meta.label_lower, Resource._meta.label_lower)
-
-    # def clean(self):
-    #     # The sum of the quotas for a resource must be <= the total available resource
-    #     if self.resource_id and self.amount is not None:
-    #         # Get the sum of all the quotas for the resource, excluding this one
-    #         quotas = Quota.objects.filter(resource = self.resource)
-    #         if not self._state.adding:
-    #             quotas = quotas.exclude(pk = self.pk)
-    #         quota_total = quotas.aggregate(total = models.Sum('amount'))['total'] or 0
-    #         # Add on the new amount for this quota
-    #         quota_total = quota_total + self.amount
-    #         # If the new amount for this quota takes the total over available, bail
-    #         if quota_total > self.resource.total_available:
-    #             raise ValidationError({
-    #                 'amount': 'Sum of quotas ({}) cannot exceed total available ({}).'.format(
-    #                     self.resource.format_amount(quota_total),
-    #                     self.resource.format_amount(self.resource.total_available)
-    #                 )
-    #             })

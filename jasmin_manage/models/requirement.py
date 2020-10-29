@@ -5,8 +5,6 @@ from dateutil.relativedelta import relativedelta
 from django.db import models, transaction
 from django.core.exceptions import ValidationError
 
-from concurrency.fields import IntegerVersionField
-
 from .project import Project
 from .resource import Resource
 from .service import Service
@@ -54,8 +52,6 @@ class Requirement(models.Model):
     # Default end date is 5 years
     end_date = models.DateField(default = _five_years)
     created_at = models.DateTimeField(auto_now_add = True)
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         # Aggregate requirement events over the service and resource
@@ -80,42 +76,5 @@ class Requirement(models.Model):
         # Make sure that the end date is always later than the start date
         if self.end_date <= self.start_date:
             errors.setdefault('end_date', []).append('End date must be after start date.')
-        # The total provisioned for a resource/consortium combo cannot exceed the quota
-        # Combined with the fact that the quotas cannot exceed the total available, this means
-        # that the total provisioned for a resource cannot exceed the total available
-        # if self.consortium_id:
-        #     consortium = self.consortium
-        # elif self.service_id:
-        #     consortium = self.service.project.default_consortium
-        # else:
-        #     consortium = None
-        # if consortium and \
-        #    self.resource_id and \
-        #    self.status == self.Status.PROVISIONED and \
-        #    self.amount is not None:
-        #     # Get the quota of the resource for the consortium, or 0 if there isn't one
-        #     quota = self.resource.quotas.filter(consortium = consortium).first()
-        #     quota_amount = getattr(quota, 'amount', 0)
-        #     # Get the total provisioned for the consortium/resource
-        #     provisioned = self.resource.requirements.filter(
-        #         consortium = consortium,
-        #         status = self.Status.PROVISIONED
-        #     )
-        #     # If the current requirement has already been saved, exclude it from the sum
-        #     # We will add the current amount after, as it may have changed
-        #     if not self._state.adding:
-        #         provisioned = provisioned.exclude(pk = self.pk)
-        #     # Sum the discovered amounts
-        #     total_provisioned = provisioned.aggregate(total = models.Sum('amount'))['total'] or 0
-        #     # Add on the current amount for this requirement
-        #     total_provisioned = total_provisioned + self.amount
-        #     # Check if it exceeds the quota
-        #     if total_provisioned > quota_amount:
-        #         errors.setdefault('amount', []).append(
-        #             'Total provisioned ({}) cannot exceed consortium quota ({}).'.format(
-        #                 self.resource.format_amount(total_provisioned),
-        #                 self.resource.format_amount(quota_amount)
-        #             )
-        #         )
         if errors:
             raise ValidationError(errors)

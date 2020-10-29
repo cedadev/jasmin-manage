@@ -1,8 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from concurrency.fields import IntegerVersionField
-
 from .consortium import Consortium
 
 
@@ -55,8 +53,6 @@ class Project(models.Model):
         related_name = 'projects',
         related_query_name = 'project'
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
     created_at = models.DateTimeField(auto_now_add = True)
 
     def get_event_type(self, diff):

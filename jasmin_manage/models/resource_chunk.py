@@ -1,8 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from concurrency.fields import IntegerVersionField
-
 from .resource import Resource
 
 
@@ -36,8 +34,6 @@ class ResourceChunk(models.Model):
     amount = models.PositiveIntegerField(
         help_text = 'The amount of the resource that is in this chunk.'
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def natural_key(self):
         return self.resource.name, self.name

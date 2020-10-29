@@ -1,8 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-from concurrency.fields import IntegerVersionField
-
 from .project import Project
 
 
@@ -31,8 +29,6 @@ class Collaborator(models.Model):
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
     role = models.PositiveSmallIntegerField(choices = Role.choices, default = Role.CONTRIBUTOR)
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         # Aggregate collaborator events over the project and user

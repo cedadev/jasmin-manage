@@ -2,8 +2,6 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.template.defaultfilters import pluralize
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Quota, Requirement, Resource, ResourceChunk
 from .util import changelist_link
 
@@ -13,7 +11,7 @@ class ResourceChunkInline(admin.TabularInline):
 
 
 @admin.register(Resource)
-class ResourceAdmin(ConcurrentModelAdmin):
+class ResourceAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )

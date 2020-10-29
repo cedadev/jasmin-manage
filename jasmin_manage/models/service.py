@@ -1,8 +1,6 @@
 from django.db import models
 from django.core import validators
 
-from concurrency.fields import IntegerVersionField
-
 from .category import Category
 from .project import Project
 
@@ -49,8 +47,6 @@ class Service(models.Model):
             ),
         )
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         # Aggregate service events over the category and project

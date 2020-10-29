@@ -3,14 +3,12 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Collaborator
 from .util import change_link
 
 
 @admin.register(Collaborator)
-class CollaboratorAdmin(ConcurrentModelAdmin):
+class CollaboratorAdmin(admin.ModelAdmin):
     list_display = ('id', 'project_link', 'user_link', 'role')
     list_filter = (
         ('project', RelatedDropdownFilter),

@@ -14,7 +14,7 @@ class RequirementSerializer(BaseSerializer):
     class Meta:
         model = Requirement
         fields = '__all__'
-        read_only_fields = ('service', 'status', 'version')
+        read_only_fields = ('service', 'status')
         create_only_fields = ('resource', )
 
     status = EnumField(Requirement.Status)

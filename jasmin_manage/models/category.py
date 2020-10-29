@@ -1,7 +1,5 @@
 from django.db import models
 
-from concurrency.fields import IntegerVersionField
-
 from .resource import Resource
 
 
@@ -31,8 +29,6 @@ class Category(models.Model):
         related_name = 'categories',
         related_query_name = 'category'
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def natural_key(self):
         return (self.name, )

@@ -12,14 +12,12 @@ from django_admin_listfilter_dropdown.filters import (
 
 from rangefilter.filter import DateRangeFilter
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Requirement
 from .util import change_link
 
 
 @admin.register(Requirement)
-class RequirementAdmin(ConcurrentModelAdmin):
+class RequirementAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
