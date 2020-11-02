@@ -60,7 +60,7 @@ class Requirement(models.Model):
     def get_event_type(self, diff):
         # If the status is in the diff, use it as the event type, otherwise use the default
         if 'status' in diff:
-            return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
+            return '{}.{}'.format(self._meta.label_lower, self.Status(diff['status']).name.lower())
 
     def clean(self):
         errors = dict()

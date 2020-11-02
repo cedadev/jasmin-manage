@@ -93,3 +93,6 @@ class Quota(models.Model):
     def natural_key(self):
         return self.consortium.name, self.resource.name
     natural_key.dependencies = (Consortium._meta.label_lower, Resource._meta.label_lower)
+
+    def __str__(self):
+        return "{} / {}".format(self.consortium, self.resource)

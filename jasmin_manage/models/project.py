@@ -17,11 +17,10 @@ class ProjectQuerySet(models.QuerySet):
     Queryset for the project model.
     """
     def create(self, *, owner, **kwargs):
-        # Import here to avoid circular dependencies
         from .collaborator import Collaborator
         project = super().create(**kwargs)
         # Make a collaborator object for the given owner
-        Collaborator.objects.create(project = project, user = owner, role = Collaborator.Role.OWNER)
+        project.collaborators.create(user = owner, role = Collaborator.Role.OWNER)
         return project
 
 
@@ -58,7 +57,7 @@ class Project(models.Model):
     def get_event_type(self, diff):
         # If the status is in the diff, use it as the event type, otherwise use the default
         if 'status' in diff:
-            return '{}.{}'.format(self._meta.label_lower, self.Status(self.status).name.lower())
+            return '{}.{}'.format(self._meta.label_lower, self.Status(diff['status']).name.lower())
 
     def get_event_aggregates(self):
         # Aggregate project events over the consortium
@@ -69,16 +68,3 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
-
-    def clean(self):
-        # For a project to be in the COMPLETED status, all the requirements must be decommisioned
-        if self.status == self.Status.COMPLETED:
-            from .requirement import Requirement
-            requirements = (Requirement.objects
-                .filter(service__project = self)
-                .exclude(status__gte = Requirement.Status.DECOMMISSIONED)
-            )
-            if requirements.exists():
-                raise ValidationError(
-                    'A project cannot be completed until all requirements are decommissioned.'
-                )

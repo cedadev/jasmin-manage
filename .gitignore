@@ -4,3 +4,7 @@ db.sqlite3
 .python-version
 __pycache__
 settings.py
+.coverage
+.tox
+htmlcov
+coverage.xml

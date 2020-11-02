@@ -9,7 +9,7 @@ class ResourceChunkManager(models.Manager):
     Manager for the resource chunk model.
     """
     def get_by_natural_key(self, resource_name, chunk_name):
-        return self.get(resource__name = resource_name, name = name)
+        return self.get(resource__name = resource_name, name = chunk_name)
 
 
 class ResourceChunk(models.Model):
@@ -20,6 +20,8 @@ class ResourceChunk(models.Model):
         ordering = ('resource__name', 'name')
         unique_together = ('resource', 'name')
 
+    objects = ResourceChunkManager()
+
     resource = models.ForeignKey(
         Resource,
         models.CASCADE,
@@ -28,7 +30,6 @@ class ResourceChunk(models.Model):
     )
     name = models.CharField(
         max_length = 250,
-        unique = True,
         help_text = 'The name of the resource chunk, e.g. QB1, QB2.'
     )
     amount = models.PositiveIntegerField(
