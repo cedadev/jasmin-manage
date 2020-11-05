@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from ...models import Collaborator, Consortium
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class CollaboratorModelTestCase(AssertValidationErrorsMixin, TestCase):

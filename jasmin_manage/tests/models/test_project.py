@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from ...models import Collaborator, Consortium, Project
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class ProjectModelTestCase(AssertValidationErrorsMixin, TestCase):

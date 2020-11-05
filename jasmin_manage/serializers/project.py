@@ -12,10 +12,9 @@ class ProjectSerializer(BaseSerializer):
     class Meta:
         model = Project
         fields = '__all__'
-        read_only_fields = ('status', )
         create_only_fields = ('consortium', )
 
-    status = EnumField(Project.Status)
+    status = EnumField(Project.Status, read_only = True)
 
     def create(self, validated_data):
         # Inject the user from the request as the owner when creating

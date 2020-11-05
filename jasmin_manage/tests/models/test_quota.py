@@ -6,7 +6,7 @@ from django.test import TestCase
 
 from ...models import Category, Consortium, Quota, Requirement, Resource
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class QuotaModelTestCase(AssertValidationErrorsMixin, TestCase):

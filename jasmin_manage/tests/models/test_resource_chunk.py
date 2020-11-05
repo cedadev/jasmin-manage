@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from ...models import ResourceChunk, Resource
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):

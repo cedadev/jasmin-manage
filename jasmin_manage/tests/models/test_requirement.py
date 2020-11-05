@@ -7,7 +7,7 @@ from django.test import TestCase
 
 from ...models import Category, Consortium, Requirement, Resource
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class RequirementModelTestCase(AssertValidationErrorsMixin, TestCase):

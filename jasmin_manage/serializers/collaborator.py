@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from ..models import Collaborator
 
-from .base import BaseSerializer, EnumField
+from .base import BaseSerializer, EnumField, ContextDefault
 
 
 class CollaboratorSerializer(BaseSerializer):
@@ -12,19 +12,18 @@ class CollaboratorSerializer(BaseSerializer):
     class Meta:
         model = Collaborator
         fields = '__all__'
-        read_only_fields = ('project', )
         create_only_fields = ('user', )
 
+    # This field is required to validate the unique_together constraint when project is read-only
+    # See https://www.django-rest-framework.org/api-guide/serializers/#specifying-read-only-fields
+    project = serializers.PrimaryKeyRelatedField(
+        read_only = True,
+        default = ContextDefault('project')
+    )
+    # Use an enum field that emits the enum member names instead of values
     role = EnumField(Collaborator.Role)
 
-    def validate(self, data):
-        # Update the validated data with the project from the context if present
-        project = self.context.get('project')
-        if project:
-            data.update(project = project)
-        return super().validate(data)
-
     def create(self, validated_data):
-        # Inject the project from the context when creating
+        # Inject the project from the context into the model
         validated_data.update(project = self.context['project'])
         return super().create(validated_data)

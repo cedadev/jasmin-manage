@@ -5,7 +5,7 @@ from django.test import TestCase
 
 from ...models import Category, Consortium, Project, Service
 
-from .utils import AssertValidationErrorsMixin
+from ..utils import AssertValidationErrorsMixin
 
 
 class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):
