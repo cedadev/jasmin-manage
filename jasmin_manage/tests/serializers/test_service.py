@@ -43,22 +43,10 @@ class ServiceSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['category'], self.category.pk)
         self.assertEqual(serializer.data['project'], self.project.pk)
 
-    def test_create_enforces_required_fields(self):
-        """
-        Tests that required fields are enforced on create.
-        """
-        serializer = ServiceSerializer(data = {}, context = dict(project = self.project))
-        self.assertFalse(serializer.is_valid())
-        required_fields = {'name', 'category'}
-        self.assertCountEqual(serializer.errors.keys(), required_fields)
-        for name in required_fields:
-            self.assertEqual(serializer.errors[name][0].code, 'required')
-
     def test_create_uses_project_from_context(self):
         """
         Tests that creating a service uses the project from the context.
         """
-        user = get_user_model().objects.create_user('user1')
         serializer = ServiceSerializer(
             data = dict(name = "service1", category = self.category.pk),
             context = dict(project = self.project)
@@ -69,6 +57,17 @@ class ServiceSerializerTestCase(TestCase):
         self.assertEqual(service.project.pk, self.project.pk)
         self.assertEqual(service.category.pk, self.category.pk)
         self.assertEqual(service.name, "service1")
+
+    def test_create_enforces_required_fields(self):
+        """
+        Tests that required fields are enforced on create.
+        """
+        serializer = ServiceSerializer(data = {}, context = dict(project = self.project))
+        self.assertFalse(serializer.is_valid())
+        required_fields = {'name', 'category'}
+        self.assertCountEqual(serializer.errors.keys(), required_fields)
+        for name in required_fields:
+            self.assertEqual(serializer.errors[name][0].code, 'required')
 
     def test_cannot_create_with_same_category_and_name(self):
         """
@@ -124,6 +123,13 @@ class ServiceSerializerTestCase(TestCase):
         """
         Tests that an invalid name correctly fails.
         """
+        # Test with a blank name
+        serializer = ServiceSerializer(
+            data = dict(name = "", category = self.category.pk),
+            context = dict(project = self.project)
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['name'][0].code, 'blank')
         # Test with whitespace
         serializer = ServiceSerializer(
             data = dict(name = "service 1", category = self.category.pk),

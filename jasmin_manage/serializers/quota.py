@@ -10,3 +10,6 @@ class QuotaSerializer(BaseSerializer):
     class Meta:
         model = Quota
         fields = '__all__'
+
+    # Disable the links field as there is no /quotas endpoint
+    _links = None

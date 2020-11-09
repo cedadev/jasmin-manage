@@ -16,7 +16,7 @@ class CollaboratorViewSet(mixins.RetrieveModelMixin,
     queryset = Collaborator.objects.all()
     serializer_class = CollaboratorSerializer
 
-    def is_sole_owner(self, instance):
+    def _is_sole_owner(self, instance):
         # If the instance is not an owner, then it can't be the sole owner
         if instance.role != Collaborator.Role.OWNER:
             return False
@@ -26,15 +26,18 @@ class CollaboratorViewSet(mixins.RetrieveModelMixin,
 
     def perform_update(self, serializer):
         # Check that the project will still have an owner after the update
-        new_role = serializer.validated_data['role']
-        if new_role == Collaborator.Role.OWNER or not self.is_sole_owner(serializer.instance):
-            return super().perform_update(serializer)
-        else:
-            raise Conflict('Project must have an owner.')
+        role = serializer.validated_data.get('role')
+        if role:
+            # If the role is being updated, it must not leave the project without an owner
+            # If the new role is owner, then that is not possible
+            # If the new role is not owner, then the instance being updated must not be the last owner
+            if role != Collaborator.Role.OWNER and self._is_sole_owner(serializer.instance):
+                raise Conflict('Project must have an owner.', 'sole_owner')
+        return super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         # Make sure that deleting the instance would not leave the project without an owner
-        if not self.is_sole_owner(instance):
+        if not self._is_sole_owner(instance):
             return super().perform_destroy(instance)
         else:
-            raise Conflict('Project must have an owner.')
+            raise Conflict('Project must have an owner.', 'sole_owner')

@@ -362,7 +362,7 @@ class RequirementSerializerTestCase(TestCase):
             data = dict(status = Requirement.Status.PROVISIONED.name),
             partial = True
         )
-        # The serializer should validate but the service should be ignored
+        # The serializer should validate but the status should be ignored
         self.assertTrue(serializer.is_valid())
         serializer.save()
         requirement.refresh_from_db()

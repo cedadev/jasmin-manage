@@ -44,17 +44,6 @@ class CollaboratorSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['user'], collaborator.user.pk)
         self.assertEqual(serializer.data['role'], Collaborator.Role.OWNER.name)
 
-    def test_create_enforces_required_fields(self):
-        """
-        Tests that required fields are enforced on create.
-        """
-        serializer = CollaboratorSerializer(data = {}, context = dict(project = self.project))
-        self.assertFalse(serializer.is_valid())
-        required_fields = {'role', 'user'}
-        self.assertCountEqual(serializer.errors.keys(), required_fields)
-        for name in required_fields:
-            self.assertEqual(serializer.errors[name][0].code, 'required')
-
     def test_create_uses_project_from_context(self):
         """
         Tests that creating a collaborator uses the project from the context.
@@ -71,6 +60,17 @@ class CollaboratorSerializerTestCase(TestCase):
         self.assertEqual(collaborator.project.pk, self.project.pk)
         self.assertEqual(collaborator.user.pk, user.pk)
         self.assertEqual(collaborator.role, Collaborator.Role.CONTRIBUTOR)
+
+    def test_create_enforces_required_fields(self):
+        """
+        Tests that required fields are enforced on create.
+        """
+        serializer = CollaboratorSerializer(data = {}, context = dict(project = self.project))
+        self.assertFalse(serializer.is_valid())
+        required_fields = {'role', 'user'}
+        self.assertCountEqual(serializer.errors.keys(), required_fields)
+        for name in required_fields:
+            self.assertEqual(serializer.errors[name][0].code, 'required')
 
     def test_cannot_create_collaborator_with_same_project_and_user(self):
         """
@@ -114,6 +114,15 @@ class CollaboratorSerializerTestCase(TestCase):
         self.assertEqual(collaborator.user.pk, user.pk)
         self.assertEqual(collaborator.role, Collaborator.Role.OWNER)
 
+    def test_cannot_create_with_invalid_user(self):
+        serializer = CollaboratorSerializer(
+            data = dict(user = 10, role = "CONTRIBUTOR"),
+            context = dict(project = self.project)
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertCountEqual(serializer.errors.keys(), {'user'})
+        self.assertEqual(serializer.errors['user'][0].code, 'does_not_exist')
+
     def test_cannot_create_with_invalid_role(self):
         """
         Tests that an invalid role correctly fails.
@@ -125,6 +134,7 @@ class CollaboratorSerializerTestCase(TestCase):
             context = dict(project = self.project)
         )
         self.assertFalse(serializer.is_valid())
+        self.assertCountEqual(serializer.errors.keys(), {'role'})
         self.assertEqual(serializer.errors['role'][0].code, 'invalid_choice')
 
     def test_update_role(self):
@@ -138,6 +148,16 @@ class CollaboratorSerializerTestCase(TestCase):
         collaborator = serializer.save()
         collaborator.refresh_from_db()
         self.assertEqual(collaborator.role, Collaborator.Role.CONTRIBUTOR)
+
+    def test_cannot_update_with_invalid_role(self):
+        """
+        Tests that updating with an invalid role correctly fails.
+        """
+        collaborator = self.project.collaborators.first()
+        # Try to update the collaborator with an invalid role and test that it fails validation
+        serializer = CollaboratorSerializer(collaborator, data = dict(role = "NOT_VALID"))
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['role'][0].code, 'invalid_choice')
 
     def test_cannot_update_project_or_user(self):
         """

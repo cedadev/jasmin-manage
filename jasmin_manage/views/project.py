@@ -1,3 +1,6 @@
+from django.db import models
+from django.utils.functional import cached_property
+
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
@@ -49,14 +52,37 @@ class ProjectViewSet(mixins.ListModelMixin,
         # The project must be editable
         if project.status != Project.Status.EDITABLE:
             status = Project.Status(project.status).name
-            raise Conflict(f'Cannot submit project with status {status} for review.')
-        # A project with no requirements in the requested state cannot be submitted for review
-        if not (
+            raise Conflict(
+                f'Cannot submit project with status {status} for review.',
+                'invalid_status'
+            )
+        # Fetch the number of requested and rejected requirements for the project in one query
+        requirement_counts = (
             Requirement.objects
-                .filter(service__project = project, status = Requirement.Status.REQUESTED)
-                .exists()
-        ):
-            raise Conflict('Project has no requirements to review.')
+                .filter(service__project = project)
+                .aggregate(
+                    requested_count = models.Count(
+                        'status',
+                        filter = models.Q(status = Requirement.Status.REQUESTED)
+                    ),
+                    rejected_count = models.Count(
+                        'status',
+                        filter = models.Q(status = Requirement.Status.REJECTED)
+                    ),
+                )
+        )
+        # A project with requirements in the rejected state cannot be submitted for review
+        if requirement_counts.get('rejected_count', 0) >= 1:
+            raise Conflict(
+                'Cannot submit project with rejected requirements.',
+                'rejected_requirements'
+            )
+        # A project with no requirements in the requested state cannot be submitted for review
+        if requirement_counts.get('requested_count', 0) < 1:
+            raise Conflict(
+                'Project has no requirements to review.',
+                'no_requested_requirements'
+            )
         # Update the project status and return it
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -71,15 +97,39 @@ class ProjectViewSet(mixins.ListModelMixin,
         # The project must be under review
         if project.status != Project.Status.UNDER_REVIEW:
             status = Project.Status(project.status).name
-            raise Conflict(f'Cannot request changes for project with status {status}.')
+            raise Conflict(
+                f'Cannot request changes for project with status {status}.',
+                'invalid_status'
+            )
+        # Fetch the number of requested and rejected requirements for the project in one query
+        requirement_counts = (
+            Requirement.objects
+                .filter(service__project = project)
+                .aggregate(
+                    requested_count = models.Count(
+                        'status',
+                        filter = models.Q(status = Requirement.Status.REQUESTED)
+                    ),
+                    rejected_count = models.Count(
+                        'status',
+                        filter = models.Q(status = Requirement.Status.REJECTED)
+                    ),
+                )
+        )
         # There must not be any requirements in the requested state
         # We expect a decision on each requirement before returning the project
-        requested = Requirement.objects.filter(
-            service__project = project,
-            status = Requirement.Status.REQUESTED
-        )
-        if requested.exists():
-            raise Conflict('Please resolve outstanding requirements before requesting changes.')
+        if requirement_counts.get('requested_count', 0) >= 1:
+            raise Conflict(
+                'Please resolve outstanding requirements before requesting changes.',
+                'unresolved_requirements'
+            )
+        # There must be at least one requirement in the rejected state, otherwise everything is
+        # approved and the project should be submitted for provisioning
+        if requirement_counts.get('rejected_count', 0) < 1:
+            raise Conflict(
+                'All requirements have been approved - please submit for provisioning instead.',
+                'no_changes_required'
+            )
         # Update the project status and return it
         project.status = Project.Status.EDITABLE
         project.save()
@@ -94,14 +144,20 @@ class ProjectViewSet(mixins.ListModelMixin,
         # The project must be under review
         if project.status != Project.Status.UNDER_REVIEW:
             status = Project.Status(project.status).name
-            raise Conflict(f'Cannot submit project with status {status} for provisioning.')
+            raise Conflict(
+                f'Cannot submit project with status {status} for provisioning.',
+                'invalid_status'
+            )
         # All requirements must be approved
         unapproved = Requirement.objects.filter(
             service__project = project,
             status__lt = Requirement.Status.APPROVED
         )
         if unapproved.exists():
-            raise Conflict('All requirements must be approved before submitting for provisioning.')
+            raise Conflict(
+                'All requirements must be approved before submitting for provisioning.',
+                'unapproved_requirements'
+            )
         # Move all the approved requirements into the awaiting provisioning state
         approved = Requirement.objects.filter(
             service__project = project,
@@ -128,7 +184,9 @@ class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context.update(project = get_object_or_404(Project, pk = self.kwargs['project_pk']))
+        # Creating a collaborator requires that we inject the project into the serializer context
+        if self.action == 'create':
+            context.update(project = get_object_or_404(Project, pk = self.kwargs['project_pk']))
         return context
 
 
@@ -144,15 +202,20 @@ class ProjectServicesViewSet(mixins.ListModelMixin,
     def get_queryset(self):
         return super().get_queryset().filter(project = self.kwargs['project_pk'])
 
+    @cached_property
+    def project(self):
+        return get_object_or_404(Project, pk = self.kwargs['project_pk'])
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context.update(project = get_object_or_404(Project, pk = self.kwargs['project_pk']))
+        # Creating a service requires that we inject the project into the serializer context
+        if self.action == 'create':
+            context.update(project = self.project)
         return context
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         # The project must be editable to create services
-        project = serializer.context['project']
-        if project.status == Project.Status.EDITABLE:
-            super().perform_create(serializer)
+        if self.project.status == Project.Status.EDITABLE:
+            return super().create(request, *args, **kwargs)
         else:
-            raise Conflict('Project is not currently editable.')
+            raise Conflict('Project is not currently editable.', 'invalid_status')

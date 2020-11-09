@@ -22,10 +22,13 @@ class ProjectSerializerTestCase(TestCase):
             manager = get_user_model().objects.create_user('manager1')
         )
         cls.owner = get_user_model().objects.create_user('owner1')
-        cls.project = cls.consortium.projects.create(
+
+    def setUp(self):
+        # Make the project in setUp so that we can safely modify it
+        self.project = self.consortium.projects.create(
             name = 'Project 1',
             description = 'some description',
-            owner = cls.owner
+            owner = self.owner
         )
 
     def test_renders_instance_correctly(self):
@@ -47,17 +50,6 @@ class ProjectSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['description'], self.project.description)
         self.assertEqual(serializer.data['status'], Project.Status.EDITABLE.name)
         self.assertEqual(serializer.data['consortium'], self.consortium.pk)
-
-    def test_create_enforces_required_fields(self):
-        """
-        Tests that the required fields are enforced on create.
-        """
-        serializer = ProjectSerializer(data = {})
-        self.assertFalse(serializer.is_valid())
-        required_fields = {'consortium', 'name', 'description'}
-        self.assertCountEqual(serializer.errors.keys(), required_fields)
-        for name in required_fields:
-            self.assertEqual(serializer.errors[name][0].code, 'required')
 
     def test_create_uses_authenticated_user_as_owner(self):
         """
@@ -82,6 +74,33 @@ class ProjectSerializerTestCase(TestCase):
         self.assertEqual(project.status, Project.Status.EDITABLE)
         self.assertEqual(len(project.collaborators.all()), 1)
         self.assertEqual(project.collaborators.first().user.pk, user.pk)
+
+    def test_create_enforces_required_fields_present(self):
+        """
+        Tests that the required fields are enforced on create.
+        """
+        serializer = ProjectSerializer(data = {})
+        self.assertFalse(serializer.is_valid())
+        required_fields = {'consortium', 'name', 'description'}
+        self.assertCountEqual(serializer.errors.keys(), required_fields)
+        for name in required_fields:
+            self.assertEqual(serializer.errors[name][0].code, 'required')
+
+    def test_create_enforces_required_fields_not_blank(self):
+        """
+        Tests that the required fields cannot be blank on create.
+        """
+        serializer = ProjectSerializer(
+            data = dict(
+                consortium = self.consortium.pk,
+                name = '',
+                description = ''
+            )
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertCountEqual(serializer.errors.keys(), {'name', 'description'})
+        for name in {'name', 'description'}:
+            self.assertEqual(serializer.errors[name][0].code, 'blank')
 
     def test_create_enforces_unique_name(self):
         """
@@ -147,6 +166,16 @@ class ProjectSerializerTestCase(TestCase):
         project.refresh_from_db()
         self.assertEqual(project.name, 'New project name')
         self.assertEqual(project.description, 'new description')
+
+    def test_update_enforces_required_fields_not_blank(self):
+        """
+        Tests that the required fields cannot be blank on update.
+        """
+        serializer = ProjectSerializer(self.project, data = dict(name = '', description = ''))
+        self.assertFalse(serializer.is_valid())
+        self.assertCountEqual(serializer.errors.keys(), {'name', 'description'})
+        for name in {'name', 'description'}:
+            self.assertEqual(serializer.errors[name][0].code, 'blank')
 
     def test_update_enforces_unique_name(self):
         """

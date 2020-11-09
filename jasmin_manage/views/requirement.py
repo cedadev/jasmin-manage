@@ -22,36 +22,42 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
     queryset = Requirement.objects.all()
     serializer_class = RequirementSerializer
 
-    def check_editable(self, requirement):
+    def _check_editable(self, requirement):
         """
         If the requirement is not editable, raise a suitable exception.
         """
         # The project must be in the editable state
         if requirement.service.project.status != Project.Status.EDITABLE:
-            raise Conflict('Project is not currently editable.')
+            raise Conflict('Project is not currently editable.', 'invalid_status')
         # Once a requirement is approved, it cannot be modified
         if requirement.status >= Requirement.Status.APPROVED:
-            raise Conflict('Approved requirements cannot be modified.')
+            raise Conflict('Approved requirements cannot be modified.', 'invalid_status')
 
     def perform_update(self, serializer):
-        self.check_editable(serializer.instance)
+        self._check_editable(serializer.instance)
+        # Check if the validated data has anything in - if not, don't apply the update
+        if not serializer.validated_data:
+            return
         # Updating a requirement causes it to go back into the requested state
         serializer.save(status = Requirement.Status.REQUESTED)
 
     def perform_destroy(self, instance):
-        self.check_editable(instance)
+        self._check_editable(instance)
         instance.delete()
 
-    def check_under_review(self, requirement):
+    def _check_under_review(self, requirement):
         """
         If the requirement is not in a reviewable status, raise a suitable exception.
         """
         # The project must be in the under review state
         if requirement.service.project.status != Project.Status.UNDER_REVIEW:
-            raise Conflict('Project is not currently under review.')
+            raise Conflict('Project is not currently under review.', 'invalid_status')
         # Allow requirements to move between requested/approved/rejected
         if requirement.status > Requirement.Status.APPROVED:
-            raise Conflict('Requirements that have been submitted for provisioning cannot be modified.')
+            raise Conflict(
+                'Requirements that have been submitted for provisioning cannot be modified.',
+                'invalid_status'
+            )
 
     @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyRequirementSerializer)
     def approve(self, request, pk = None):
@@ -59,10 +65,10 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
         Approve the requirement.
         """
         requirement = self.get_object()
-        self.check_under_review(requirement)
-        # In addition, already approved requirements cannot be approved again
+        self._check_under_review(requirement)
+        # If the requirement is already approved, we are done
         if requirement.status == Requirement.Status.APPROVED:
-            raise Conflict('Requirement has already been approved.')
+            return Response(self.get_serializer(requirement).data)
         # The sum of all approved requirements must always stay under the consortium quota
         # Note that this does NOT prevent us making the total of the quotas greater than the total
         # available amount of a resource, but it does make sure the overallocation is done in a
@@ -76,7 +82,10 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
             total_allocated = 0
             quota_amount = 0
         if total_allocated + requirement.amount > quota_amount:
-            raise Conflict('Cannot approve requirement as it would exceed the consortium quota.')
+            raise Conflict(
+                'Cannot approve requirement as it would exceed the consortium quota.',
+                'quota_exceeded'
+            )
         # Move the requirement into the approved state
         requirement.status = Requirement.Status.APPROVED
         requirement.save()
@@ -88,10 +97,9 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
         Reject the requirement.
         """
         requirement = self.get_object()
-        self.check_under_review(requirement)
-        if requirement.status == Requirement.Status.REJECTED:
-            raise Conflict('Requirement has already been rejected.')
-        # Move the requirement into the rejected state
-        requirement.status = Requirement.Status.REJECTED
-        requirement.save()
+        self._check_under_review(requirement)
+        # Move the requirement into the rejected state if required
+        if requirement.status != Requirement.Status.REJECTED:
+            requirement.status = Requirement.Status.REJECTED
+            requirement.save()
         return Response(self.get_serializer(requirement).data)
