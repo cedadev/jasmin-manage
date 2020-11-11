@@ -32,7 +32,7 @@ class EnumField(fields.ChoiceField):
         return value.name
 
 
-class LinksField(fields.ReadOnlyField):
+class LinksField(fields.Field):
     """
     Field class for a links field for an object.
 
