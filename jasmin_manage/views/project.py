@@ -10,15 +10,11 @@ from ..exceptions import Conflict
 from ..models import Collaborator, Project, Requirement, Service
 from ..permissions import CollaboratorPermissions, ProjectPermissions, ServicePermissions
 from ..serializers import (
-    read_only_serializer,
     CollaboratorSerializer,
     ProjectSerializer,
     RequirementSerializer,
     ServiceSerializer
 )
-
-
-ReadOnlyProjectSerializer = read_only_serializer(ProjectSerializer)
 
 
 # Projects cannot be deleted via the API
@@ -43,7 +39,7 @@ class ProjectViewSet(mixins.ListModelMixin,
             queryset = queryset.filter(collaborator__user = self.request.user)
         return queryset
 
-    @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyProjectSerializer)
+    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
     def submit_for_review(self, request, pk = None):
         """
         Submit the project for review.
@@ -86,9 +82,10 @@ class ProjectViewSet(mixins.ListModelMixin,
         # Update the project status and return it
         project.status = Project.Status.UNDER_REVIEW
         project.save()
-        return Response(self.get_serializer(project).data)
+        context = self.get_serializer_context()
+        return Response(ProjectSerializer(project, context = context).data)
 
-    @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyProjectSerializer)
+    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
     def request_changes(self, request, pk = None):
         """
         Request changes to the project before it is submitted for provisioning.
@@ -133,9 +130,10 @@ class ProjectViewSet(mixins.ListModelMixin,
         # Update the project status and return it
         project.status = Project.Status.EDITABLE
         project.save()
-        return Response(self.get_serializer(project).data)
+        context = self.get_serializer_context()
+        return Response(ProjectSerializer(project, context = context).data)
 
-    @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyProjectSerializer)
+    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
     def submit_for_provisioning(self, request, pk = None):
         """
         Submit approved requirements for provisioning.
@@ -167,7 +165,8 @@ class ProjectViewSet(mixins.ListModelMixin,
         # Update the project status and return it
         project.status = Project.Status.EDITABLE
         project.save()
-        return Response(self.get_serializer(project).data)
+        context = self.get_serializer_context()
+        return Response(ProjectSerializer(project, context = context).data)
 
 
 class ProjectCollaboratorsViewSet(mixins.ListModelMixin,

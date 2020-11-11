@@ -62,6 +62,12 @@ class BaseProjectPermissions(IsAuthenticated):
         # Determine the action and the corresponding safe action
         action = view.action
         safe_action = 'retrieve' if view.detail else 'list'
+        # If no action is set and the request uses a safe method, use the safe action
+        # to determine permissions
+        # This is important for the browsable API as the renderer interrogates permissions
+        # without setting an action
+        if action is None and request.method in SAFE_METHODS:
+            action = safe_action
         # For the metadata action, use the permissions for the safe action
         if action == 'metadata':
             action = safe_action

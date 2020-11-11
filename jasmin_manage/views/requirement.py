@@ -1,4 +1,4 @@
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, serializers, viewsets
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,10 +6,7 @@ from rest_framework.response import Response
 from ..exceptions import Conflict
 from ..models import Project, Requirement
 from ..permissions import RequirementPermissions
-from ..serializers import read_only_serializer, RequirementSerializer
-
-
-ReadOnlyRequirementSerializer = read_only_serializer(RequirementSerializer)
+from ..serializers import RequirementSerializer
 
 
 # Requirements can only be listed and created via a service
@@ -62,39 +59,43 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
                 'invalid_status'
             )
 
-    @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyRequirementSerializer)
+    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
     def approve(self, request, pk = None):
         """
         Approve the requirement.
         """
         requirement = self.get_object()
         self._check_under_review(requirement)
-        # If the requirement is already approved, we are done
-        if requirement.status == Requirement.Status.APPROVED:
-            return Response(self.get_serializer(requirement).data)
-        # The sum of all approved requirements must always stay under the consortium quota
-        # Note that this does NOT prevent us making the total of the quotas greater than the total
-        # available amount of a resource, but it does make sure the overallocation is done in a
-        # controlled and fair way where consortium managers have to think about their quotas
-        consortium = requirement.service.project.consortium
-        quota = consortium.quotas.filter(resource = requirement.resource).annotate_usage().first()
-        if quota:
-            total_allocated = quota.approved_total + quota.awaiting_provisioning_total + quota.provisioned_total
-            quota_amount = quota.amount
-        else:
-            total_allocated = 0
-            quota_amount = 0
-        if total_allocated + requirement.amount > quota_amount:
-            raise Conflict(
-                'Cannot approve requirement as it would exceed the consortium quota.',
-                'quota_exceeded'
-            )
-        # Move the requirement into the approved state
-        requirement.status = Requirement.Status.APPROVED
-        requirement.save()
-        return Response(self.get_serializer(requirement).data)
+        # If the requirement is already approved, we can skip all the following checks
+        if requirement.status != Requirement.Status.APPROVED:
+            # The sum of all approved requirements must always stay under the consortium quota
+            # Note that this does NOT prevent us making the total of the quotas greater than the total
+            # available amount of a resource, but it does make sure the overallocation is done in a
+            # controlled and fair way where consortium managers have to think about their quotas
+            consortium = requirement.service.project.consortium
+            quota = consortium.quotas.filter(resource = requirement.resource).annotate_usage().first()
+            if quota:
+                total_allocated = (
+                    quota.approved_total +
+                    quota.awaiting_provisioning_total +
+                    quota.provisioned_total
+                )
+                quota_amount = quota.amount
+            else:
+                total_allocated = 0
+                quota_amount = 0
+            if total_allocated + requirement.amount > quota_amount:
+                raise Conflict(
+                    'Cannot approve requirement as it would exceed the consortium quota.',
+                    'quota_exceeded'
+                )
+            # Move the requirement into the approved state
+            requirement.status = Requirement.Status.APPROVED
+            requirement.save()
+        context = self.get_serializer_context()
+        return Response(RequirementSerializer(requirement, context = context).data)
 
-    @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyRequirementSerializer)
+    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
     def reject(self, request, pk = None):
         """
         Reject the requirement.
@@ -105,4 +106,5 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
         if requirement.status != Requirement.Status.REJECTED:
             requirement.status = Requirement.Status.REJECTED
             requirement.save()
-        return Response(self.get_serializer(requirement).data)
+        context = self.get_serializer_context()
+        return Response(RequirementSerializer(requirement, context = context).data)
