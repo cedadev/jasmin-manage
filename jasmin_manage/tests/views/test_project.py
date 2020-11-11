@@ -16,10 +16,10 @@ from ...models import (
 )
 from ...serializers import CollaboratorSerializer, ProjectSerializer, ServiceSerializer
 
-from .utils import ViewSetAssertionsMixin
+from .utils import TestCase
 
 
-class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class ProjectViewSetTestCase(TestCase):
     """
     Tests for the project viewset.
     """
@@ -52,39 +52,12 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
                 role = Collaborator.Role.CONTRIBUTOR
             )
 
-    def test_allowed_methods(self):
+    def test_list_allowed_methods(self):
         """
-        Tests that the correct methods are permitted by the list and detail endpoints.
+        Tests that the correct methods are permitted by the list endpoint.
         """
-        self.assertAllowedMethods(
-            "/projects/",
-            {'OPTIONS', 'HEAD', 'GET', 'POST'}
-        )
-        # Pick a random but valid project to use in the detail and extra actions
-        project = Project.objects.order_by('?').first()
-        self.assertAllowedMethods(
-            "/projects/{}/".format(project.pk),
-            # Projects cannot be deleted via the API
-            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH'}
-        )
-        self.assertAllowedMethods(
-            "/projects/{}/submit_for_review/".format(project.pk),
-            {'OPTIONS', 'POST'}
-        )
-        self.assertAllowedMethods(
-            "/projects/{}/request_changes/".format(project.pk),
-            {'OPTIONS', 'POST'}
-        )
-        self.assertAllowedMethods(
-            "/projects/{}/submit_for_provisioning/".format(project.pk),
-            {'OPTIONS', 'POST'}
-        )
-
-    def test_list_unauthenticated_user_empty(self):
-        """
-        Tests that the list endpoint returns an empty list for an unauthenticated user.
-        """
-        self.assertListResponseEmpty("/projects/")
+        self.authenticate()
+        self.assertAllowedMethods("/projects/", {'OPTIONS', 'HEAD', 'GET', 'POST'})
 
     def test_list_authenticated_user_collaborating_projects_only(self):
         """
@@ -98,6 +71,12 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             Project.objects.filter(collaborator__user = self.authenticated_user),
             ProjectSerializer
         )
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that the list endpoint returns an unauthorized for an unauthenticated user.
+        """
+        self.assertUnauthorized("/projects/")
 
     def test_create_uses_authenticated_user_as_owner(self):
         """
@@ -123,6 +102,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         Tests that the required fields are enforced on create.
         """
+        self.client.force_authenticate(self.authenticated_user)
         response_data = self.assertCreateResponseIsBadRequest("/projects/", dict())
         required_fields = {'consortium', 'name', 'description'}
         self.assertCountEqual(response_data.keys(), required_fields)
@@ -133,6 +113,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         Tests that the required fields cannot be blank on create.
         """
+        self.client.force_authenticate(self.authenticated_user)
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/",
             dict(consortium = self.consortium.pk, name = "", description = "")
@@ -146,6 +127,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         Tests that the uniqueness constraint is enforced on name when creating.
         """
+        self.client.force_authenticate(self.authenticated_user)
         # Try to create another project with the same name as an existing project
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/",
@@ -162,6 +144,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         Tests that attempting to create with an invalid consortium will fail.
         """
+        self.client.force_authenticate(self.authenticated_user)
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/",
             dict(
@@ -191,30 +174,97 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         # Verify that the project is created as editable
         self.assertEqual(project.status, Project.Status.EDITABLE)
 
-    def test_detail_not_collaborator(self):
+    def test_create_requires_authentication(self):
         """
-        Tests that the detail endpoint successfully retrieves a project, even for an
-        unauthenticated user.
+        Tests that attempting to create a project returns unauthorized for an unauthenticated user.
         """
-        # Pick a random but valid project to use in the detail endpoint
+        self.assertUnauthorized(
+            "/projects/",
+            "POST",
+            dict(
+                consortium = self.consortium.pk,
+                name = 'New project',
+                description = 'some description'
+            )
+        )
+
+    def test_detail_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the detail endpoint.
+        """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertAllowedMethods(
+            "/projects/{}/".format(project.pk),
+            # Projects cannot be deleted via the API
+            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH'}
+        )
+
+    def test_detail_permitted_for_contributor(self):
+        """
+        Tests that the detail endpoint returns project information for a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
         self.assertDetailResponseMatchesInstance(
             "/projects/{}/".format(project.pk),
             project,
             ProjectSerializer
         )
 
+    def test_detail_permitted_for_owner(self):
+        """
+        Tests that the detail endpoint returns project information for an owner.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertDetailResponseMatchesInstance(
+            "/projects/{}/".format(project.pk),
+            project,
+            ProjectSerializer
+        )
+
+    def test_detail_permitted_for_consortium_manager(self):
+        """
+        Tests that the detail endpoint returns project information for the consortium manager.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertDetailResponseMatchesInstance(
+            "/projects/{}/".format(project.pk),
+            project,
+            ProjectSerializer
+        )
+
+    def test_detail_not_permitted_for_authenticated_user(self):
+        """
+        Tests that the detail endpoint returns not found for an authenticated user that is
+        not associated with the project.
+        """
+        self.authenticate()
+        project = Project.objects.order_by('?').first()
+        self.assertNotFound("/projects/{}/".format(project.pk))
+
     def test_detail_missing(self):
         """
-        Tests that the detail endpoint correctly reports not found for invalid project.
+        Tests that the detail endpoint returns not found for an invalid project.
         """
-        self.assertNotFound("/projects/20/")
+        self.authenticate()
+        self.assertNotFound("/projects/100/")
+
+    def test_detail_requires_authentication(self):
+        """
+        Tests that the detail endpoint returns unauthorized when accessed by an unauthenticated user.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized("/projects/{}/".format(project.pk))
 
     def test_update_name_and_description(self):
         """
-        Tests that the name and description can be updated.
+        Tests that the name and description can be updated by the project owner.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/projects/{}/".format(project.pk),
             project,
@@ -230,6 +280,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the required fields cannot be blank on update.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         response_data = self.assertUpdateResponseIsBadRequest(
             "/projects/{}/".format(project.pk),
             data = dict(name = '', description = '')
@@ -243,6 +294,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the unique constraint is enforced for name on update.
         """
         project = Project.objects.get(name = 'Project 1')
+        self.authenticateAsProjectOwner(project)
         response_data = self.assertUpdateResponseIsBadRequest(
             "/projects/{}/".format(project.pk),
             # Change the project name to a name that collides with another project
@@ -262,6 +314,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         )
         # Pick a project to update
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/projects/{}/".format(project.pk),
             project,
@@ -276,6 +329,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the status cannot be updated.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/projects/{}/".format(project.pk),
             project,
@@ -285,19 +339,84 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         # The update should be accepted, but the status will not change
         self.assertEqual(project.status, Project.Status.EDITABLE)
 
-    def test_delete_not_allowed(self):
+    def test_update_not_permitted_for_contributor(self):
+        """
+        Tests that a contributor cannot update a project's name and description.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/".format(project.pk),
+            "PATCH",
+            dict(name = 'New project name', description = 'new description')
+        )
+
+    def test_update_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot update a project's name and description.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/".format(project.pk),
+            "PATCH",
+            dict(name = 'New project name', description = 'new description')
+        )
+
+    def test_update_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user cannot update a project that they are not
+        associated with.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # This should be not found since the user cannot view the project at all
+        self.assertNotFound(
+            "/projects/{}/".format(project.pk),
+            "PATCH",
+            dict(name = 'New project name', description = 'new description')
+        )
+
+    def test_update_requires_authentication(self):
+        """
+        Tests that updating a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/projects/{}/".format(project.pk),
+            "PATCH",
+            dict(name = 'New project name', description = 'new description')
+        )
+
+    def test_delete_not_permitted(self):
         """
         Tests that the delete method returns method not allowed as expected.
         """
         # Pick a random but valid project to use in the detail endpoint
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertMethodNotAllowed("/projects/{}/".format(project.pk), "DELETE")
+
+    def test_submit_for_review_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the submit_for_review endpoint.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertAllowedMethods(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            {'OPTIONS', 'POST'}
+        )
 
     def test_submit_for_review_editable_with_requested_requirements(self):
         """
-        Tests that an editable project with requested requirements can be submitted for review.
+        Tests that the project owner can submit an editable project with requested
+        requirements for review.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertEqual(project.status, Project.Status.EDITABLE)
         # Make a requested requirement before submitting
         Requirement.objects.create(
@@ -319,6 +438,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a project that is not editable cannot be submitted for review.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         for status in Project.Status:
             if status == Project.Status.EDITABLE:
                 continue
@@ -342,6 +462,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         requirements.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         service = project.services.create(name = 'service1', category = self.category)
         # Create a requirement that in the rejected state
         # We require that all rejected requests have been either modified (which sends them
@@ -377,6 +498,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         least one requirement in the requested state.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         # Create a requirement that is not in the required state, to test that this only
         # depends on requested requirements
         Requirement.objects.create(
@@ -396,12 +518,71 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.EDITABLE)
 
+    def test_submit_for_review_not_permitted_for_contributor(self):
+        """
+        Tests that a contributor cannot submit a project for review.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_review_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot submit a project for review.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_review_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user cannot submit a project for review that they
+        are not associated with.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # This should be not found since the user cannot view the project at all
+        self.assertNotFound(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_review_requires_authentication(self):
+        """
+        Tests that submitting a project for review requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST"
+        )
+
+    def test_request_changes_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the request_changes endpoint.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertAllowedMethods(
+            "/projects/{}/request_changes/".format(project.pk),
+            {'OPTIONS', 'POST'}
+        )
+
     def test_request_changes_under_review_with_rejected_requirement(self):
         """
         Tests that a project in the under review status with a rejected requirement
         can be returned to the user requesting changes.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the expected state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -425,6 +606,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a project can only be returned for changes when it is under review.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         for status in Project.Status:
             if status == Project.Status.UNDER_REVIEW:
                 continue
@@ -448,6 +630,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         requirements.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the review state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -485,6 +668,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a project cannot be returned for changes without a rejected requirement.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         project.status = Project.Status.UNDER_REVIEW
         project.save()
         # Create a requirement that is not in the required or rejected state, to test that this only
@@ -506,12 +690,71 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
 
+    def test_request_changes_not_permitted_for_contributor(self):
+        """
+        Tests that a contributor cannot request changes to a project.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST"
+        )
+
+    def test_request_changes_not_permitted_for_owner(self):
+        """
+        Tests that an owner cannot request changes to a project.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST"
+        )
+
+    def test_request_changes_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user cannot request changes to a project that
+        they are not associated with.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # This should be not found since the user cannot view the project at all
+        self.assertNotFound(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST"
+        )
+
+    def test_request_changes_requires_authentication(self):
+        """
+        Tests that requesting changes to a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_provisioning_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the submit_for_provisioning endpoint.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertAllowedMethods(
+            "/projects/{}/submit_for_provisioning/".format(project.pk),
+            {'OPTIONS', 'POST'}
+        )
+
     def test_submit_for_provisioning_under_review_with_approved_requirement(self):
         """
         Tests that a project in the under review status with an approved requirement
         can be submitted for provisioning.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the expected state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -538,6 +781,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a project can only submitted for provisioning when it is under review.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         for status in Project.Status:
             if status == Project.Status.UNDER_REVIEW:
                 continue
@@ -561,6 +805,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         requirements.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the review state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -589,6 +834,7 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a project cannot be submitted for provisioning with rejected requirements.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the review state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -612,8 +858,55 @@ class ProjectViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
 
+    def test_submit_for_provisioning_not_permitted_for_contributor(self):
+        """
+        Tests that a contributor cannot submit a project for provisioning.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/submit_for_provisioning/".format(project.pk),
+            "POST"
+        )
 
-class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+    def test_submit_for_provisioning_not_permitted_for_owner(self):
+        """
+        Tests that an owner cannot submit a project for provisioning.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        # This should be permission denied since the user can view the project
+        self.assertPermissionDenied(
+            "/projects/{}/submit_for_provisioning/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_provisioning_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user cannot submit a project for provisioning that
+        they are not associated with.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # This should be not found since the user cannot view the project at all
+        self.assertNotFound(
+            "/projects/{}/submit_for_provisioning/".format(project.pk),
+            "POST"
+        )
+
+    def test_submit_for_provisioning_requires_authentication(self):
+        """
+        Tests that submitting a project for provisioning requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/projects/{}/submit_for_provisioning/".format(project.pk),
+            "POST"
+        )
+
+
+class ProjectCollaboratorsViewSetTestCase(TestCase):
     """
     Tests for the project collaborators viewset.
     """
@@ -634,7 +927,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         # Create some more collaborators for random projects
         for i in range(20):
             projects[random.randrange(10)].collaborators.create(
-                user = get_user_model().objects.create_user(f'contributer{i}'),
+                user = get_user_model().objects.create_user(f'contributor{i}'),
                 role = Collaborator.Role.CONTRIBUTOR
             )
 
@@ -644,34 +937,83 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Pick a random but valid project to use in the endpoint
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertAllowedMethods(
             "/projects/{}/collaborators/".format(project.pk),
             {'OPTIONS', 'HEAD', 'GET', 'POST'}
         )
 
-    def test_list_valid_project(self):
+    def test_list_project_owner(self):
         """
-        Tests that a list response for a valid project looks correct.
+        Tests that a project owner can list the collaborators for a project.
         """
         # Pick a random but valid project to use in the endpoint
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertListResponseMatchesQuerySet(
             "/projects/{}/collaborators/".format(project.pk),
             project.collaborators.all(),
             CollaboratorSerializer
         )
 
+    def test_list_project_contributor(self):
+        """
+        Tests that a project contributor can list the collaborators for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/collaborators/".format(project.pk),
+            project.collaborators.all(),
+            CollaboratorSerializer
+        )
+
+    def test_list_consortium_manager(self):
+        """
+        Tests that the consortium manager can list the collaborators for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/collaborators/".format(project.pk),
+            project.collaborators.all(),
+            CollaboratorSerializer
+        )
+
+    def test_list_not_permitted_authenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        list the collaborators.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # The user is not permitted to view the project, so should get not found
+        self.assertNotFound("/projects/{}/collaborators/".format(project.pk))
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that listing collaborators for a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        # The user is not permitted to view the project, so should get not found
+        self.assertUnauthorized("/projects/{}/collaborators/".format(project.pk))
+
     def test_list_invalid_project(self):
         """
-        Tests that a list response for an invalid project correctly returns an empty list.
+        Tests that a list response for an invalid project returns not found.
         """
-        self.assertListResponseEmpty("/projects/20/collaborators/")
+        self.authenticate()
+        self.assertNotFound("/projects/100/collaborators/")
 
     def test_create_uses_project_from_url(self):
         """
-        Tests that creating a collaborator uses the project from the URL.
+        Tests that the project owner can create a collaborator and that it uses
+        the project from the URL.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         user = get_user_model().objects.create_user('user1')
         collaborator = self.assertCreateResponseMatchesCreatedInstance(
             "/projects/{}/collaborators/".format(project.pk),
@@ -687,6 +1029,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the required fields are enforced on create.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/collaborators/".format(project.pk),
             dict()
@@ -701,6 +1044,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the unique together constraint on project/user is enforced.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         user = get_user_model().objects.create_user('user1')
         # Create a collaborator manually
         project.collaborators.create(user = user, role = Collaborator.Role.CONTRIBUTOR)
@@ -717,6 +1061,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the project cannot be overridden by specifying it in the input data.
         """
         project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
         other_project = Project.objects.get(pk = 2)
         user = get_user_model().objects.create_user('user1')
         # Create the collaborator
@@ -736,6 +1081,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
 
     def test_cannot_create_with_invalid_user(self):
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         # Try to create a user with an invalid id
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/collaborators/".format(project.pk),
@@ -749,6 +1095,7 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an invalid role correctly fails.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         user = get_user_model().objects.create_user('user1')
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/collaborators/".format(project.pk),
@@ -757,8 +1104,64 @@ class ProjectCollaboratorsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         self.assertCountEqual(response_data.keys(), {'role'})
         self.assertEqual(response_data['role'][0]['code'], 'invalid_choice')
 
+    def test_create_not_permitted_for_contributor(self):
+        """
+        Tests that a project contributor cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        user = get_user_model().objects.create_user('user1')
+        # This should be permission denied as the user can see the project
+        self.assertPermissionDenied(
+            "/projects/{}/collaborators/".format(project.pk),
+            "POST",
+            dict(user = user.pk, role = Collaborator.Role.CONTRIBUTOR.name),
+        )
 
-class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+    def test_create_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        user = get_user_model().objects.create_user('user1')
+        # This should be permission denied as the user can see the project
+        self.assertPermissionDenied(
+            "/projects/{}/collaborators/".format(project.pk),
+            "POST",
+            dict(user = user.pk, role = Collaborator.Role.CONTRIBUTOR.name),
+        )
+
+    def test_create_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot create a contributor.
+        """
+        self.authenticate()
+        project = Project.objects.order_by('?').first()
+        user = get_user_model().objects.create_user('user1')
+        # This should be not found as the user cannot see the project
+        self.assertNotFound(
+            "/projects/{}/collaborators/".format(project.pk),
+            "POST",
+            dict(user = user.pk, role = Collaborator.Role.CONTRIBUTOR.name),
+        )
+
+    def test_create_requires_authentication(self):
+        """
+        Tests that an unauthenticated user cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        user = get_user_model().objects.create_user('user1')
+        # This should be unauthorized as the endpoint requires authentication
+        self.assertUnauthorized(
+            "/projects/{}/collaborators/".format(project.pk),
+            "POST",
+            dict(user = user.pk, role = Collaborator.Role.CONTRIBUTOR.name),
+        )
+
+
+class ProjectServicesViewSetTestCase(TestCase):
     """
     Tests for the project services viewset.
     """
@@ -788,34 +1191,97 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Pick a random but valid project to use in the endpoint
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertAllowedMethods(
             "/projects/{}/services/".format(project.pk),
             {'OPTIONS', 'HEAD', 'GET', 'POST'}
         )
 
-    def test_list_valid_project(self):
+    def test_list_project_owner(self):
         """
-        Tests that a list response for a valid project looks correct.
+        Tests that a project owner can list the services for a project.
         """
         # Pick a random but valid project to use in the endpoint
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         self.assertListResponseMatchesQuerySet(
             "/projects/{}/services/".format(project.pk),
             project.services.all(),
             ServiceSerializer
         )
 
-    def test_list_invalid_project(self):
+    def test_list_project_contributor(self):
         """
-        Tests that a list response for an invalid project correctly returns an empty list.
+        Tests that a project contributor can list the services for a project.
         """
-        self.assertListResponseEmpty("/projects/20/services/")
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/services/".format(project.pk),
+            project.services.all(),
+            ServiceSerializer
+        )
 
-    def test_create_uses_project_from_url(self):
+    def test_list_consortium_manager(self):
         """
-        Tests that creating a service uses the project from the URL.
+        Tests that the consortium manager can list the services for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/services/".format(project.pk),
+            project.services.all(),
+            ServiceSerializer
+        )
+
+    def test_list_not_permitted_authenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        list the services.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # The user is not permitted to view the project, so should get not found
+        self.assertNotFound("/projects/{}/services/".format(project.pk))
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that listing services for a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        # The user is not permitted to view the project, so should get not found
+        self.assertUnauthorized("/projects/{}/services/".format(project.pk))
+
+    def test_list_invalid_project(self):
+        """
+        Tests that a list response for an invalid project returns not found.
+        """
+        self.authenticate()
+        self.assertNotFound("/projects/100/services/")
+
+    def test_create_as_project_owner(self):
+        """
+        Tests that a project owner can create a service.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        service = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/services/".format(project.pk),
+            dict(name = "service1", category = self.category.pk),
+            ServiceSerializer
+        )
+        self.assertEqual(service.project.pk, project.pk)
+        self.assertEqual(service.category.pk, self.category.pk)
+        self.assertEqual(service.name, "service1")
+
+    def test_create_as_project_contributor(self):
+        """
+        Tests that a project contributor can create a service.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
         service = self.assertCreateResponseMatchesCreatedInstance(
             "/projects/{}/services/".format(project.pk),
             dict(name = "service1", category = self.category.pk),
@@ -830,6 +1296,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the required fields are enforced on create.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/services/".format(project.pk),
             dict()
@@ -844,6 +1311,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the unique together constraint on category and name is enforced during create.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         # Create an initial service
         project.services.create(name = "service1", category = self.category)
         # Then try to make the same service using the API
@@ -859,6 +1327,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the project cannot be overridden by specifying it in the input data.
         """
         project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
         other_project = Project.objects.get(pk = 2)
         # Create the service
         # It should create successfully, but the service should belong to the project
@@ -880,6 +1349,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an invalid category correctly fails.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/services/".format(project.pk),
             dict(name = "service1", category = 10)
@@ -892,6 +1362,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an invalid name correctly fails.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         # Test with a blank name
         response_data = self.assertCreateResponseIsBadRequest(
             "/projects/{}/services/".format(project.pk),
@@ -919,6 +1390,7 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that services can only be created for an editable project.
         """
         project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
         num_services = project.services.count()
         for status in Project.Status:
             if status == Project.Status.EDITABLE:
@@ -936,3 +1408,42 @@ class ProjectServicesViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             # Check that the number of services didn't change
             project.refresh_from_db()
             self.assertEqual(project.services.count(), num_services)
+
+    def test_create_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        # This should be permission denied as the user can see the project
+        self.assertPermissionDenied(
+            "/projects/{}/services/".format(project.pk),
+            "POST",
+            dict(name = "service1", category = self.category.pk),
+        )
+
+    def test_create_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot create a contributor.
+        """
+        self.authenticate()
+        project = Project.objects.order_by('?').first()
+        # This should be not found as the user cannot see the project
+        self.assertNotFound(
+            "/projects/{}/services/".format(project.pk),
+            "POST",
+            dict(name = "service1", category = self.category.pk),
+        )
+
+    def test_create_requires_authentication(self):
+        """
+        Tests that an unauthenticated user cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        # This should be unauthorized as the endpoint requires authentication
+        self.assertUnauthorized(
+            "/projects/{}/services/".format(project.pk),
+            "POST",
+            dict(name = "service1", category = self.category.pk),
+        )

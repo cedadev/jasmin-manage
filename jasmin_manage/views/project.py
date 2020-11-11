@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from ..exceptions import Conflict
 from ..models import Collaborator, Project, Requirement, Service
+from ..permissions import CollaboratorPermissions, ProjectPermissions, ServicePermissions
 from ..serializers import (
     read_only_serializer,
     CollaboratorSerializer,
@@ -29,6 +30,8 @@ class ProjectViewSet(mixins.ListModelMixin,
     """
     View set for the project model.
     """
+    permission_classes = [ProjectPermissions]
+
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
@@ -37,10 +40,7 @@ class ProjectViewSet(mixins.ListModelMixin,
         # For a list operation, only show projects that the user is collaborating on
         # All other operations should be on a specific project and all projects should be used
         if self.action == 'list':
-            if getattr(self.request.user, 'is_authenticated', False):
-                queryset = queryset.filter(collaborator__user = self.request.user)
-            else:
-                queryset = queryset.none()
+            queryset = queryset.filter(collaborator__user = self.request.user)
         return queryset
 
     @action(detail = True, methods = ['POST'], serializer_class = ReadOnlyProjectSerializer)
@@ -176,17 +176,23 @@ class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
     """
     View set for listing and creating collaborators for a project.
     """
+    permission_classes = [CollaboratorPermissions]
+
     queryset = Collaborator.objects.all()
     serializer_class = CollaboratorSerializer
 
     def get_queryset(self):
         return super().get_queryset().filter(project = self.kwargs['project_pk'])
 
+    @cached_property
+    def project(self):
+        return get_object_or_404(Project, pk = self.kwargs['project_pk'])
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         # Creating a collaborator requires that we inject the project into the serializer context
         if self.action == 'create':
-            context.update(project = get_object_or_404(Project, pk = self.kwargs['project_pk']))
+            context.update(project = self.project)
         return context
 
 
@@ -196,6 +202,8 @@ class ProjectServicesViewSet(mixins.ListModelMixin,
     """
     View set for listing and creating services for a project.
     """
+    permission_classes = [ServicePermissions]
+
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 

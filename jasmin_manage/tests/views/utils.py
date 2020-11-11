@@ -1,13 +1,54 @@
 import json
 
+from django.contrib.auth import get_user_model
+
 from rest_framework import status
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APITestCase, APIRequestFactory
+
+from ...models import Collaborator
 
 
-class ViewSetAssertionsMixin:
+class TestCase(APITestCase):
     """
-    Mixin providing assertion methods for testing view sets.
+    Base class for viewset test cases providing helper methods.
     """
+    def authenticate(self, user = None):
+        """
+        Authenticate the test client as the given user, or a newly created user if not given.
+        """
+        # Make the user if required
+        user = user or get_user_model().objects.create_user('testuser')
+        # Authenticate the test client
+        self.client.force_authenticate(user = user)
+        return user
+
+    def authenticateAsProjectCollaborator(self, project, user, role):
+        """
+        Authenticate the test client as a collaborator of the given project with the given role.
+        """
+        # Make the user if required
+        user = self.authenticate(user)
+        # Create the collaborator record
+        project.collaborators.create(user = user, role = role)
+
+    def authenticateAsProjectContributor(self, project, user = None):
+        """
+        Authenticate the test client as a contributor for the given project.
+        """
+        self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.CONTRIBUTOR)
+
+    def authenticateAsProjectOwner(self, project, user = None):
+        """
+        Authenticate the test client as an owner for the given project.
+        """
+        self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.OWNER)
+
+    def authenticateAsConsortiumManager(self, consortium):
+        """
+        Authenticate the test client as the consortium manager for the given consortium.
+        """
+        self.authenticate(consortium.manager)
+
     def assertAllowedMethods(self, endpoint, allowed_methods):
         """
         Asserts that the allowed methods for the given endpoint are as specified.
@@ -130,11 +171,11 @@ class ViewSetAssertionsMixin:
         self.assertEqual(response.data, serializer.data)
         return instance
 
-    def assertNotFound(self, endpoint):
+    def assertNotFound(self, endpoint, method = "GET", data = None):
         """
         Asserts that the given endpoint returns a not found response.
         """
-        response = self.client.get(endpoint)
+        response = getattr(self.client, method.lower())(endpoint, data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def assertMethodNotAllowed(self, endpoint, method):
@@ -144,7 +185,7 @@ class ViewSetAssertionsMixin:
         response = getattr(self.client, method.lower())(endpoint)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def assertConflict(self, endpoint, method, data = None):
+    def assertConflict(self, endpoint, method = "GET", data = None):
         """
         Asserts that the given endpoint produces a conflict response when called with the
         given method and data.
@@ -154,3 +195,19 @@ class ViewSetAssertionsMixin:
         # Return the actual parsed JSON, rather than the raw serializer data as that
         # has the weird ErrorDetail strings in
         return json.loads(response.content)
+
+    def assertPermissionDenied(self, endpoint, method = "GET", data = None):
+        """
+        Asserts that the given endpoint produces a permission denied response when called
+        with the given method and data.
+        """
+        response = getattr(self.client, method.lower())(endpoint, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def assertUnauthorized(self, endpoint, method = "GET", data = None):
+        """
+        Asserts that the given endpoint produces an unauthorized response when called
+        with the given method and data.
+        """
+        response = getattr(self.client, method.lower())(endpoint, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

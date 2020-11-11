@@ -12,8 +12,6 @@ router = routers.DefaultRouter()
 
 # Routes for categories
 router.register(r'categories', views.CategoryViewSet)
-categories_router = routers.NestedSimpleRouter(router, r'categories', lookup = 'category')
-categories_router.register(r'resources', views.CategoryResourcesViewSet, basename = 'category-resources')
 
 # Routes for collaborators
 router.register(r'collaborators', views.CollaboratorViewSet)
@@ -45,7 +43,6 @@ services_router.register(r'requirements', views.ServiceRequirementsViewSet, base
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [
     path('', include(router.urls)),
-    path('', include(categories_router.urls)),
     path('', include(consortia_router.urls)),
     path('', include(projects_router.urls)),
     path('', include(services_router.urls)),

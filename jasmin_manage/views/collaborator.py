@@ -2,6 +2,7 @@ from rest_framework import mixins, viewsets
 
 from ..exceptions import Conflict
 from ..models import Collaborator
+from ..permissions import CollaboratorPermissions
 from ..serializers import CollaboratorSerializer
 
 
@@ -13,6 +14,8 @@ class CollaboratorViewSet(mixins.RetrieveModelMixin,
     """
     View set for the collaborator model.
     """
+    permission_classes = [CollaboratorPermissions]
+
     queryset = Collaborator.objects.all()
     serializer_class = CollaboratorSerializer
 

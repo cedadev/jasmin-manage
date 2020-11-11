@@ -1,24 +1,14 @@
-from rest_framework import mixins, viewsets
+from rest_framework import permissions, viewsets
 
-from ..models import Category, Resource
-from ..serializers import CategorySerializer, ResourceSerializer
+from ..models import Category
+from ..serializers import CategorySerializer
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     View set for the category model.
     """
+    permission_classes = [permissions.IsAuthenticated]
+
     queryset = Category.objects.all().prefetch_related('resources')
     serializer_class = CategorySerializer
-
-
-class CategoryResourcesViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    """
-    View set for listing the resources for a category.
-    """
-    queryset = Resource.objects.all()
-    serializer_class = ResourceSerializer
-
-    def get_queryset(self):
-        # Filter the resources by category
-        return super().get_queryset().filter(category = self.kwargs['category_pk'])

@@ -19,10 +19,10 @@ from ...models import (
 )
 from ...serializers import RequirementSerializer
 
-from .utils import ViewSetAssertionsMixin
+from .utils import TestCase
 
 
-class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class RequirementViewSetTestCase(TestCase):
     """
     Tests for the requirement viewset.
     """
@@ -67,53 +67,91 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             for i in range(random.randint(1, 5))
         ])
 
-    def test_allowed_methods(self):
-        """
-        Tests that the correct methods are permitted by the detail endpoint and extra action endpoints.
-        """
-        # Pick a random but valid requirement to use in the detail and extra actions
-        requirement = Requirement.objects.order_by('?').first()
-        self.assertAllowedMethods(
-            "/requirements/{}/".format(requirement.pk),
-            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH', 'DELETE'}
-        )
-        self.assertAllowedMethods(
-            "/requirements/{}/approve/".format(requirement.pk),
-            {'OPTIONS', 'POST'}
-        )
-        self.assertAllowedMethods(
-            "/requirements/{}/reject/".format(requirement.pk),
-            {'OPTIONS', 'POST'}
-        )
-
     def test_list_not_found(self):
         """
         Requirements can only be listed via a service, so check that the list endpoint is not found.
         """
         self.assertNotFound("/requirements/")
 
-    def test_detail_success(self):
+    def test_detail_allowed_methods(self):
         """
-        Tests that the detail endpoint successfully retrieves a valid requirement.
+        Tests that the correct methods are permitted by the detail endpoint.
         """
-        # Pick a random but valid project to use in the detail endpoint
+        # Pick a random but valid requirement to use in the detail and extra actions
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
+        self.assertAllowedMethods(
+            "/requirements/{}/".format(requirement.pk),
+            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH', 'DELETE'}
+        )
+
+    def test_detail_project_owner(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project owner.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
         self.assertDetailResponseMatchesInstance(
             "/requirements/{}/".format(requirement.pk),
             requirement,
             RequirementSerializer
         )
 
+    def test_detail_project_contributor(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project contributor.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
+        self.assertDetailResponseMatchesInstance(
+            "/requirements/{}/".format(requirement.pk),
+            requirement,
+            RequirementSerializer
+        )
+
+    def test_detail_consortium_manager(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project contributor.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
+        self.assertDetailResponseMatchesInstance(
+            "/requirements/{}/".format(requirement.pk),
+            requirement,
+            RequirementSerializer
+        )
+
+    def test_detail_authenticated_not_collaborator(self):
+        """
+        Tests that the detail endpoint returns not found when the user is authenticated
+        but does not have permission to view the collaborator.
+        """
+        self.authenticate()
+        requirement = Requirement.objects.order_by('?').first()
+        self.assertNotFound("/requirements/{}/".format(requirement.pk))
+
+    def test_detail_unauthenticated(self):
+        """
+        Tests that the detail endpoint returns unauthorized when an unauthenticated
+        user attempts to access a valid collaborator.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.assertUnauthorized("/requirements/{}/".format(requirement.pk))
+
     def test_detail_missing(self):
         """
-        Tests that the detail endpoint correctly reports not found for invalid requirement.
+        Tests that the detail endpoint correctly reports not found for invalid collaborator.
         """
-        self.assertNotFound("/requirements/1000/")
+        self.authenticate()
+        self.assertNotFound("/requirements/100/")
 
-    def test_update_amount(self):
+    def test_update_as_project_owner(self):
         """
-        Tests that the amount can be updated without updating the dates, even if the
-        start date is in the past.
+        Tests that the amount can be updated by a project owner without updating the dates,
+        even if the start date is in the past.
 
         Also verify that this puts the requirement back into the requested state.
         """
@@ -126,6 +164,36 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             amount = 250,
             start_date = start_date
         )
+        self.authenticateAsProjectOwner(requirement.service.project)
+        self.assertUpdateResponseMatchesUpdatedInstance(
+            "/requirements/{}/".format(requirement.pk),
+            requirement,
+            dict(amount = 500),
+            RequirementSerializer
+        )
+        # Test that the instance was updated in the expected way
+        # Note that the instance was refreshed as part of the assert
+        #   Verify that the amount was updated
+        self.assertEqual(requirement.amount, 500)
+        #   Verify that the start date stayed the same
+        self.assertEqual(requirement.start_date, start_date)
+        #   Verify that the requirement was put back into the requested state
+        self.assertEqual(requirement.status, Requirement.Status.REQUESTED)
+
+    def test_update_as_project_contributor(self):
+        """
+        Tests that the amount can be updated by a project contributor.
+        """
+        # Make a requirement with a start date in the past for testing
+        start_date = date.today() - relativedelta(months = 3)
+        requirement = Requirement.objects.create(
+            service = random.choice(self.services),
+            resource = random.choice(self.resources),
+            status = Requirement.Status.REJECTED,
+            amount = 250,
+            start_date = start_date
+        )
+        self.authenticateAsProjectContributor(requirement.service.project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/requirements/{}/".format(requirement.pk),
             requirement,
@@ -149,6 +217,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Set up the requirement
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         requirement.status = Requirement.Status.REJECTED
         requirement.amount = 250
         requirement.save()
@@ -177,6 +246,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the service cannot be updated.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         original_service_pk = requirement.service.pk
         # Pick a valid service that is not the current service to try to update to
         service = Service.objects.exclude(pk = original_service_pk).order_by('?').first()
@@ -197,6 +267,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the resource cannot be updated.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         original_resource_pk = requirement.resource.pk
         # Pick a valid resource that is not the current resource to try to update to
         resource = Resource.objects.exclude(pk = original_resource_pk).order_by('?').first()
@@ -217,6 +288,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the status cannot be directly updated.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         requirement.status = Requirement.Status.REJECTED
         requirement.save()
         # Try to make the update - it should succeed but the status should not be updated
@@ -234,6 +306,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be updated with a negative amount.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         response_data = self.assertUpdateResponseIsBadRequest(
             "/requirements/{}/".format(requirement.pk),
             dict(amount = -100)
@@ -246,6 +319,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the start date cannot be updated to a date in the past.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         # Get a new start date in the past to attempt to update to
         start_date = date.today() - relativedelta(weeks = 2)
         response_data = self.assertUpdateResponseIsBadRequest(
@@ -261,6 +335,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         start date, even if the start date does not change.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
 
         # Test with just a start date that is after the requirement's end date
         start_date = requirement.end_date + relativedelta(weeks = 2)
@@ -295,6 +370,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be updated when the containing project is not editable.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         requirement.amount = 120
         requirement.save()
         for status in Project.Status:
@@ -320,6 +396,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be updated once it has been approved.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         requirement.amount = 120
         requirement.save()
         for status in Requirement.Status:
@@ -341,11 +418,63 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             requirement.refresh_from_db()
             self.assertEqual(requirement.amount, 120)
 
-    def test_remove_requirement(self):
+    def test_consortium_manager_cannot_update(self):
         """
-        Tests that a requirement is correctly removed by the DELETE method.
+        Tests that a consortium manager cannot update a requirement.
         """
         requirement = Requirement.objects.order_by('?').first()
+        # Authenticate the client as the consortium manager for the project
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
+        # This should be permission denied as the user is permitted to view the requirement
+        self.assertPermissionDenied(
+            "/requirements/{}/".format(requirement.pk),
+            "PATCH",
+            dict(amount = 250)
+        )
+
+    def test_authenticated_user_cannot_update(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot update a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        # Authenticate the client as a user not associated with the project
+        self.authenticate()
+        # This should be not found as the user is not permitted to view the requirement either
+        self.assertNotFound(
+            "/requirements/{}/".format(requirement.pk),
+            "PATCH",
+            dict(amount = 250)
+        )
+
+    def test_unauthenticated_user_cannot_update(self):
+        """
+        Tests that an unauthenticated user cannot update a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        # This should be unauthorized as the user has not authenticated
+        self.assertUnauthorized(
+            "/requirements/{}/".format(requirement.pk),
+            "PATCH",
+            dict(amount = 250)
+        )
+
+    def test_remove_as_project_owner(self):
+        """
+        Tests that a project owner can remove a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
+        self.assertDeleteResponseIsEmpty("/requirements/{}/".format(requirement.pk))
+        # Test that the requirement was removed
+        self.assertFalse(Requirement.objects.filter(pk = requirement.pk).exists())
+
+    def test_remove_as_project_contributor(self):
+        """
+        Tests that a project contributor can remove a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
         self.assertDeleteResponseIsEmpty("/requirements/{}/".format(requirement.pk))
         # Test that the requirement was removed
         self.assertFalse(Requirement.objects.filter(pk = requirement.pk).exists())
@@ -355,6 +484,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be removed when the containing project is not editable.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
         for status in Project.Status:
             if status == Project.Status.EDITABLE:
                 continue
@@ -376,6 +506,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be removed once it has been approved.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
         for status in Requirement.Status:
             # Requirements cannot be removed once they are approved
             if status < Requirement.Status.APPROVED:
@@ -393,11 +524,61 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             # Check that the requirement still exists in the DB
             self.assertTrue(Requirement.objects.filter(pk = requirement.pk).exists())
 
+    def test_consortium_manager_cannot_remove(self):
+        """
+        Tests that a consortium manager cannot remove a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        # Authenticate the client as the consortium manager for the project
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
+        # This should be permission denied as the user is permitted to view the requirement
+        self.assertPermissionDenied(
+            "/requirements/{}/".format(requirement.pk),
+            "DELETE"
+        )
+
+    def test_authenticated_user_cannot_remove(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot remove a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        # Authenticate the client as a user not associated with the project
+        self.authenticate()
+        # This should be not found as the user is not permitted to view the requirement either
+        self.assertNotFound(
+            "/requirements/{}/".format(requirement.pk),
+            "DELETE"
+        )
+
+    def test_unauthenticated_user_cannot_remove(self):
+        """
+        Tests that an unauthenticated user cannot remove a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        # This should be unauthorized as the user has not authenticated
+        self.assertUnauthorized(
+            "/requirements/{}/".format(requirement.pk),
+            "DELETE"
+        )
+
+    def test_approve_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the approve endpoint.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
+        self.assertAllowedMethods(
+            "/requirements/{}/approve/".format(requirement.pk),
+            {'OPTIONS', 'POST'}
+        )
+
     def test_approve_requested(self):
         """
         Tests that a requested requirement can be successfully approved.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         # Put the containing project into the review status
         requirement.service.project.status = Project.Status.UNDER_REVIEW
         requirement.service.project.save()
@@ -419,6 +600,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a rejected requirement can be approved while the project is still under review.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         requirement.status = Requirement.Status.REJECTED
         requirement.save()
         # Put the containing project into the review status
@@ -442,6 +624,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an already approved requirement can be re-approved.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         requirement.status = Requirement.Status.APPROVED
         requirement.save()
         # Put the containing project into the review status
@@ -465,6 +648,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be approved when the project is not under review.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         for status in Project.Status:
             if status == Project.Status.UNDER_REVIEW:
                 continue
@@ -487,6 +671,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be approved when it is already awaiting provisioning.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         # Put the project into the review state
         requirement.service.project.status = Project.Status.UNDER_REVIEW
         requirement.service.project.save()
@@ -514,6 +699,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # First, test that this works for no quotas
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         # Put the project into the review state
         requirement.service.project.status = Project.Status.UNDER_REVIEW
         requirement.service.project.save()
@@ -542,11 +728,67 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         requirement.refresh_from_db()
         self.assertEqual(requirement.status, Requirement.Status.REQUESTED)
 
+    def test_project_contributor_cannot_approve(self):
+        """
+        Tests that a project contributor cannot approve a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
+        self.assertPermissionDenied(
+            "/requirements/{}/approve/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_project_owner_cannot_approve(self):
+        """
+        Tests that a project owner cannot approve a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
+        self.assertPermissionDenied(
+            "/requirements/{}/approve/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_authenticated_user_cannot_approve(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        approve a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticate()
+        self.assertNotFound(
+            "/requirements/{}/approve/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_approve_authentication_required(self):
+        """
+        Tests that authentication is required to approve a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/requirements/{}/approve/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_reject_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted by the reject endpoint.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
+        self.assertAllowedMethods(
+            "/requirements/{}/reject/".format(requirement.pk),
+            {'OPTIONS', 'POST'}
+        )
+
     def test_reject_requested(self):
         """
         Tests that a requested requirement can be rejected.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         # Put the containing project into the review status
         requirement.service.project.status = Project.Status.UNDER_REVIEW
         requirement.service.project.save()
@@ -563,6 +805,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an approved requirement can be rejected while the project is still under review.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         requirement.status = Requirement.Status.APPROVED
         requirement.save()
         # Put the containing project into the review status
@@ -581,6 +824,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that an already rejected requirement can be re-rejected.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         requirement.status = Requirement.Status.REJECTED
         requirement.save()
         # Put the containing project into the review status
@@ -599,6 +843,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be rejected when the project is not under review.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         for status in Project.Status:
             if status == Project.Status.UNDER_REVIEW:
                 continue
@@ -621,6 +866,7 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be rejected when it is already awaiting provisioning or later.
         """
         requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(requirement.service.project.consortium)
         # Put the project into the review state
         requirement.service.project.status = Project.Status.UNDER_REVIEW
         requirement.service.project.save()
@@ -640,3 +886,47 @@ class RequirementViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             # Check that the requirement is still in the required state
             requirement.refresh_from_db()
             self.assertEqual(requirement.status, status)
+
+    def test_project_contributor_cannot_reject(self):
+        """
+        Tests that a project contributor cannot reject a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(requirement.service.project)
+        self.assertPermissionDenied(
+            "/requirements/{}/reject/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_project_owner_cannot_reject(self):
+        """
+        Tests that a project owner cannot reject a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(requirement.service.project)
+        self.assertPermissionDenied(
+            "/requirements/{}/reject/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_authenticated_user_cannot_reject(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        reject a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.authenticate()
+        self.assertNotFound(
+            "/requirements/{}/reject/".format(requirement.pk),
+            "POST"
+        )
+
+    def test_reject_authentication_required(self):
+        """
+        Tests that authentication is required to reject a requirement.
+        """
+        requirement = Requirement.objects.order_by('?').first()
+        self.assertUnauthorized(
+            "/requirements/{}/reject/".format(requirement.pk),
+            "POST"
+        )

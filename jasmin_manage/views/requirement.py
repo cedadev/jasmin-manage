@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from ..exceptions import Conflict
 from ..models import Project, Requirement
+from ..permissions import RequirementPermissions
 from ..serializers import read_only_serializer, RequirementSerializer
 
 
@@ -19,6 +20,8 @@ class RequirementViewSet(mixins.RetrieveModelMixin,
     """
     View set for the resource model.
     """
+    permission_classes = [RequirementPermissions]
+
     queryset = Requirement.objects.all()
     serializer_class = RequirementSerializer
 

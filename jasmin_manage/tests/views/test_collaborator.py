@@ -2,16 +2,13 @@ import random
 
 from django.contrib.auth import get_user_model
 
-from rest_framework.test import APITestCase, APIRequestFactory
-from rest_framework import mixins, status, viewsets
-
 from ...models import Collaborator, Consortium
 from ...serializers import CollaboratorSerializer
 
-from .utils import ViewSetAssertionsMixin
+from .utils import TestCase
 
 
-class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class CollaboratorViewSetTestCase(TestCase):
     """
     Tests for the collaborator viewset.
     """
@@ -34,21 +31,9 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         # affecting other tests
         for i in range(5):
             self.project.collaborators.create(
-                user = get_user_model().objects.create_user(f'contributer{i}'),
+                user = get_user_model().objects.create_user(f'contributor{i}'),
                 role = Collaborator.Role.CONTRIBUTOR
             )
-
-    def test_allowed_methods(self):
-        """
-        Tests that the correct methods are permitted by the detail endpoint.
-        """
-        # Pick a random but valid collaborator to use in the detail endpoint
-        collaborator = Collaborator.objects.order_by('?').first()
-        self.assertAllowedMethods(
-            "/collaborators/{}/".format(collaborator.pk),
-            # Everything except POST is supported
-            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH', 'DELETE'}
-        )
 
     def test_list_not_found(self):
         """
@@ -56,27 +41,90 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         self.assertNotFound("/collaborators/")
 
-    def test_detail_success(self):
+    def test_detail_allowed_methods(self):
         """
-        Tests that the detail endpoint successfully retrieves a valid collaborator.
+        Tests that the correct methods are permitted by the detail endpoint.
         """
         # Pick a random but valid collaborator to use in the detail endpoint
         collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
+        self.assertAllowedMethods(
+            "/collaborators/{}/".format(collaborator.pk),
+            # Everything except POST is supported
+            {'OPTIONS', 'HEAD', 'GET', 'PUT', 'PATCH', 'DELETE'}
+        )
+
+    def test_detail_project_owner(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project owner.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(collaborator.project)
         self.assertDetailResponseMatchesInstance(
             "/collaborators/{}/".format(collaborator.pk),
             collaborator,
             CollaboratorSerializer
         )
 
+    def test_detail_project_contributor(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project contributor.
+        """
+        # Pick a random but valid collaborator to use in the detail endpoint
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as a contributor to the project
+        self.authenticateAsProjectContributor(collaborator.project)
+        self.assertDetailResponseMatchesInstance(
+            "/collaborators/{}/".format(collaborator.pk),
+            collaborator,
+            CollaboratorSerializer
+        )
+
+    def test_detail_consortium_manager(self):
+        """
+        Tests that the detail endpoint successfully retrieves a valid collaborator
+        when the authenticated user is a project contributor.
+        """
+        # Pick a random but valid collaborator to use in the detail endpoint
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as the consortium manager
+        self.authenticateAsConsortiumManager(collaborator.project.consortium)
+        self.assertDetailResponseMatchesInstance(
+            "/collaborators/{}/".format(collaborator.pk),
+            collaborator,
+            CollaboratorSerializer
+        )
+
+    def test_detail_authenticated_not_collaborator(self):
+        """
+        Tests that the detail endpoint returns not found when the user is authenticated
+        but does not have permission to view the collaborator.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        self.authenticate()
+        self.assertNotFound("/collaborators/{}/".format(collaborator.pk), "GET")
+
+    def test_detail_unauthenticated(self):
+        """
+        Tests that the detail endpoint returns unauthorized when an unauthenticated
+        user attempts to access a valid collaborator.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        self.assertUnauthorized("/collaborators/{}/".format(collaborator.pk), "GET")
+
     def test_detail_missing(self):
         """
         Tests that the detail endpoint correctly reports not found for invalid collaborator.
         """
-        self.assertNotFound("/collaborators/20/")
+        self.authenticate()
+        self.assertNotFound("/collaborators/100/")
 
     def test_update_role(self):
         """
-        Tests that the role can be updated.
+        Tests that the role can be updated by a project owner.
         """
         collaborator = (
             Collaborator.objects
@@ -84,6 +132,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
                 .order_by('?')
                 .first()
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/collaborators/{}/".format(collaborator.pk),
             collaborator,
@@ -104,6 +154,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
                 .order_by('?')
                 .first()
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         response_data = self.assertUpdateResponseIsBadRequest(
             "/collaborators/{}/".format(collaborator.pk),
             dict(role = "NOT_VALID")
@@ -128,6 +180,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
                 .order_by('?')
                 .first()
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         original_project_pk = collaborator.project.pk
         original_user_pk = collaborator.user.pk
         # The update should go through, but the project and user should remain unchanged
@@ -153,6 +207,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             user = get_user_model().objects.create_user('owner2'),
             role = Collaborator.Role.OWNER
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         self.assertUpdateResponseMatchesUpdatedInstance(
             "/collaborators/{}/".format(collaborator.pk),
             collaborator,
@@ -168,6 +224,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Get the current sole owner for the project
         collaborator = self.project.collaborators.filter(role = Collaborator.Role.OWNER).first()
+        # Authenticate as the owner from the discovered collaborator
+        self.client.force_authenticate(user = collaborator.user)
         # Trying to downgrade them to a contributor should result in a conflict
         response_data = self.assertConflict(
             "/collaborators/{}/".format(collaborator.pk),
@@ -180,17 +238,74 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         collaborator.refresh_from_db()
         self.assertEqual(collaborator.role, Collaborator.Role.OWNER)
 
+    def test_project_contributor_cannot_update(self):
+        """
+        Tests that a project contributor cannot update a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as an contributor of the project
+        self.authenticateAsProjectContributor(collaborator.project)
+        # This should be permission denied as the user is permitted to view the collaborator
+        self.assertPermissionDenied(
+            "/collaborators/{}/".format(collaborator.pk),
+            "PATCH",
+            dict(role = Collaborator.Role.OWNER.name),
+        )
+
+    def test_consortium_manager_cannot_update(self):
+        """
+        Tests that a consortium manager cannot update a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as the consortium manager for the project
+        self.authenticateAsConsortiumManager(collaborator.project.consortium)
+        # This should be permission denied as the user is permitted to view the collaborator
+        self.assertPermissionDenied(
+            "/collaborators/{}/".format(collaborator.pk),
+            "PATCH",
+            dict(role = Collaborator.Role.OWNER.name),
+        )
+
+    def test_authenticated_user_cannot_update(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot update a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as a user not associated with the project
+        self.authenticate()
+        # This should be not found as the user is not permitted to view the collaborator either
+        self.assertNotFound(
+            "/collaborators/{}/".format(collaborator.pk),
+            "PATCH",
+            dict(role = Collaborator.Role.OWNER.name),
+        )
+
+    def test_unauthenticated_user_cannot_update(self):
+        """
+        Tests that an unauthenticated user cannot update a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # This should be unauthorized as the user has not authenticated
+        self.assertUnauthorized(
+            "/collaborators/{}/".format(collaborator.pk),
+            "PATCH",
+            dict(role = Collaborator.Role.OWNER.name),
+        )
+
     def test_remove_contributor(self):
         """
-        Tests that a collaborator is correctly removed by the DELETE method.
+        Tests that a project owner can remove a collaborator using the DELETE method.
         """
-        # Pick a random contributer to remove
+        # Pick a random contributor to remove
         collaborator = (
             Collaborator.objects
                 .filter(role = Collaborator.Role.CONTRIBUTOR)
                 .order_by('?')
                 .first()
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         self.assertDeleteResponseIsEmpty("/collaborators/{}/".format(collaborator.pk))
         # Test that the collaborator was removed
         self.assertFalse(Collaborator.objects.filter(pk = collaborator.pk).exists())
@@ -204,6 +319,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             user = get_user_model().objects.create_user('owner2'),
             role = Collaborator.Role.OWNER
         )
+        # Authenticate the client as an owner of the project
+        self.authenticateAsProjectOwner(collaborator.project)
         # Try to delete them
         self.assertDeleteResponseIsEmpty("/collaborators/{}/".format(collaborator.pk))
         # Test that the collaborator was removed
@@ -215,6 +332,8 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Get the current sole owner for the project
         collaborator = self.project.collaborators.filter(role = Collaborator.Role.OWNER).first()
+        # Authenticate as the owner from the discovered collaborator
+        self.client.force_authenticate(user = collaborator.user)
         # Trying to delete the owner record should result in a conflict
         response_data = self.assertConflict(
             "/collaborators/{}/".format(collaborator.pk),
@@ -224,3 +343,54 @@ class CollaboratorViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         self.assertEqual(response_data['code'], 'sole_owner')
         # Test that the collaborator was not removed
         self.assertTrue(Collaborator.objects.filter(pk = collaborator.pk).exists())
+
+    def test_project_contributor_cannot_remove(self):
+        """
+        Tests that a project contributor cannot remove a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as an contributor of the project
+        self.authenticateAsProjectContributor(collaborator.project)
+        # This should be permission denied as the user is permitted to view the collaborator
+        self.assertPermissionDenied(
+            "/collaborators/{}/".format(collaborator.pk),
+            "DELETE"
+        )
+
+    def test_consortium_manager_cannot_remove(self):
+        """
+        Tests that a consortium manager cannot remove a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as the consortium manager for the project
+        self.authenticateAsConsortiumManager(collaborator.project.consortium)
+        # This should be permission denied as the user is permitted to view the collaborator
+        self.assertPermissionDenied(
+            "/collaborators/{}/".format(collaborator.pk),
+            "DELETE"
+        )
+
+    def test_authenticated_user_cannot_remove(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot remove a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # Authenticate the client as a user not associated with the project
+        self.authenticate()
+        # This should be not found as the user is not permitted to view the collaborator either
+        self.assertNotFound(
+            "/collaborators/{}/".format(collaborator.pk),
+            "DELETE"
+        )
+
+    def test_unauthenticated_user_cannot_remove(self):
+        """
+        Tests that an unauthenticated user cannot remove a contributor.
+        """
+        collaborator = Collaborator.objects.order_by('?').first()
+        # This should be unauthorized as the user has not authenticated
+        self.assertUnauthorized(
+            "/collaborators/{}/".format(collaborator.pk),
+            "DELETE"
+        )

@@ -1,4 +1,4 @@
-from .category import CategoryViewSet, CategoryResourcesViewSet
+from .category import CategoryViewSet
 from .collaborator import CollaboratorViewSet
 from .consortium import ConsortiumViewSet, ConsortiumProjectsViewSet, ConsortiumQuotasViewSet
 from .exception_handler import exception_handler

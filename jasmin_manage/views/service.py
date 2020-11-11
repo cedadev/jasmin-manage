@@ -6,6 +6,7 @@ from rest_framework.permissions import SAFE_METHODS
 
 from ..exceptions import Conflict
 from ..models import Project, Requirement, Service
+from ..permissions import RequirementPermissions, ServicePermissions
 from ..serializers import RequirementSerializer, ServiceSerializer
 
 
@@ -17,6 +18,8 @@ class ServiceViewSet(mixins.RetrieveModelMixin,
     """
     View set for the resource model.
     """
+    permission_classes = [ServicePermissions]
+
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
@@ -36,6 +39,8 @@ class ServiceRequirementsViewSet(mixins.ListModelMixin,
     """
     View set for listing and creating requirements for a service.
     """
+    permission_classes = [RequirementPermissions]
+
     queryset = Requirement.objects.all()
     serializer_class = RequirementSerializer
 

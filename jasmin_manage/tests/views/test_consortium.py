@@ -8,10 +8,10 @@ from rest_framework import mixins, status, viewsets
 from ...models import Consortium, Project, Quota, Resource
 from ...serializers import ConsortiumSerializer, ProjectSerializer, QuotaSerializer
 
-from .utils import ViewSetAssertionsMixin
+from .utils import TestCase
 
 
-class ConsortiumViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class ConsortiumViewSetTestCase(TestCase):
     """
     Tests for the consortium viewset.
     """
@@ -26,11 +26,35 @@ class ConsortiumViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
                 manager = get_user_model().objects.create_user(f'manager{i}')
             )
 
-    def test_allowed_methods(self):
+    def test_list_allowed_methods(self):
         """
-        Tests that only safe methods are allowed for the list and detail endpoints.
+        Tests that only safe methods are allowed for the list endpoint.
         """
+        self.authenticate()
         self.assertAllowedMethods("/consortia/", {'OPTIONS', 'HEAD', 'GET'})
+
+    def test_list_success(self):
+        """
+        Tests that a list response is successful for an authenticated user.
+        """
+        self.authenticate()
+        self.assertListResponseMatchesQuerySet(
+            "/consortia/",
+            Consortium.objects.all(),
+            ConsortiumSerializer
+        )
+
+    def test_list_unauthenticated(self):
+        """
+        Tests that the list endpoint returns unauthorized for an unauthenticated user.
+        """
+        self.assertUnauthorized("/consortia/", "GET")
+
+    def test_detail_allowed_methods(self):
+        """
+        Tests that only safe methods are allowed for the detail endpoint.
+        """
+        self.authenticate()
         # Pick a random but valid consortium to use in the detail endpoint
         consortium = Consortium.objects.order_by('?').first()
         self.assertAllowedMethods(
@@ -38,20 +62,11 @@ class ConsortiumViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_list_success(self):
-        """
-        Tests that a list response looks correct.
-        """
-        self.assertListResponseMatchesQuerySet(
-            "/consortia/",
-            Consortium.objects.all(),
-            ConsortiumSerializer
-        )
-
     def test_detail_success(self):
         """
         Tests that a detail response for a consortium looks correct.
         """
+        self.authenticate()
         consortium = Consortium.objects.order_by('?').first()
         self.assertDetailResponseMatchesInstance(
             "/consortia/{}/".format(consortium.pk),
@@ -59,14 +74,22 @@ class ConsortiumViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             ConsortiumSerializer
         )
 
+    def test_detail_unauthenticated(self):
+        """
+        Tests that the detail endpoint returns unauthorized for an unauthenticated user.
+        """
+        consortium = Consortium.objects.order_by('?').first()
+        self.assertUnauthorized("/consortia/{}/".format(consortium.pk), "GET")
+
     def test_detail_missing(self):
         """
-        Tests that the detail response for a non-existent consortium looks correct.
+        Tests that the detail endpoint returns not found for an invalid consortium.
         """
-        self.assertNotFound("/consortia/20/")
+        self.authenticate()
+        self.assertNotFound("/consortia/100/")
 
 
-class ConsortiumProjectsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class ConsortiumProjectsViewSetTestCase(TestCase):
     """
     Tests for the consortium projects viewset.
     """
@@ -94,12 +117,14 @@ class ConsortiumProjectsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             for i in range(20)
         ]
 
-    def test_allowed_methods(self):
+    def test_list_allowed_methods(self):
         """
         Tests that only safe methods are allowed for the list endpoint.
         """
         # Pick a random but valid consortium to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
+        # Authenticate as the consortium manager
+        self.authenticateAsConsortiumManager(consortium)
         self.assertAllowedMethods(
             "/consortia/{}/projects/".format(consortium.pk),
             {'OPTIONS', 'HEAD', 'GET'}
@@ -107,24 +132,44 @@ class ConsortiumProjectsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
 
     def test_list_valid_category(self):
         """
-        Tests that a list response for a valid category looks correct.
+        Tests that the consortium manager can successfully list the projects.
         """
-        # Pick a random but valid category to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
+        # Authenticate as the consortium manager
+        self.authenticateAsConsortiumManager(consortium)
         self.assertListResponseMatchesQuerySet(
             "/consortia/{}/projects/".format(consortium.pk),
             consortium.projects.all(),
             ProjectSerializer
         )
 
+    def test_list_not_manager(self):
+        """
+        Tests that the list endpoint returns not found when an authenticated user who
+        is not the consortium manager attempts to list projects for a valid consortium.
+        """
+        self.authenticate()
+        consortium = Consortium.objects.order_by('?').first()
+        self.assertNotFound("/consortia/{}/projects/".format(consortium.pk))
+
     def test_list_invalid_category(self):
         """
-        Tests that a list response for an invalid category correctly returns an empty list.
+        Tests that the list endpoint returns not found when an authenticated user
+        attempts to list project for an invalid category.
         """
-        self.assertListResponseEmpty("/consortia/20/projects/")
+        self.authenticate()
+        self.assertNotFound("/consortia/100/projects/")
+
+    def test_list_unauthenticated(self):
+        """
+        Tests that the list endpoint returns unauthorized when an unauthenticated user
+        attempts to list projects.
+        """
+        consortium = Consortium.objects.order_by('?').first()
+        self.assertUnauthorized("/consortia/{}/projects/".format(consortium.pk))
 
 
-class ConsortiumQuotasViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class ConsortiumQuotasViewSetTestCase(TestCase):
     """
     Tests for the consortium quotas viewset.
     """
@@ -152,12 +197,14 @@ class ConsortiumQuotasViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             for resource in resources:
                 consortium.quotas.create(resource = resource, amount = random.randint(1, 1000))
 
-    def test_allowed_methods(self):
+    def test_list_allowed_methods(self):
         """
         Tests that only safe methods are allowed for the list endpoint.
         """
         # Pick a random but valid consortium to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
+        # Authenticate as the consortium manager
+        self.authenticateAsConsortiumManager(consortium)
         self.assertAllowedMethods(
             "/consortia/{}/quotas/".format(consortium.pk),
             {'OPTIONS', 'HEAD', 'GET'}
@@ -165,18 +212,39 @@ class ConsortiumQuotasViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
 
     def test_list_valid_category(self):
         """
-        Tests that a list response for a valid category looks correct.
+        Tests that the consortium manager can list the consortium quotas.
         """
         # Pick a random but valid category to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
+        # Authenticate as the consortium manager
+        self.authenticateAsConsortiumManager(consortium)
         self.assertListResponseMatchesQuerySet(
             "/consortia/{}/quotas/".format(consortium.pk),
             consortium.quotas.all(),
             QuotaSerializer
         )
 
+    def test_list_not_manager(self):
+        """
+        Tests that the list endpoint returns not found when an authenticated user who
+        is not the consortium manager attempts to list quotas for a valid consortium.
+        """
+        self.authenticate()
+        consortium = Consortium.objects.order_by('?').first()
+        self.assertNotFound("/consortia/{}/quotas/".format(consortium.pk))
+
     def test_list_invalid_category(self):
         """
-        Tests that a list response for an invalid category correctly returns an empty list.
+        Tests that the list endpoint returns not found when an authenticated user
+        attempts to list quotas for an invalid category.
         """
-        self.assertListResponseEmpty("/consortia/20/quotas/")
+        self.authenticate()
+        self.assertNotFound("/consortia/100/quotas/")
+
+    def test_list_unauthenticated(self):
+        """
+        Tests that the list endpoint returns unauthorized when an unauthenticated user
+        attempts to list quotas.
+        """
+        consortium = Consortium.objects.order_by('?').first()
+        self.assertUnauthorized("/consortia/{}/quotas/".format(consortium.pk))

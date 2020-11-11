@@ -19,10 +19,10 @@ from ...models import (
 )
 from ...serializers import RequirementSerializer, ServiceSerializer
 
-from .utils import ViewSetAssertionsMixin
+from .utils import TestCase
 
 
-class ServiceViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+class ServiceViewSetTestCase(TestCase):
     """
     Tests for the project viewset.
     """
@@ -59,45 +59,99 @@ class ServiceViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             for i, project in enumerate(self.projects)
         ])
 
-    def test_allowed_methods(self):
-        """
-        Tests that the correct methods are permitted by the detail endpoint.
-        """
-        service = Service.objects.order_by('?').first()
-        self.assertAllowedMethods(
-            "/services/{}/".format(service.pk),
-            # Services cannot be updated via the API
-            {'OPTIONS', 'HEAD', 'GET', 'DELETE'}
-        )
-
     def test_list_not_found(self):
         """
         Services can only be listed via a project, so check that the list endpoint is not found.
         """
         self.assertNotFound("/services/")
 
-    def test_detail_not_collaborator(self):
+    def test_detail_allowed_methods(self):
         """
-        Tests that the detail endpoint successfully retrieves a service.
+        Tests that the correct methods are permitted by the detail endpoint.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
+        self.assertAllowedMethods(
+            "/services/{}/".format(service.pk),
+            # Services cannot be updated via the API
+            {'OPTIONS', 'HEAD', 'GET', 'DELETE'}
+        )
+
+    def test_detail_as_project_owner(self):
+        """
+        Tests that a project owner can view the detail for a service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         self.assertDetailResponseMatchesInstance(
             "/services/{}/".format(service.pk),
             service,
             ServiceSerializer
         )
 
-    def test_detail_missing(self):
+    def test_detail_as_project_contributor(self):
         """
-        Tests that the detail endpoint correctly reports not found for invalid project.
-        """
-        self.assertNotFound("/services/100/")
-
-    def test_remove_service(self):
-        """
-        Tests that a service is correctly removed by the DELETE method.
+        Tests that a project contributor can view the detail for a service.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(service.project)
+        self.assertDetailResponseMatchesInstance(
+            "/services/{}/".format(service.pk),
+            service,
+            ServiceSerializer
+        )
+
+    def test_detail_as_consortium_manager(self):
+        """
+        Tests that the consortium manager can view the detail for a service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(service.project.consortium)
+        self.assertDetailResponseMatchesInstance(
+            "/services/{}/".format(service.pk),
+            service,
+            ServiceSerializer
+        )
+
+    def test_detail_not_permitted_authenticated(self):
+        """
+        Tests that an authenticated user that is not associated with the project
+        cannot view the detail for a service.
+        """
+        self.authenticate()
+        service = Service.objects.order_by('?').first()
+        self.assertNotFound("/services/{}/".format(service.pk))
+
+    def test_detail_requires_authentication(self):
+        """
+        Tests that authentication is required to view the detail for a service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.assertUnauthorized("/services/{}/".format(service.pk))
+
+    def test_detail_missing(self):
+        """
+        Tests that the detail endpoint correctly reports not found for invalid service.
+        """
+        self.authenticate()
+        self.assertNotFound("/services/100/")
+
+    def test_remove_as_project_owner(self):
+        """
+        Tests that a service can be removed by a project owner.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
+        self.assertDeleteResponseIsEmpty("/services/{}/".format(service.pk))
+        # Test that the service was removed
+        self.assertFalse(Service.objects.filter(pk = service.pk).exists())
+
+    def test_remove_as_project_contributor(self):
+        """
+        Tests that a service can be removed by a project contributor.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(service.project)
         self.assertDeleteResponseIsEmpty("/services/{}/".format(service.pk))
         # Test that the service was removed
         self.assertFalse(Service.objects.filter(pk = service.pk).exists())
@@ -107,6 +161,7 @@ class ServiceViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a service cannot be removed when the containing project is not editable.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         for status in Project.Status:
             if status == Project.Status.EDITABLE:
                 continue
@@ -128,6 +183,7 @@ class ServiceViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a service cannot be removed if it has requirements.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         service.requirements.create(
             resource = Resource.objects.create(name = 'Resource 1'),
             amount = 1000
@@ -142,8 +198,31 @@ class ServiceViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         # Check that the service still exists in the DB
         self.assertTrue(Service.objects.filter(pk = service.pk).exists())
 
+    def test_remove_not_permitted_for_consortium_manager(self):
+        """
+        Tests that the consortium manager cannot remove a service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(service.project.consortium)
+        self.assertPermissionDenied("/services/{}/".format(service.pk), "DELETE")
 
-class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
+    def test_remove_not_permitted_for_authenticated_user(self):
+        """
+        Tests that a service cannot be removed by a user that is not associated with the project.
+        """
+        self.authenticate()
+        service = Service.objects.order_by('?').first()
+        self.assertNotFound("/services/{}/".format(service.pk), "DELETE")
+
+    def test_remove_requires_authentication(self):
+        """
+        Tests that removing a service requires authentication.
+        """
+        service = Service.objects.order_by('?').first()
+        self.assertUnauthorized("/services/{}/".format(service.pk), "DELETE")
+
+
+class ServiceRequirementsViewSetTestCase(TestCase):
     """
     Tests for the service requirements viewset.
     """
@@ -197,33 +276,96 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Pick a random but valid service to use in the endpoint
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         self.assertAllowedMethods(
             "/services/{}/requirements/".format(service.pk),
             {'OPTIONS', 'HEAD', 'GET', 'POST'}
         )
 
-    def test_list_valid_service(self):
+    def test_list_as_project_owner(self):
         """
-        Tests that a list response for a valid service looks correct.
+        Tests that a project owner can list requirements for a service.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         self.assertListResponseMatchesQuerySet(
             "/services/{}/requirements/".format(service.pk),
             service.requirements.all(),
             RequirementSerializer
         )
 
-    def test_list_invalid_service(self):
+    def test_list_as_project_contributor(self):
         """
-        Tests that a list response for an invalid service correctly returns an empty list.
-        """
-        self.assertListResponseEmpty("/services/1000/requirements/")
-
-    def test_create_uses_service_from_url(self):
-        """
-        Tests that creating a requirement uses the service from the URL.
+        Tests that a project contributor can list requirements for a service.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(service.project)
+        self.assertListResponseMatchesQuerySet(
+            "/services/{}/requirements/".format(service.pk),
+            service.requirements.all(),
+            RequirementSerializer
+        )
+
+    def test_list_as_consortium_manager(self):
+        """
+        Tests that a consortium manager can list requirements for a service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(service.project.consortium)
+        self.assertListResponseMatchesQuerySet(
+            "/services/{}/requirements/".format(service.pk),
+            service.requirements.all(),
+            RequirementSerializer
+        )
+
+    def test_list_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        list requirements for a service.
+        """
+        self.authenticate()
+        service = Service.objects.order_by('?').first()
+        self.assertNotFound("/services/{}/requirements/".format(service.pk))
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that listing requirements for a service requires authentication.
+        """
+        service = Service.objects.order_by('?').first()
+        self.assertUnauthorized("/services/{}/requirements/".format(service.pk))
+
+    def test_list_invalid_service(self):
+        """
+        Tests that listing the requirements for an invalid service returns not found.
+        """
+        self.authenticate()
+        self.assertNotFound("/services/1000/requirements/")
+
+    def test_create_as_project_owner(self):
+        """
+        Tests that a project owner can create a requirement for the service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
+        resource = service.category.resources.first()
+        requirement = self.assertCreateResponseMatchesCreatedInstance(
+            "/services/{}/requirements/".format(service.pk),
+            dict(resource = resource.pk, amount = 1000),
+            RequirementSerializer
+        )
+        self.assertEqual(requirement.service.pk, service.pk)
+        self.assertEqual(requirement.resource.pk, resource.pk)
+        self.assertEqual(requirement.status, Requirement.Status.REQUESTED)
+        self.assertEqual(requirement.amount, 1000)
+        self.assertEqual(requirement.start_date, date.today())
+        self.assertEqual(requirement.end_date, date.today() + relativedelta(years = 5))
+
+    def test_create_as_project_contributor(self):
+        """
+        Tests that a project contributor can create a requirement for the service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(service.project)
         resource = service.category.resources.first()
         requirement = self.assertCreateResponseMatchesCreatedInstance(
             "/services/{}/requirements/".format(service.pk),
@@ -242,6 +384,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement can be created with non-default start and end dates.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         start_date = date.today() + relativedelta(months = 3)
         end_date = start_date + relativedelta(months = 1)
@@ -263,6 +406,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the required fields are enforced on create.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         response_data = self.assertCreateResponseIsBadRequest(
             "/services/{}/requirements/".format(service.pk),
             dict()
@@ -277,6 +421,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that a requirement cannot be created with a negative amount.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         response_data = self.assertCreateResponseIsBadRequest(
             "/services/{}/requirements/".format(service.pk),
             dict(
@@ -293,6 +438,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         """
         # Pick a service to use in the URL
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         # Pick any other service to use
         other_service = Service.objects.exclude(pk = service.pk).order_by('?').first()
@@ -314,6 +460,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the status cannot be set directly when creating.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         requirement = self.assertCreateResponseMatchesCreatedInstance(
             "/services/{}/requirements/".format(service.pk),
@@ -331,6 +478,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the resource must be in the category for the service.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         # Select a resource that does not belong to the service's category
         resource = Resource.objects.exclude(category = service.category).order_by('?').first()
         response_data = self.assertCreateResponseIsBadRequest(
@@ -345,6 +493,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the start date must be in the future when creating.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         start_date = date.today() - relativedelta(weeks = 2)
         response_data = self.assertCreateResponseIsBadRequest(
@@ -363,6 +512,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that the end date must be after the start date when creating.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
 
         # Test with just a start date that is after the default end date
@@ -398,6 +548,7 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
         Tests that requirements can only be created for an editable project.
         """
         service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         num_requirements = service.requirements.count()
         for status in Project.Status:
@@ -416,3 +567,42 @@ class ServiceRequirementsViewSetTestCase(ViewSetAssertionsMixin, APITestCase):
             # Check that the number of requirements didn't change
             service.refresh_from_db()
             self.assertEqual(service.requirements.count(), num_requirements)
+
+    def test_create_not_permitted_for_consortium_manager(self):
+        """
+        Tests that the consortium manager cannot create a requirement for the service.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(service.project.consortium)
+        resource = service.category.resources.first()
+        self.assertPermissionDenied(
+            "/services/{}/requirements/".format(service.pk),
+            "POST",
+            dict(resource = resource.pk, amount = 1000),
+        )
+
+    def test_create_not_permitted_for_autenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        create a requirement for the service.
+        """
+        self.authenticate()
+        service = Service.objects.order_by('?').first()
+        resource = service.category.resources.first()
+        self.assertNotFound(
+            "/services/{}/requirements/".format(service.pk),
+            "POST",
+            dict(resource = resource.pk, amount = 1000),
+        )
+
+    def test_create_requires_authentication(self):
+        """
+        Tests that creating a requirement for a service requires authentication.
+        """
+        service = Service.objects.order_by('?').first()
+        resource = service.category.resources.first()
+        self.assertUnauthorized(
+            "/services/{}/requirements/".format(service.pk),
+            "POST",
+            dict(resource = resource.pk, amount = 1000),
+        )

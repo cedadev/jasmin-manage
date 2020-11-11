@@ -1,6 +1,7 @@
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, permissions, viewsets
 
 from ..models import Consortium, Project, Quota
+from ..permissions import ConsortiumNestedViewSetPermissions
 from ..serializers import (
     ConsortiumSerializer,
     ProjectSerializer,
@@ -12,6 +13,8 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     """
     View set for the consortium model.
     """
+    permission_classes = [permissions.IsAuthenticated]
+
     queryset = Consortium.objects.all()
     serializer_class = ConsortiumSerializer
 
@@ -20,6 +23,8 @@ class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing projects for a consortium.
     """
+    permission_classes = [ConsortiumNestedViewSetPermissions]
+
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
@@ -32,6 +37,8 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing the quotas for a consortium.
     """
+    permission_classes = [ConsortiumNestedViewSetPermissions]
+
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
 
