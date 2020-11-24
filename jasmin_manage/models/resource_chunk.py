@@ -1,8 +1,5 @@
 from django.db import models
-from django.utils import html
 from django.core.exceptions import ValidationError
-
-from concurrency.fields import IntegerVersionField
 
 from .resource import Resource
 
@@ -12,15 +9,7 @@ class ResourceChunkManager(models.Manager):
     Manager for the resource chunk model.
     """
     def get_by_natural_key(self, resource_name, chunk_name):
-        return self.get(resource__name = resource_name, name = name)
-
-
-class ResourceChunkQuerySet(models.QuerySet):
-    def annotate_usage(self):
-        """
-        Returns the current queryset annotated with usage information from
-        requirements that reference the resource chunk.
-        """
+        return self.get(resource__name = resource_name, name = chunk_name)
 
 
 class ResourceChunk(models.Model):
@@ -31,7 +20,7 @@ class ResourceChunk(models.Model):
         ordering = ('resource__name', 'name')
         unique_together = ('resource', 'name')
 
-    objects = ResourceChunkManager.from_queryset(ResourceChunkQuerySet)()
+    objects = ResourceChunkManager()
 
     resource = models.ForeignKey(
         Resource,
@@ -41,14 +30,11 @@ class ResourceChunk(models.Model):
     )
     name = models.CharField(
         max_length = 250,
-        unique = True,
         help_text = 'The name of the resource chunk, e.g. QB1, QB2.'
     )
     amount = models.PositiveIntegerField(
         help_text = 'The amount of the resource that is in this chunk.'
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def natural_key(self):
         return self.resource.name, self.name

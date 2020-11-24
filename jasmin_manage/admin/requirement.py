@@ -12,14 +12,12 @@ from django_admin_listfilter_dropdown.filters import (
 
 from rangefilter.filter import DateRangeFilter
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Requirement
 from .util import change_link
 
 
 @admin.register(Requirement)
-class RequirementAdmin(ConcurrentModelAdmin):
+class RequirementAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
@@ -29,27 +27,24 @@ class RequirementAdmin(ConcurrentModelAdmin):
     list_display = (
         'id',
         'project_link',
-        'number',
         'service_link',
         'resource_link',
-        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',
         'end_date_formatted',
     )
     list_filter = (
-        ('consortium', RelatedDropdownFilter),
-        ('service__project', RelatedOnlyDropdownFilter),
+        ('service__project__consortium', RelatedDropdownFilter),
+        ('service__project', RelatedDropdownFilter),
         ('resource', RelatedDropdownFilter),
         'status',
         ('start_date', DateRangeFilter),
         ('end_date', DateRangeFilter),
     )
-    autocomplete_fields = ('service', )
+    autocomplete_fields = ('service', 'resource')
     exclude = (
         'service',
-        'consortium',
         'resource',
         'status',
         'amount',
@@ -58,10 +53,8 @@ class RequirementAdmin(ConcurrentModelAdmin):
     )
     readonly_fields = (
         'project_link',
-        'number',
         'service_link',
         'resource_link',
-        'consortium_link',
         'status_formatted',
         'amount_formatted',
         'start_date_formatted',
@@ -88,10 +81,6 @@ class RequirementAdmin(ConcurrentModelAdmin):
     def service_link(self, obj):
         return change_link(obj.service, obj.service.name)
     service_link.short_description = 'service'
-
-    def consortium_link(self, obj):
-        return change_link(obj.consortium, obj.consortium.name)
-    consortium_link.short_description = 'consortium'
 
     def resource_link(self, obj):
         return change_link(obj.resource)

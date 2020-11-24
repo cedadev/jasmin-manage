@@ -14,14 +14,12 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Consortium, Project, Quota, Requirement
 from .util import changelist_link, change_link
 
 
 @admin.register(Consortium)
-class ConsortiumAdmin(ConcurrentModelAdmin):
+class ConsortiumAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
@@ -36,7 +34,7 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('manager', 'description_markup_type')
+            return exclude + ('manager', )
         else:
             return exclude
 
@@ -54,9 +52,8 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
         # Annotate the consortia with information about the number of quotas, projects and requirements
         qs = qs.annotate(
             quota_count = Count('quota', distinct = True),
-            # Count projects with at least one requirement in the consortium
-            project_count = Count('requirement__service__project', distinct = True),
-            requirement_count = Count('requirement', distinct = True)
+            project_count = Count('project', distinct = True),
+            requirement_count = Count('project__service__requirement', distinct = True)
         )
         # Also annotate with information about the number of overprovisioned quotas
         overprovisioned_quotas = (Quota.objects
@@ -70,7 +67,7 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
                 )
             )
         )
-        return qs.annotate(
+        qs = qs.annotate(
             overprovisioned_count = Coalesce(
                 Subquery(overprovisioned_quotas
                     .order_by()
@@ -81,6 +78,8 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
                 Value(0)
             )
         )
+        # The annotations remove the ordering, so re-apply the default ones
+        return qs.order_by(*qs.query.get_meta().ordering)
 
     def num_quotas(self, obj):
         text = '{} quota{}'.format(obj.quota_count, pluralize(obj.quota_count))
@@ -102,8 +101,7 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
         return changelist_link(
             Project,
             '{} project{}'.format(obj.project_count, pluralize(obj.project_count)),
-            # Find all the projects with at least one requirement
-            dict(service__requirement__consortium__id__exact = obj.pk)
+            dict(consortium__id__exact = obj.pk)
         )
     num_projects.short_description = '# projects'
 
@@ -111,7 +109,7 @@ class ConsortiumAdmin(ConcurrentModelAdmin):
         return changelist_link(
             Requirement,
             '{} requirement{}'.format(obj.requirement_count, pluralize(obj.requirement_count)),
-            dict(consortium__id__exact = obj.pk)
+            dict(service__project__consortium__id__exact = obj.pk)
         )
     num_requirements.short_description = '# requirements'
 

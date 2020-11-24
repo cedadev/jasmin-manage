@@ -1,14 +1,12 @@
 from django.contrib import admin
 from django.template.defaultfilters import pluralize
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Category, Service
 from .util import changelist_link
 
 
 @admin.register(Category)
-class CategoryAdmin(ConcurrentModelAdmin):
+class CategoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'num_resources', 'num_services')
     search_fields = ('name', )
     filter_horizontal = ('resources', )

@@ -4,14 +4,12 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
-from concurrency.admin import ConcurrentModelAdmin
-
 from ..models import Quota, Requirement
 from .util import changelist_link, change_link
 
 
 @admin.register(Quota)
-class QuotaAdmin(ConcurrentModelAdmin):
+class QuotaAdmin(admin.ModelAdmin):
     class Media:
         css = {
             "all": ('css/admin/highlight.css', )
@@ -34,6 +32,7 @@ class QuotaAdmin(ConcurrentModelAdmin):
     list_select_related = ('resource', 'consortium')
     show_full_result_count = False
     readonly_fields = ('provisioned', 'awaiting', 'approved')
+    autocomplete_fields = ('consortium', 'resource')
 
     def get_readonly_fields(self, request, obj):
         readonly_fields = super().get_readonly_fields(request, obj)
@@ -79,7 +78,7 @@ class QuotaAdmin(ConcurrentModelAdmin):
                     Requirement,
                     '{} requirement{}'.format(count, pluralize(count)),
                     dict(
-                        consortium__id__exact = obj.consortium.pk,
+                        service__project__consortium__id__exact = obj.consortium.pk,
                         resource__id__exact = obj.resource.pk,
                         status__exact = status
                     )

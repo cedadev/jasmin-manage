@@ -1,7 +1,4 @@
 from django.db import models
-from django.core import validators
-
-from concurrency.fields import IntegerVersionField
 
 from .category import Category
 from .project import Project
@@ -20,6 +17,7 @@ class Service(models.Model):
     Represents a service requested by a project.
     """
     class Meta:
+        ordering = ('category__name', 'name')
         # Services in the same project can have the same name if they are in different categories
         # But service names must be unique within a category
         unique_together = ('category', 'name')
@@ -38,18 +36,11 @@ class Service(models.Model):
         related_name = 'services',
         related_query_name = 'service'
     )
-    name = models.CharField(
-        max_length = 50,
-        validators = (
-            validators.RegexValidator(
-                validators.slug_re,
-                'Service name can only contain letters, numbers, underscores and hyphens.',
-                'invalid'
-            ),
-        )
+    name = models.SlugField(
+        error_messages = {
+            'invalid': 'Service name can only contain letters, numbers, underscores and hyphens.'
+        }
     )
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         # Aggregate service events over the category and project

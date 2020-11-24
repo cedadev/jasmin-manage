@@ -4,8 +4,6 @@ from django.db import models
 from django.db.models import functions
 from django.core.exceptions import ValidationError
 
-from concurrency.fields import IntegerVersionField
-
 from .consortium import Consortium
 from .resource import Resource
 
@@ -19,7 +17,7 @@ class QuotaManager(models.Manager):
 
 
 class QuotaQuerySet(models.QuerySet):
-    def annotate_usage(self):
+    def annotate_usage(self, *statuses):
         """
         Returns the current queryset annotated with usage information from requirements
         that reference the resource.
@@ -37,16 +35,17 @@ class QuotaQuerySet(models.QuerySet):
                     filter = models.Q(status = status)
                 ))
             )
-            for status in Requirement.Status
+            # If no statuses are given, use them all
+            for status in (statuses or Requirement.Status)
         ))
         # This subquery fetches the count and total of all requirements for the quota
         requirements = (Requirement.objects
             .filter(
-                consortium = models.OuterRef('consortium'),
+                service__project__consortium = models.OuterRef('consortium'),
                 resource = models.OuterRef('resource')
             )
             .order_by()
-            .values('consortium', 'resource')
+            .values('service__project__consortium', 'resource')
             .annotate(**annotations)
         )
         # Apply the annotations to the current query
@@ -87,8 +86,6 @@ class Quota(models.Model):
         related_query_name = 'quota'
     )
     amount = models.PositiveIntegerField()
-    # Version field for optimistic concurrency
-    version = IntegerVersionField()
 
     def get_event_aggregates(self):
         return self.consortium, self.resource
@@ -97,21 +94,5 @@ class Quota(models.Model):
         return self.consortium.name, self.resource.name
     natural_key.dependencies = (Consortium._meta.label_lower, Resource._meta.label_lower)
 
-    # def clean(self):
-    #     # The sum of the quotas for a resource must be <= the total available resource
-    #     if self.resource_id and self.amount is not None:
-    #         # Get the sum of all the quotas for the resource, excluding this one
-    #         quotas = Quota.objects.filter(resource = self.resource)
-    #         if not self._state.adding:
-    #             quotas = quotas.exclude(pk = self.pk)
-    #         quota_total = quotas.aggregate(total = models.Sum('amount'))['total'] or 0
-    #         # Add on the new amount for this quota
-    #         quota_total = quota_total + self.amount
-    #         # If the new amount for this quota takes the total over available, bail
-    #         if quota_total > self.resource.total_available:
-    #             raise ValidationError({
-    #                 'amount': 'Sum of quotas ({}) cannot exceed total available ({}).'.format(
-    #                     self.resource.format_amount(quota_total),
-    #                     self.resource.format_amount(self.resource.total_available)
-    #                 )
-    #             })
+    def __str__(self):
+        return "{} / {}".format(self.consortium, self.resource)
