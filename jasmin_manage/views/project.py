@@ -169,11 +169,11 @@ class ProjectViewSet(mixins.ListModelMixin,
         return Response(ProjectSerializer(project, context = context).data)
 
 
+# Collaborators will be created using an invite system
 class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
-                                  mixins.CreateModelMixin,
                                   viewsets.GenericViewSet):
     """
-    View set for listing and creating collaborators for a project.
+    View set for listing collaborators for a project.
     """
     permission_classes = [CollaboratorPermissions]
 
@@ -183,16 +183,10 @@ class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
     def get_queryset(self):
         return super().get_queryset().filter(project = self.kwargs['project_pk'])
 
+    # This property is required for the permissions check for listing
     @cached_property
     def project(self):
         return get_object_or_404(Project, pk = self.kwargs['project_pk'])
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        # Creating a collaborator requires that we inject the project into the serializer context
-        if self.action == 'create':
-            context.update(project = self.project)
-        return context
 
 
 class ProjectServicesViewSet(mixins.ListModelMixin,
