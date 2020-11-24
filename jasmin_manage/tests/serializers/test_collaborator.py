@@ -19,7 +19,7 @@ class CollaboratorSerializerTestCase(TestCase):
             description = 'some description',
             manager = get_user_model().objects.create_user('manager1')
         )
-        cls.owner = get_user_model().objects.create_user('owner1')
+        cls.owner = get_user_model().objects.create_user('owner1', first_name = 'Owner', last_name = 'One')
         # This will create an initial collaborator
         cls.project = cls.consortium.projects.create(
             name = 'Project 1',
@@ -41,101 +41,12 @@ class CollaboratorSerializerTestCase(TestCase):
         # Don't explicitly check the links field - it has tests
         self.assertEqual(serializer.data['id'], collaborator.pk)
         self.assertEqual(serializer.data['project'], collaborator.project.pk)
-        self.assertEqual(serializer.data['user'], collaborator.user.pk)
         self.assertEqual(serializer.data['role'], Collaborator.Role.OWNER.name)
-
-    def test_create_uses_project_from_context(self):
-        """
-        Tests that creating a collaborator uses the project from the context.
-        """
-        user = get_user_model().objects.create_user('user1')
-        serializer = CollaboratorSerializer(
-            data = dict(user = user.pk, role = "CONTRIBUTOR"),
-            context = dict(project = self.project)
-        )
-        self.assertTrue(serializer.is_valid())
-        collaborator = serializer.save()
-        # Re-fetch the collaborator from the database before asserting
-        collaborator.refresh_from_db()
-        self.assertEqual(collaborator.project.pk, self.project.pk)
-        self.assertEqual(collaborator.user.pk, user.pk)
-        self.assertEqual(collaborator.role, Collaborator.Role.CONTRIBUTOR)
-
-    def test_create_enforces_required_fields(self):
-        """
-        Tests that required fields are enforced on create.
-        """
-        serializer = CollaboratorSerializer(data = {}, context = dict(project = self.project))
-        self.assertFalse(serializer.is_valid())
-        required_fields = {'role', 'user'}
-        self.assertCountEqual(serializer.errors.keys(), required_fields)
-        for name in required_fields:
-            self.assertEqual(serializer.errors[name][0].code, 'required')
-
-    def test_cannot_create_collaborator_with_same_project_and_user(self):
-        """
-        Tests that the serializer enforces the unique together constraint on project/user
-        even though the project is read-only.
-        """
-        # Try to create another collaborator for the same user and project
-        serializer = CollaboratorSerializer(
-            data = dict(user = self.owner.pk, role = "CONTRIBUTOR"),
-            context = dict(project = self.project)
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertEqual(serializer.errors['non_field_errors'][0].code, 'unique')
-
-    def test_cannot_override_project_on_create(self):
-        """
-        Tests that the project cannot be overridden by specifying it in the input data.
-        """
-        # Create a project whose PK will be given in the data
-        # We will specify cls.project in the context, which is the project that the
-        # collaborator should be added to
-        project = self.consortium.projects.create(
-            name = 'Project 2',
-            description = 'some description',
-            owner = get_user_model().objects.create_user('owner2')
-        )
-        # Make a user that is not the owner of either project to create a record for
-        user = get_user_model().objects.create_user('user1')
-        serializer = CollaboratorSerializer(
-            data = dict(project = project.pk, user = user.pk, role = "OWNER"),
-            context = dict(project = self.project)
-        )
-        self.assertTrue(serializer.is_valid())
-        collaborator = serializer.save()
-        # Re-fetch the collaborator from the database before asserting
-        collaborator.refresh_from_db()
-        # Check that the collaborator belongs to cls.project, not the project we created
-        self.assertEqual(len(project.collaborators.all()), 1) # This should just be the original owner
-        self.assertEqual(len(self.project.collaborators.all()), 2)
-        self.assertEqual(collaborator.project.pk, self.project.pk)
-        self.assertEqual(collaborator.user.pk, user.pk)
-        self.assertEqual(collaborator.role, Collaborator.Role.OWNER)
-
-    def test_cannot_create_with_invalid_user(self):
-        serializer = CollaboratorSerializer(
-            data = dict(user = 10, role = "CONTRIBUTOR"),
-            context = dict(project = self.project)
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertCountEqual(serializer.errors.keys(), {'user'})
-        self.assertEqual(serializer.errors['user'][0].code, 'does_not_exist')
-
-    def test_cannot_create_with_invalid_role(self):
-        """
-        Tests that an invalid role correctly fails.
-        """
-        # Try to create a collaborator for an invalid role and test that it fails validation
-        user = get_user_model().objects.create_user('user1')
-        serializer = CollaboratorSerializer(
-            data = dict(user = self.owner.pk, role = "NOT_VALID"),
-            context = dict(project = self.project)
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertCountEqual(serializer.errors.keys(), {'role'})
-        self.assertEqual(serializer.errors['role'][0].code, 'invalid_choice')
+        # Check that the user nested dict has the correct shape
+        self.assertCountEqual(serializer.data['user'].keys(), {'username', 'first_name', 'last_name'})
+        self.assertEqual(serializer.data['user']['username'], collaborator.user.username)
+        self.assertEqual(serializer.data['user']['first_name'], collaborator.user.first_name)
+        self.assertEqual(serializer.data['user']['last_name'], collaborator.user.last_name)
 
     def test_update_role(self):
         """

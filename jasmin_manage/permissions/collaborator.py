@@ -15,13 +15,14 @@ class CollaboratorPermissions(BaseProjectPermissions):
 
     def has_action_permission(self, project, user, action):
         # Allow project collaborators and consortium managers to view the collaborators
-        # Allow only owners to add, modify or delete collaborators
+        # Allow only owners to modify or delete collaborators
+        # Collaborators cannot be created directly
         if action in {'list', 'retrieve'}:
             return (
                 self.is_consortium_manager(project, user) or
                 self.is_project_collaborator(project, user)
             )
-        elif action in {'create', 'update', 'partial_update', 'destroy'}:
+        elif action in {'update', 'partial_update', 'destroy'}:
             return self.is_project_owner(project, user)
         else:
             # Default to deny for any unknown actions
