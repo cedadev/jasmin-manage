@@ -8,3 +8,4 @@ settings.py
 .tox
 htmlcov
 coverage.xml
+venv

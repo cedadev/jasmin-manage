@@ -36,10 +36,12 @@ if __name__ == "__main__":
             'django-admin-list-filter-dropdown',
             'django-admin-rangefilter',
             'django-debug-toolbar',
-            'jasmin-auth-django-admin',
-            'django-tsunami',
             'djangorestframework',
             'drf-spectacular',
             'drf-nested-routers',
         ],
+        extras_require = {
+            'tsunami': ['django-tsunami'],
+            'jasmin': ['jasmin-auth-django-admin'],
+        }
     )
