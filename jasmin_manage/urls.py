@@ -46,6 +46,6 @@ urlpatterns = [
     path('', include(consortia_router.urls)),
     path('', include(projects_router.urls)),
     path('', include(services_router.urls)),
-    path('schema/', SpectacularAPIView.as_view(), name = 'openapi-schema'),
+    path('schema.json', SpectacularAPIView.as_view(), name = 'openapi-schema'),
     path('doc/', SpectacularSwaggerView.as_view(url_name = 'openapi-schema'), name = 'openapi-docs'),
 ]

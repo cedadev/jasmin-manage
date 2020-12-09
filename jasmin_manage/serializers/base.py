@@ -6,6 +6,9 @@ from django.urls import get_resolver, NoReverseMatch
 from rest_framework import fields, relations, serializers
 from rest_framework.reverse import reverse as drf_reverse
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
+
 
 class EnumField(fields.ChoiceField):
     """
@@ -32,6 +35,7 @@ class EnumField(fields.ChoiceField):
         return value.name
 
 
+@extend_schema_field(OpenApiTypes.OBJECT)
 class LinksField(fields.Field):
     """
     Field class for a links field for an object.
