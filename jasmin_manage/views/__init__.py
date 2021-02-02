@@ -6,3 +6,4 @@ from .project import ProjectViewSet, ProjectCollaboratorsViewSet, ProjectService
 from .requirement import RequirementViewSet
 from .resource import ResourceViewSet
 from .service import ServiceViewSet, ServiceRequirementsViewSet
+from .user import CurrentUserView
