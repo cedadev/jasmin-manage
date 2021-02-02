@@ -9,3 +9,4 @@ settings.py
 htmlcov
 coverage.xml
 venv
+pip-wheel-metadata
