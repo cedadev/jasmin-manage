@@ -1166,8 +1166,8 @@ class ProjectServicesViewSetTestCase(TestCase):
             "/projects/{}/services/".format(project.pk),
             dict(name = "service1", category = self.category.pk)
         )
-        self.assertCountEqual(response_data.keys(), {'non_field_errors'})
-        self.assertEqual(response_data['non_field_errors'][0]['code'], 'unique')
+        self.assertCountEqual(response_data.keys(), {'name'})
+        self.assertEqual(response_data['name'][0]['code'], 'unique')
 
     def test_create_cannot_override_project(self):
         """

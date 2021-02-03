@@ -81,7 +81,7 @@ class ServiceSerializerTestCase(TestCase):
             context = dict(project = self.project)
         )
         self.assertFalse(serializer.is_valid())
-        self.assertEqual(serializer.errors['non_field_errors'][0].code, 'unique')
+        self.assertEqual(serializer.errors['name'][0].code, 'unique')
 
     def test_cannot_override_project_on_create(self):
         """
