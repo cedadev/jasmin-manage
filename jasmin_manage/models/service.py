@@ -1,4 +1,5 @@
 from django.db import models
+from django.core import validators
 
 from .category import Category
 from .project import Project
@@ -36,10 +37,21 @@ class Service(models.Model):
         related_name = 'services',
         related_query_name = 'service'
     )
-    name = models.SlugField(
-        error_messages = {
-            'invalid': 'Service name can only contain letters, numbers, underscores and hyphens.'
-        }
+    name = models.CharField(
+        # 20 characters is long enough for a service name
+        max_length = 50,
+        # Index the field for faster searches
+        db_index = True,
+        # Use a regex to validate the field
+        validators = [
+            validators.RegexValidator(
+                regex = r'^[a-z][-a-z0-9_]*\Z',
+                message = (
+                    'Service name must start with a letter and contain '
+                    'lower-case letters, numbers, underscores and hyphens only.'
+                )
+            )
+        ]
     )
 
     def get_event_aggregates(self):

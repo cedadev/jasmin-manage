@@ -137,6 +137,13 @@ class ServiceSerializerTestCase(TestCase):
         )
         self.assertFalse(serializer.is_valid())
         self.assertEqual(serializer.errors['name'][0].code, 'invalid')
+        # Test with capital letters
+        serializer = ServiceSerializer(
+            data = dict(name = "SERVICE1", category = self.category.pk),
+            context = dict(project = self.project)
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['name'][0].code, 'invalid')
         # Test with unicode characters
         serializer = ServiceSerializer(
             data = dict(name = "sèrvíçë1", category = self.category.pk),

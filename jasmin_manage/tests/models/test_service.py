@@ -8,9 +8,9 @@ from ...models import Category, Consortium, Project, Service
 from ..utils import AssertValidationErrorsMixin
 
 
-class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):
+class ServiceModelTestCase(AssertValidationErrorsMixin, TestCase):
     """
-    Tests for the resource chunk model.
+    Tests for the service model.
     """
     @classmethod
     def setUpTestData(cls):
@@ -52,13 +52,20 @@ class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):
         service.full_clean()
         service.name = 'service_2_with_underscores'
         service.full_clean()
-        service.name = 'service_WITH_CAPS'
-        service.full_clean()
         # Now try some names that should fail
-        service.name = 'service with    whitespace'
         expected_errors = {
-            'name': ['Service name can only contain letters, numbers, underscores and hyphens.']
+            'name': [
+                'Service name must start with a letter and contain '
+                'lower-case letters, numbers, underscores and hyphens only.'
+            ]
         }
+        service.name = '1-service-starting-with-number'
+        with self.assertValidationErrors(expected_errors):
+            service.full_clean()
+        service.name = 'service_WITH_CAPS'
+        with self.assertValidationErrors(expected_errors):
+            service.full_clean()
+        service.name = 'service with    whitespace'
         with self.assertValidationErrors(expected_errors):
             service.full_clean()
         service.name = 'service@with#special&chars'
