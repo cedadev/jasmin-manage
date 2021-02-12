@@ -24,7 +24,7 @@ class Category(models.Model):
     objects = CategoryManager()
 
     name = models.CharField(max_length = 250, unique = True)
-    description = models.TextField(help_text = "Can contain markdown syntax.")
+    description = models.TextField()
     resources = models.ManyToManyField(
         Resource,
         related_name = 'categories',

@@ -122,6 +122,7 @@ class Resource(models.Model):
             'If not given, the full name is used in all contexts.'
         )
     )
+    description = models.TextField()
     # Units can be empty for a unitless resource, e.g. CPUs.
     units = models.CharField(
         max_length = 10,

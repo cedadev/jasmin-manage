@@ -24,7 +24,7 @@ class Consortium(models.Model):
     objects = ConsortiumManager()
 
     name = models.CharField(max_length = 250, unique = True)
-    description = models.TextField(help_text = "Can contain markdown syntax.")
+    description = models.TextField()
     # Prevent a user being deleted if they are a consortium manager
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
 
