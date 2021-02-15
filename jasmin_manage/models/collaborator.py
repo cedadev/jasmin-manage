@@ -29,6 +29,7 @@ class Collaborator(models.Model):
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
     role = models.PositiveSmallIntegerField(choices = Role.choices, default = Role.CONTRIBUTOR)
+    created_at = models.DateTimeField(auto_now_add = True)
 
     def get_event_aggregates(self):
         # Aggregate collaborator events over the project and user
