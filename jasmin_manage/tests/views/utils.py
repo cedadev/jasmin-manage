@@ -2,16 +2,38 @@ import json
 
 from django.contrib.auth import get_user_model
 
+from rest_framework.request import Request
 from rest_framework import status
-from rest_framework.test import APITestCase, APIRequestFactory
+from rest_framework.test import (
+    APIClient,
+    APIRequestFactory,
+    APITestCase,
+    force_authenticate
+)
 
 from ...models import Collaborator
+
+
+class Client(APIClient):
+    """
+    Subclass of API client that stores and exposes authentication credentials
+    in a more sensible way.
+    """
+    def apply_authentication(self, request):
+        """
+        Applies the current authentication to the given request.
+        """
+        force_authenticate(request, self.handler._force_user, self.handler._force_token)
+        # Make a DRF request from the authenticated request
+        return Request(request)
 
 
 class TestCase(APITestCase):
     """
     Base class for viewset test cases providing helper methods.
     """
+    client_class = Client
+
     def authenticate(self, user = None):
         """
         Authenticate the test client as the given user, or a newly created user if not given.
@@ -67,11 +89,9 @@ class TestCase(APITestCase):
         """
         response = self.client.get(endpoint)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        serializer = serializer_class(
-            queryset,
-            many = True,
-            context = dict(request = APIRequestFactory().get(endpoint))
-        )
+        # Make a fake request with the same authentication as the client
+        request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
+        serializer = serializer_class(queryset, many = True, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
 
     def assertListResponseEmpty(self, endpoint):
@@ -89,10 +109,9 @@ class TestCase(APITestCase):
         """
         response = self.client.get(endpoint)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        serializer = serializer_class(
-            instance,
-            context = dict(request = APIRequestFactory().get(endpoint))
-        )
+        # Make a fake request with the same authentication as the client
+        request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
+        serializer = serializer_class(instance, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
 
     def assertCreateResponseMatchesCreatedInstance(self, endpoint, data, serializer_class):
@@ -104,10 +123,9 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # Load the instance from the database as specified by the id in the response data
         instance = serializer_class.Meta.model.objects.get(pk = response.data['id'])
-        serializer = serializer_class(
-            instance,
-            context = dict(request = APIRequestFactory().get(endpoint))
-        )
+        # Make a fake request with the same authentication as the client
+        request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
+        serializer = serializer_class(instance, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
@@ -130,10 +148,9 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Refresh the instance before comparing the response data
         instance.refresh_from_db()
-        serializer = serializer_class(
-            instance,
-            context = dict(request = APIRequestFactory().get(endpoint))
-        )
+        # Make a fake request with the same authentication as the client
+        request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
+        serializer = serializer_class(instance, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
@@ -164,10 +181,9 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Refresh the instance before comparing the response data
         instance.refresh_from_db()
-        serializer = serializer_class(
-            instance,
-            context = dict(request = APIRequestFactory().get(endpoint))
-        )
+        # Make a fake request with the same authentication as the client
+        request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
+        serializer = serializer_class(instance, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
@@ -208,6 +224,10 @@ class TestCase(APITestCase):
         """
         Asserts that the given endpoint produces an unauthorized response when called
         with the given method and data.
+
+        Because DRF returns 401 or 403 depending on the configured authentication classes,
+        we check for both but also check for the not_authenticated code.
         """
         response = getattr(self.client, method.lower())(endpoint, data)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+        self.assertEqual(response.data['code'], 'not_authenticated')

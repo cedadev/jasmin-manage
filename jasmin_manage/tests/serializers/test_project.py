@@ -1,11 +1,21 @@
+import random
 from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from rest_framework.test import APIRequestFactory
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory, force_authenticate
 
-from ...models import Consortium, Project
+from ...models import (
+    Category,
+    Collaborator,
+    Consortium,
+    Project,
+    Requirement,
+    Resource,
+    Service
+)
 from ...serializers import ProjectSerializer
 
 
@@ -35,13 +45,35 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the serializer renders an existing instance correctly.
         """
+        # Add some services and requirements to the project
+        category = Category.objects.create(name = 'Category 1', description = 'Some description')
+        resource = Resource.objects.create(name = 'Resource 1', description = 'Some description')
+        services = []
+        for i in range(5):
+            services.append(self.project.services.create(name = f'service{i}', category = category))
+        for i in range(20):
+            random.choice(services).requirements.create(resource = resource, amount = 100)
         # In order to render the links correctly, there must be a request in the context
         request = APIRequestFactory().post('/projects/{}/'.format(self.project.pk))
-        serializer = ProjectSerializer(self.project, context = dict(request = request))
+        # In order for the current_user_role to get populated, we need to authenticate the request
+        force_authenticate(request, self.owner)
+        serializer = ProjectSerializer(self.project, context = dict(request = Request(request)))
         # Check that the right keys are present
         self.assertCountEqual(
             serializer.data.keys(),
-            {'id', 'name', 'description', 'status', 'consortium', 'created_at', '_links'}
+            {
+                'id',
+                'name',
+                'description',
+                'status',
+                'consortium',
+                'num_services',
+                'num_requirements',
+                'num_collaborators',
+                'current_user_role',
+                'created_at',
+                '_links'
+            }
         )
         # Check the the values are correct
         # Don't explicitly check the links field - it has tests
@@ -50,6 +82,10 @@ class ProjectSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['description'], self.project.description)
         self.assertEqual(serializer.data['status'], Project.Status.EDITABLE.name)
         self.assertEqual(serializer.data['consortium'], self.consortium.pk)
+        self.assertEqual(serializer.data['num_services'], 5)
+        self.assertEqual(serializer.data['num_requirements'], 20)
+        self.assertEqual(serializer.data['num_collaborators'], 1)
+        self.assertEqual(serializer.data['current_user_role'], Collaborator.Role.OWNER.name)
 
     def test_create_uses_authenticated_user_as_owner(self):
         """

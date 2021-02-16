@@ -130,7 +130,7 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_list_valid_category(self):
+    def test_list_valid_consortium(self):
         """
         Tests that the consortium manager can successfully list the projects.
         """
@@ -139,7 +139,7 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
         self.authenticateAsConsortiumManager(consortium)
         self.assertListResponseMatchesQuerySet(
             "/consortia/{}/projects/".format(consortium.pk),
-            consortium.projects.all(),
+            consortium.projects.annotate_summary(consortium.manager),
             ProjectSerializer
         )
 
@@ -152,10 +152,10 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
         consortium = Consortium.objects.order_by('?').first()
         self.assertNotFound("/consortia/{}/projects/".format(consortium.pk))
 
-    def test_list_invalid_category(self):
+    def test_list_invalid_consortium(self):
         """
         Tests that the list endpoint returns not found when an authenticated user
-        attempts to list project for an invalid category.
+        attempts to list project for an invalid consortium.
         """
         self.authenticate()
         self.assertNotFound("/consortia/100/projects/")
@@ -210,11 +210,11 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_list_valid_category(self):
+    def test_list_valid_consortium(self):
         """
         Tests that the consortium manager can list the consortium quotas.
         """
-        # Pick a random but valid category to use in the endpoint
+        # Pick a random but valid consortium to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
         # Authenticate as the consortium manager
         self.authenticateAsConsortiumManager(consortium)
@@ -233,10 +233,10 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
         consortium = Consortium.objects.order_by('?').first()
         self.assertNotFound("/consortia/{}/quotas/".format(consortium.pk))
 
-    def test_list_invalid_category(self):
+    def test_list_invalid_consortium(self):
         """
         Tests that the list endpoint returns not found when an authenticated user
-        attempts to list quotas for an invalid category.
+        attempts to list quotas for an invalid consortium.
         """
         self.authenticate()
         self.assertNotFound("/consortia/100/quotas/")

@@ -1,7 +1,9 @@
+import random
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ...models import Collaborator, Consortium, Project
+from ...models import Category, Collaborator, Consortium, Project, Resource
 
 from ..utils import AssertValidationErrorsMixin
 
@@ -30,6 +32,87 @@ class ProjectModelTestCase(AssertValidationErrorsMixin, TestCase):
         self.assertEqual(collaborators.count(), 1)
         self.assertEqual(collaborators[0].user.username, 'user1')
         self.assertEqual(collaborators[0].role, Collaborator.Role.OWNER)
+
+    def test_annotate_summary(self):
+        """
+        Test that annotating a project query with summary information works as expected.
+        """
+        UserModel = get_user_model()
+
+        # Keep track of the expected results as we create stuff
+        expected = {}
+
+        # Get the consortium to use
+        consortium = Consortium.objects.first()
+        # Create a category to use
+        category = Category.objects.create(name = 'Category 1', description = 'Some description')
+        # Create a resource to use
+        resource = Resource.objects.create(name = 'Resource 1', description = 'Some description')
+
+        # Create a user to be the current user
+        current_user = UserModel.objects.create_user('current_user')
+
+        # Create 10 projects without any collaborators
+        projects = []
+        for i in range(10):
+            project = Project(
+                name = f'Summary Project {i}',
+                description = 'Some description',
+                consortium = consortium
+            )
+            project.save()
+            projects.append(project)
+            expected.setdefault(
+                project.pk,
+                dict(
+                    num_services = 0,
+                    num_requirements = 0,
+                    num_collaborators = 0,
+                    current_user_role = None
+                )
+            )
+
+        # Create 40 services spread randomly across the projects
+        services = []
+        for i in range(40):
+            project = random.choice(projects)
+            services.append(category.services.create(name = f'service{i}', project = project))
+            expected[project.pk]['num_services'] += 1
+
+        # Create 100 requirements spread randomly across services
+        for i in range(100):
+            service = random.choice(services)
+            service.requirements.create(resource = resource, amount = 100)
+            expected[service.project.pk]['num_requirements'] += 1
+
+        # Choose 6 random projects to add the current_user as a collaborator
+        for project in random.sample(projects, 6):
+            # Pick which role to give them at random
+            role = random.choice(list(Collaborator.Role))
+            project.collaborators.create(user = current_user, role = role)
+            expected[project.pk]['num_collaborators'] += 1
+            expected[project.pk]['current_user_role'] = role
+
+        # For each project, add between 0 and 3 other collaborators
+        for i, project in enumerate(projects):
+            num_collaborators = random.randint(0, 3)
+            for j in range(num_collaborators):
+                project.collaborators.create(
+                    user = UserModel.objects.create_user(f'summary{i}{j}'),
+                    role = random.choice(list(Collaborator.Role))
+                )
+            expected[project.pk]['num_collaborators'] += num_collaborators
+
+        # Compare each project to the expected values
+        # We do this for both an annotated and un-annotated query to test both methods of obtaining the information
+        queryset = Project.objects.filter(name__startswith = 'Summary')
+        for qs in [queryset.all(), queryset.annotate_summary(current_user)]:
+            for project in qs:
+                self.assertEqual(project.get_num_services(), expected[project.pk]['num_services'])
+                self.assertEqual(project.get_num_requirements(), expected[project.pk]['num_requirements'])
+                self.assertEqual(project.get_num_collaborators(), expected[project.pk]['num_collaborators'])
+                self.assertEqual(project.get_current_user_role(current_user), expected[project.pk]['current_user_role'])
+
 
     def test_name_unique(self):
         self.assertTrue(Project._meta.get_field('name').unique)

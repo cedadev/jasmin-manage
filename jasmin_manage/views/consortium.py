@@ -29,8 +29,11 @@ class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
+        queryset = super().get_queryset()
+        # Annotate the queryset with summary information to avoid the N+1 problem
+        queryset = queryset.annotate_summary(self.request.user)
         # Filter the resources by consortium
-        return super().get_queryset().filter(consortium = self.kwargs['consortium_pk'])
+        return queryset.filter(consortium = self.kwargs['consortium_pk'])
 
 
 class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
