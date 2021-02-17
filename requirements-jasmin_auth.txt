@@ -1,0 +1,11 @@
+# Additional requirements for the jasmin_auth extra
+
+certifi==2020.12.5
+chardet==4.0.0
+-e git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb#egg=django_settings_object
+idna==2.10
+-e git+https://github.com/cedadev/jasmin-auth-django.git@bd498bd872ed0ff327c7874a3f270f5b50f1297c#egg=jasmin_auth_django
+oauthlib==3.1.0
+requests==2.25.1
+requests-oauthlib==1.3.0
+urllib3==1.26.3

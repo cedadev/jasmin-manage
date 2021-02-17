@@ -3,7 +3,7 @@
 db.sqlite3
 .python-version
 __pycache__
-settings.py
+jasmin_manage_site/settings.py
 .coverage
 .tox
 htmlcov
