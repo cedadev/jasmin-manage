@@ -6,15 +6,19 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 
-from rest_framework.urls import urlpatterns as authurls
+
+# If the jasmin-auth-django package is installed, use the login URLs from there
+try:
+    import jasmin_auth.urls
+    auth_urls = 'jasmin_auth.urls'
+except ImportError:
+    auth_urls = 'rest_framework.urls'
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('jasmin_manage.urls')),
-    # In order for the browsable API to pick them up, auth view must be
-    # in the rest_framework namespace
-    path('auth/', include((authurls, 'rest_framework'))),
+    path('auth/', include(auth_urls)),
 ]
 
 if settings.DEBUG:
