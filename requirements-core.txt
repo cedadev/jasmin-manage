@@ -5,6 +5,7 @@ attrs==20.3.0
 Django==3.1.6
 django-admin-list-filter-dropdown==1.0.3
 django-admin-rangefilter==0.6.4
+django-concurrency==2.2
 django-debug-toolbar==3.2
 django-markupfield==2.0.0
 djangorestframework==3.12.2

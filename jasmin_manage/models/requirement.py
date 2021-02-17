@@ -46,7 +46,7 @@ class Requirement(models.Model):
         related_query_name = 'requirement'
     )
     status = models.PositiveSmallIntegerField(choices = Status.choices, default = Status.REQUESTED)
-    amount = models.PositiveIntegerField()
+    amount = models.PositiveBigIntegerField()
     # Default start date is today
     start_date = models.DateField(default = date.today)
     # Default end date is 5 years

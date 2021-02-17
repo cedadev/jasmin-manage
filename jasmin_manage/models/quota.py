@@ -85,7 +85,7 @@ class Quota(models.Model):
         related_name = 'quotas',
         related_query_name = 'quota'
     )
-    amount = models.PositiveIntegerField()
+    amount = models.PositiveBigIntegerField()
 
     def get_event_aggregates(self):
         return self.consortium, self.resource

@@ -32,7 +32,7 @@ class ResourceChunk(models.Model):
         max_length = 250,
         help_text = 'The name of the resource chunk, e.g. QB1, QB2.'
     )
-    amount = models.PositiveIntegerField(
+    amount = models.PositiveBigIntegerField(
         help_text = 'The amount of the resource that is in this chunk.'
     )
 
