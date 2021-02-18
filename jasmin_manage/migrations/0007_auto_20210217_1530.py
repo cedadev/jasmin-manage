@@ -32,9 +32,15 @@ def create_initial_collaborator(apps, schema_editor):
     """
     Project = apps.get_model('jasmin_manage', 'Project')
     Collaborator = apps.get_model('jasmin_manage', 'Collaborator')
+    # Get the current value of the choice that corresponds to OWNER
+    owner_role = next(
+        value
+        for value, label in Collaborator._meta.get_field('role').choices
+        if label.lower() == "owner"
+    )
     for project in Project.objects.all():
         # Make a new collaborator object for the owner of the project
-        project.collaborators.create(user = project.owner, role = Collaborator.Role.OWNER)
+        project.collaborators.create(user = project.owner, role = owner_role)
 
 
 class Migration(migrations.Migration):

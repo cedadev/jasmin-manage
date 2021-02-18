@@ -99,11 +99,6 @@ STATIC_URL = '/assets/'
 LOGIN_URL = '/auth/login/'
 
 
-import markdown
-MARKUP_FIELD_TYPES = (
-    ('markdown', markdown.markdown, 'Markdown'),
-)
-
 INTERNAL_IPS = ('127.0.0.1', )
 
 
