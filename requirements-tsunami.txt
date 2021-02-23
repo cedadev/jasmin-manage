@@ -1,5 +1,0 @@
-# Additional requirements for the tsunami extra
-
--e git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb#egg=django_settings_object
--e git+https://github.com/mkjpryor-stfc/django-tsunami.git@163679b36c9cf2fe4464b7d720c43c90ef0c9a00#egg=django_tsunami
-jsonfield==3.1.0

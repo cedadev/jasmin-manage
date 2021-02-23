@@ -1,5 +1,5 @@
 from django.utils.html import format_html
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.http import urlencode
 from django.urls import reverse, NoReverseMatch
 
@@ -26,7 +26,7 @@ def change_link(obj, text = None):
     Returns a link to the admin view/change page for an object.
     """
     if not text:
-        text = force_text(obj)
+        text = force_str(obj)
     try:
         return format_html(
             '<a href="{}">{}</a>',

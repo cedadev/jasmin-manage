@@ -2,17 +2,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.serializers import ModelSerializer
 from rest_framework.views import APIView
-
-
-class UserSerializer(ModelSerializer):
-    """
-    Serializer for the user of a collaborator.
-    """
-    class Meta:
-        model = get_user_model()
-        fields = ('id', 'username', 'first_name', 'last_name')
 
 
 class CurrentUserView(APIView):
@@ -25,5 +15,14 @@ class CurrentUserView(APIView):
         """
         Return information about the authenticated user.
         """
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
+        data = {
+            'id': request.user.id,
+            'username': request.user.username,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+        }
+        # If the request is impersonated, set a flag on the response
+        # If the request is impersonated, just don't set the flag
+        if getattr(request, 'impersonator', None):
+            data.update(is_impersonated = True)
+        return Response(data)

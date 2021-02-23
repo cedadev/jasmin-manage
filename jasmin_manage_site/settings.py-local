@@ -12,7 +12,8 @@ ALLOWED_HOSTS = []
 
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'jasmin_auth',
+    'jasmin_auth.apps.AdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -24,6 +25,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'rest_framework',
     'drf_spectacular',
+    'tsunami',
 ]
 
 MIDDLEWARE = [
@@ -35,6 +37,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'jasmin_auth.middleware.ImpersonateMiddleware',
+    'tsunami.middleware.user_tracking',
 ]
 
 ROOT_URLCONF = 'jasmin_manage_site.urls'
@@ -96,7 +100,7 @@ USE_TZ = True
 STATIC_URL = '/assets/'
 
 
-LOGIN_URL = '/auth/login/'
+LOGIN_URL = 'rest_framework:login'
 
 
 INTERNAL_IPS = ('127.0.0.1', )
