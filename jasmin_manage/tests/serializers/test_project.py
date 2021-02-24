@@ -21,7 +21,7 @@ from ...serializers import ProjectSerializer
 
 class ProjectSerializerTestCase(TestCase):
     """
-    Tests for the collaborator serializer.
+    Tests for the project serializer.
     """
     @classmethod
     def setUpTestData(cls):

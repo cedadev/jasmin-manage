@@ -42,7 +42,7 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     permission_classes = [ConsortiumNestedViewSetPermissions]
 
-    queryset = Quota.objects.all()
+    queryset = Quota.objects.annotate_usage()
     serializer_class = QuotaSerializer
 
     def get_queryset(self):

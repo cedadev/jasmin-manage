@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from ..models import Collaborator
 
-from .base import BaseSerializer, EnumField, ContextDefault
+from .base import BaseSerializer, EnumField
 
 
 class UserSerializer(serializers.ModelSerializer):

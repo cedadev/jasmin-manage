@@ -55,8 +55,8 @@ class QuotaModelTestCase(AssertValidationErrorsMixin, TestCase):
         quota = self.create_quota()
         self.assertEqual(quota.get_event_aggregates(), (quota.consortium, quota.resource))
 
-    def test_annotate_usage(self):
-        # We want to test that this works for a number of chunks spread across a number of consortia and resources
+    def test_get_total_for_status(self):
+        # We want to test that this works for a number of quotas spread across different consortia and resources
         # So we generate them programmatically
 
         # Make 20 resources
@@ -78,7 +78,7 @@ class QuotaModelTestCase(AssertValidationErrorsMixin, TestCase):
         ]
 
         # For each resource and consortium, add a quota
-        # The quota amount doesn't matter - we just want to check that the usage annotations work
+        # The quota amount doesn't matter - we just want to check that we can get usage totals
         for resource in resources:
             for consortium in consortia:
                 consortium.quotas.create(resource = resource, amount = 100)
@@ -120,12 +120,14 @@ class QuotaModelTestCase(AssertValidationErrorsMixin, TestCase):
             # Create the requirement
             service.requirements.create(resource = resource, status = status, amount = amount)
 
-        # Fetch the annotated quotas and test that the annotations match our expected values
-        for quota in Quota.objects.annotate_usage():
-            expected_quota = expected.get(quota.resource.pk, {}).get(quota.consortium.pk, {})
-            for status in Requirement.Status:
-                expected_status = expected_quota.get(status, { 'count': 0, 'total': 0 })
-                actual_count = getattr(quota, '{}_count'.format(status.name.lower()))
-                actual_total = getattr(quota, '{}_total'.format(status.name.lower()))
-                self.assertEqual(actual_count, expected_status['count'])
-                self.assertEqual(actual_total, expected_status['total'])
+        # Test the results for two different queries - one annotated and one not
+        # They should return the same results
+        for queryset in (Quota.objects.all(), Quota.objects.annotate_usage()):
+            for quota in queryset:
+                expected_quota = expected.get(quota.resource.pk, {}).get(quota.consortium.pk, {})
+                for status in Requirement.Status:
+                    expected_status = expected_quota.get(status, { 'count': 0, 'total': 0 })
+                    actual_count = quota.get_count_for_status(status)
+                    actual_total = quota.get_total_for_status(status)
+                    self.assertEqual(actual_count, expected_status['count'])
+                    self.assertEqual(actual_total, expected_status['total'])

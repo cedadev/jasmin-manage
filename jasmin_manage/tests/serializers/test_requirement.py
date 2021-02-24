@@ -14,7 +14,7 @@ from ...serializers import RequirementSerializer
 
 class RequirementSerializerTestCase(TestCase):
     """
-    Tests for the collaborator serializer.
+    Tests for the requirement serializer.
     """
     @classmethod
     def setUpTestData(cls):

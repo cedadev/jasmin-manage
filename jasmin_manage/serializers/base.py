@@ -141,19 +141,6 @@ class LinksField(fields.Field):
         return links
 
 
-class ContextDefault:
-    """
-    Class that can be given as a default value that extracts a key from the context.
-    """
-    requires_context = True
-
-    def __init__(self, key):
-        self.key = key
-
-    def __call__(self, serializer_field):
-        return serializer_field.context.get(self.key)
-
-
 class BaseSerializer(serializers.ModelSerializer):
     """
     Base class for JASMIN Manage serializers.

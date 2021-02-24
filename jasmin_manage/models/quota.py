@@ -87,6 +87,49 @@ class Quota(models.Model):
     )
     amount = models.PositiveBigIntegerField()
 
+    def get_count_for_status(self, status):
+        """
+        Returns the number of requirements for the given status.
+        """
+        # Check if the count has already been calculated by the query being annotated
+        # If it has, return that rather than making an expensive calculation
+        annotation_name = '{}_count'.format(status.name.lower())
+        if hasattr(self, annotation_name):
+            return getattr(self, annotation_name)
+        else:
+            # If not, then calculate the value from the requirements
+            from .requirement import Requirement
+            return (Requirement.objects
+                .filter(
+                    service__project__consortium = self.consortium,
+                    resource = self.resource,
+                    status = status
+                )
+                .count()
+            )
+
+    def get_total_for_status(self, status):
+        """
+        Returns the total amount across all requirements for the given status.
+        """
+        # Check if the total has already been calculated by the query being annotated
+        # If it has, return that rather than making an expensive calculation
+        annotation_name = '{}_total'.format(status.name.lower())
+        if hasattr(self, annotation_name):
+            return getattr(self, annotation_name)
+        else:
+            # If not, then calculate the value from the requirements
+            from .requirement import Requirement
+            queryset = (Requirement.objects
+                .filter(
+                    service__project__consortium = self.consortium,
+                    resource = self.resource,
+                    status = status
+                )
+                .aggregate(total_amount = models.Sum('amount'))
+            )
+            return queryset.get('total_amount') or 0
+
     def get_event_aggregates(self):
         return self.consortium, self.resource
 
