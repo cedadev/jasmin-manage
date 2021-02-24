@@ -15,7 +15,7 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     """
     permission_classes = [permissions.IsAuthenticated]
 
-    queryset = Consortium.objects.all()
+    queryset = Consortium.objects.select_related('manager').annotate_summary()
     serializer_class = ConsortiumSerializer
 
 
@@ -42,9 +42,10 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     permission_classes = [ConsortiumNestedViewSetPermissions]
 
-    queryset = Quota.objects.annotate_usage()
+    queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
 
     def get_queryset(self):
-        # Filter the resources by consortium
-        return super().get_queryset().filter(consortium = self.kwargs['consortium_pk'])
+        # Filter the resources by consortium and annotate with usage
+        queryset = super().get_queryset().filter(consortium = self.kwargs['consortium_pk'])
+        return queryset.annotate_usage()

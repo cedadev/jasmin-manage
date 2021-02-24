@@ -22,17 +22,35 @@ class ConsortiumSerializerTestCase(TestCase):
             description = 'Some description.',
             manager = get_user_model().objects.create_user('manager1')
         )
+        # Add some projects
+        for i in range(10):
+            consortium.projects.create(
+                name = f'Project {i}',
+                description = 'Some description.',
+                owner = get_user_model().objects.create_user(f'owner{i}')
+            )
         # Serialize the consortium
         # In order to render the links correctly, there must be a request in the context
         request = APIRequestFactory().post('/consortia/{}/'.format(consortium.pk))
         serializer = ConsortiumSerializer(consortium, context = dict(request = Request(request)))
         # Check that the right keys are present
-        self.assertCountEqual(serializer.data.keys(), {'id', 'name', 'description', 'manager', '_links'})
+        self.assertCountEqual(
+            serializer.data.keys(),
+            {
+                'id',
+                'name',
+                'description',
+                'num_projects',
+                'manager',
+                '_links'
+            }
+        )
         # Check the the values are correct
         # Don't explicitly check the links field - it has tests
         self.assertEqual(serializer.data['id'], consortium.pk)
         self.assertEqual(serializer.data['name'], consortium.name)
         self.assertEqual(serializer.data['description'], consortium.description)
+        self.assertEqual(serializer.data['num_projects'], 10)
         # Check that the user nested dict has the correct shape
         self.assertCountEqual(serializer.data['manager'].keys(), {'id', 'username', 'first_name', 'last_name'})
         self.assertEqual(serializer.data['manager']['id'], consortium.manager.pk)

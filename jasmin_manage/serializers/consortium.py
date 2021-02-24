@@ -26,3 +26,9 @@ class ConsortiumSerializer(BaseSerializer):
 
     # Use a nested representation for the manager, as it is the only place information is exposed
     manager = ManagerSerializer(read_only = True)
+
+    # Add fields for summary data
+    num_projects = serializers.SerializerMethodField()
+
+    def get_num_projects(self, obj):
+        return obj.get_num_projects()
