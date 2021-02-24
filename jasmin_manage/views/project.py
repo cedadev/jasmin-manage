@@ -179,7 +179,7 @@ class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
     """
     permission_classes = [CollaboratorPermissions]
 
-    queryset = Collaborator.objects.all()
+    queryset = Collaborator.objects.select_related('user')
     serializer_class = CollaboratorSerializer
 
     def get_queryset(self):
