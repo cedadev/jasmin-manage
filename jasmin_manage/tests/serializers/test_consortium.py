@@ -20,6 +20,7 @@ class ConsortiumSerializerTestCase(TestCase):
         consortium = Consortium.objects.create(
             name = 'Consortium 1',
             description = 'Some description.',
+            is_public = True,
             manager = get_user_model().objects.create_user('manager1')
         )
         # Add some projects
@@ -40,8 +41,9 @@ class ConsortiumSerializerTestCase(TestCase):
                 'id',
                 'name',
                 'description',
-                'num_projects',
+                'is_public',
                 'manager',
+                'num_projects',
                 '_links'
             }
         )
@@ -50,6 +52,7 @@ class ConsortiumSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['id'], consortium.pk)
         self.assertEqual(serializer.data['name'], consortium.name)
         self.assertEqual(serializer.data['description'], consortium.description)
+        self.assertEqual(serializer.data['is_public'], True)
         self.assertEqual(serializer.data['num_projects'], 10)
         # Check that the user nested dict has the correct shape
         self.assertCountEqual(serializer.data['manager'].keys(), {'id', 'username', 'first_name', 'last_name'})

@@ -39,6 +39,8 @@ class Consortium(models.Model):
 
     name = models.CharField(max_length = 250, unique = True)
     description = models.TextField()
+    # Indicates if the consortium is a public one
+    is_public = models.BooleanField(default = False)
     # Prevent a user being deleted if they are a consortium manager
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
 
