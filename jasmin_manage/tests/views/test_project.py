@@ -27,6 +27,7 @@ class ProjectViewSetTestCase(TestCase):
     def setUpTestData(cls):
         cls.consortium = Consortium.objects.create(
             name = 'Consortium 1',
+            is_public = True,
             manager = get_user_model().objects.create_user('manager1')
         )
         cls.category = Category.objects.create(name = 'Category 1')
@@ -98,6 +99,34 @@ class ProjectViewSetTestCase(TestCase):
         self.assertEqual(len(project.collaborators.all()), 1)
         self.assertEqual(project.collaborators.first().user.pk, self.authenticated_user.pk)
 
+    def test_create_with_non_public_consortium_and_staff_user(self):
+        """
+        Tests that the serializer permits a staff user to create a project with a
+        non-public consortium.
+        """
+        # Create a non-public consortium and a staff user to use
+        consortium = Consortium.objects.create(
+            name = 'Non-public Consortium',
+            is_public = False,
+            manager = get_user_model().objects.create_user('manager2')
+        )
+        staff_user = get_user_model().objects.create_user('staff_user', is_staff = True)
+        self.client.force_authenticate(staff_user)
+        project = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/",
+            dict(
+                consortium = consortium.pk,
+                name = 'New project',
+                description = 'some description'
+            ),
+            ProjectSerializer
+        )
+        # Verify that the project is created as editable
+        self.assertEqual(project.status, Project.Status.EDITABLE)
+        # Verify that the authenticated user is the project owner
+        self.assertEqual(len(project.collaborators.all()), 1)
+        self.assertEqual(project.collaborators.first().user.pk, staff_user.pk)
+
     def test_create_enforces_required_fields_present(self):
         """
         Tests that the required fields are enforced on create.
@@ -155,6 +184,29 @@ class ProjectViewSetTestCase(TestCase):
         )
         self.assertCountEqual(response_data.keys(), {'consortium'})
         self.assertEqual(response_data['consortium'][0]['code'], 'does_not_exist')
+
+    def test_create_enforces_public_consortium_for_non_staff_user(self):
+        """
+        Tests that attempting to create a project in a non-public consortium as a
+        non-staff user fails.
+        """
+        # Create a non-public consortium to use
+        consortium = Consortium.objects.create(
+            name = 'Non-public Consortium',
+            is_public = False,
+            manager = get_user_model().objects.create_user('manager2')
+        )
+        self.client.force_authenticate(self.authenticated_user)
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/",
+            dict(
+                consortium = consortium.pk,
+                name = "New project",
+                description = "some description"
+            )
+        )
+        self.assertCountEqual(response_data.keys(), {'consortium'})
+        self.assertEqual(response_data['consortium'][0]['code'], 'non_public_consortium')
 
     def test_create_ignores_status_if_specified(self):
         """

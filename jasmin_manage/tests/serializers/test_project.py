@@ -1,5 +1,4 @@
 import random
-from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -25,39 +24,51 @@ class ProjectSerializerTestCase(TestCase):
     """
     @classmethod
     def setUpTestData(cls):
-        # Set up a consortium and project to use
-        cls.consortium = Consortium.objects.create(
-            name = 'Consortium 1',
+        # Set up a public consortium and a non-public consortium to use
+        cls.public_consortium = Consortium.objects.create(
+            name = 'Public Consortium',
             description = 'some description',
+            is_public = True,
             manager = get_user_model().objects.create_user('manager1')
+        )
+        cls.non_public_consortium = Consortium.objects.create(
+            name = 'Private Consortium',
+            description = 'Some description.',
+            is_public = False,
+            manager = get_user_model().objects.create_user('manager2')
         )
         cls.owner = get_user_model().objects.create_user('owner1')
 
-    def setUp(self):
-        # Make the project in setUp so that we can safely modify it
-        self.project = self.consortium.projects.create(
-            name = 'Project 1',
-            description = 'some description',
-            owner = self.owner
-        )
+    def make_project_create_request(self, user):
+        """
+        Makes a fake request for the project.
+        """
+        request = APIRequestFactory().post('/projects/')
+        force_authenticate(request, user)
+        return Request(request)
 
     def test_renders_instance_correctly(self):
         """
         Tests that the serializer renders an existing instance correctly.
         """
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
         # Add some services and requirements to the project
         category = Category.objects.create(name = 'Category 1', description = 'Some description')
         resource = Resource.objects.create(name = 'Resource 1', description = 'Some description')
         services = []
         for i in range(5):
-            services.append(self.project.services.create(name = f'service{i}', category = category))
+            services.append(project.services.create(name = f'service{i}', category = category))
         for i in range(20):
             random.choice(services).requirements.create(resource = resource, amount = 100)
         # In order to render the links correctly, there must be a request in the context
-        request = APIRequestFactory().post('/projects/{}/'.format(self.project.pk))
+        request = APIRequestFactory().post('/projects/{}/'.format(project.pk))
         # In order for the current_user_role to get populated, we need to authenticate the request
         force_authenticate(request, self.owner)
-        serializer = ProjectSerializer(self.project, context = dict(request = Request(request)))
+        serializer = ProjectSerializer(project, context = dict(request = Request(request)))
         # Check that the right keys are present
         self.assertCountEqual(
             serializer.data.keys(),
@@ -77,11 +88,11 @@ class ProjectSerializerTestCase(TestCase):
         )
         # Check the the values are correct
         # Don't explicitly check the links field - it has tests
-        self.assertEqual(serializer.data['id'], self.project.pk)
-        self.assertEqual(serializer.data['name'], self.project.name)
-        self.assertEqual(serializer.data['description'], self.project.description)
+        self.assertEqual(serializer.data['id'], project.pk)
+        self.assertEqual(serializer.data['name'], project.name)
+        self.assertEqual(serializer.data['description'], project.description)
         self.assertEqual(serializer.data['status'], Project.Status.EDITABLE.name)
-        self.assertEqual(serializer.data['consortium'], self.consortium.pk)
+        self.assertEqual(serializer.data['consortium'], self.public_consortium.pk)
         self.assertEqual(serializer.data['num_services'], 5)
         self.assertEqual(serializer.data['num_requirements'], 20)
         self.assertEqual(serializer.data['num_collaborators'], 1)
@@ -92,11 +103,11 @@ class ProjectSerializerTestCase(TestCase):
         Tests that the serializer uses the authenticated user as the project owner.
         """
         user = get_user_model().objects.create_user('user1')
-        # This is the interface we require from request
-        request = SimpleNamespace(user = user)
+        # Get a request that is authenticated as the given user
+        request = self.make_project_create_request(user)
         serializer = ProjectSerializer(
             data = dict(
-                consortium = self.consortium.pk,
+                consortium = self.public_consortium.pk,
                 name = 'Project 2',
                 description = 'some description'
             ),
@@ -105,17 +116,47 @@ class ProjectSerializerTestCase(TestCase):
         self.assertTrue(serializer.is_valid())
         project = serializer.save()
         project.refresh_from_db()
-        self.assertEqual(project.consortium.pk, self.consortium.pk)
+        self.assertEqual(project.consortium.pk, self.public_consortium.pk)
         self.assertEqual(project.name, 'Project 2')
         self.assertEqual(project.status, Project.Status.EDITABLE)
         self.assertEqual(len(project.collaborators.all()), 1)
         self.assertEqual(project.collaborators.first().user.pk, user.pk)
 
+    def test_create_with_non_public_consortium_and_staff_user(self):
+        """
+        Tests that the serializer permits a staff user to create a project with a
+        non-public consortium.
+        """
+        # Make a staff user and authenticate them with a request
+        staff_user = get_user_model().objects.create_user('staff_user', is_staff = True)
+        request = self.make_project_create_request(staff_user)
+        serializer = ProjectSerializer(
+            data = dict(
+                consortium = self.non_public_consortium.pk,
+                name = 'Project 2',
+                description = 'some description'
+            ),
+            context = dict(request = request)
+        )
+        self.assertTrue(serializer.is_valid())
+        project = serializer.save()
+        project.refresh_from_db()
+        self.assertEqual(project.consortium.pk, self.non_public_consortium.pk)
+        self.assertEqual(project.name, 'Project 2')
+        self.assertEqual(project.status, Project.Status.EDITABLE)
+        self.assertEqual(len(project.collaborators.all()), 1)
+        self.assertEqual(project.collaborators.first().user.pk, staff_user.pk)
+
     def test_create_enforces_required_fields_present(self):
         """
         Tests that the required fields are enforced on create.
         """
-        serializer = ProjectSerializer(data = {})
+        user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
+        serializer = ProjectSerializer(
+            data = {},
+            context = dict(request = request)
+        )
         self.assertFalse(serializer.is_valid())
         required_fields = {'consortium', 'name', 'description'}
         self.assertCountEqual(serializer.errors.keys(), required_fields)
@@ -126,12 +167,15 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the required fields cannot be blank on create.
         """
+        user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
         serializer = ProjectSerializer(
             data = dict(
-                consortium = self.consortium.pk,
+                consortium = self.public_consortium.pk,
                 name = '',
                 description = ''
-            )
+            ),
+            context = dict(request = request)
         )
         self.assertFalse(serializer.is_valid())
         self.assertCountEqual(serializer.errors.keys(), {'name', 'description'})
@@ -142,13 +186,21 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the uniqueness constraint is enforced on name.
         """
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
         # Try to create another project with the same name as the existing project
+        user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
         serializer = ProjectSerializer(
             data = dict(
-                consortium = self.consortium.pk,
+                consortium = self.public_consortium.pk,
                 name = 'Project 1',
                 description = 'some description'
-            )
+            ),
+            context = dict(request = request)
         )
         self.assertFalse(serializer.is_valid())
         self.assertCountEqual(serializer.errors.keys(), {'name'})
@@ -158,31 +210,56 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that attempting to create with an invalid consortium will fail.
         """
+        user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
         serializer = ProjectSerializer(
             data = dict(
                 consortium = 10,
                 name = 'Project 2',
                 description = 'some description'
-            )
+            ),
+            context = dict(request = request)
         )
         self.assertFalse(serializer.is_valid())
         self.assertCountEqual(serializer.errors.keys(), {'consortium'})
         self.assertEqual(serializer.errors['consortium'][0].code, 'does_not_exist')
+
+    def test_cannot_create_with_non_staff_and_non_public_consortium(self):
+        """
+        Tests that attempting to create a project in a non-public consortium as a
+        non-staff user fails.
+        """
+        # Make a regular user and authenticate them with a request
+        user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
+        # Try to use the serializer to make a project in a non-public consortium
+        serializer = ProjectSerializer(
+            data = dict(
+                consortium = self.non_public_consortium.pk,
+                name = 'Project 2',
+                description = 'some description'
+            ),
+            context = dict(request = request)
+        )
+        # It should fail with a suitable error on the consortium field
+        self.assertFalse(serializer.is_valid())
+        self.assertCountEqual(serializer.errors.keys(), {'consortium'})
+        self.assertEqual(serializer.errors['consortium'][0].code, 'non_public_consortium')
 
     def test_cannot_specify_status_on_create(self):
         """
         Tests that the status cannot be specified on create.
         """
         user = get_user_model().objects.create_user('user1')
+        request = self.make_project_create_request(user)
         serializer = ProjectSerializer(
             data = dict(
-                consortium = self.consortium.pk,
+                consortium = self.public_consortium.pk,
                 name = 'Project 2',
                 description = 'some description',
                 status = Project.Status.UNDER_REVIEW.name
             ),
-            # This is the interface we require from request
-            context = dict(request = SimpleNamespace(user = user))
+            context = dict(request = request)
         )
         self.assertTrue(serializer.is_valid())
         project = serializer.save()
@@ -193,8 +270,13 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the name and description can be updated.
         """
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
         serializer = ProjectSerializer(
-            self.project,
+            project,
             data = dict(name = 'New project name', description = 'new description')
         )
         self.assertTrue(serializer.is_valid())
@@ -207,7 +289,12 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the required fields cannot be blank on update.
         """
-        serializer = ProjectSerializer(self.project, data = dict(name = '', description = ''))
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
+        serializer = ProjectSerializer(project, data = dict(name = '', description = ''))
         self.assertFalse(serializer.is_valid())
         self.assertCountEqual(serializer.errors.keys(), {'name', 'description'})
         for name in {'name', 'description'}:
@@ -217,14 +304,19 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the unique constraint is enforced for name on update.
         """
-        # Make a project with a name that we will collide with on update
-        self.consortium.projects.create(
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
+        # Make another project with a name that we will collide with on update
+        self.public_consortium.projects.create(
             name = 'New project name',
             description = 'some description',
             owner = self.owner
         )
         serializer = ProjectSerializer(
-            self.project,
+            project,
             data = dict(name = 'New project name'),
             partial = True
         )
@@ -236,15 +328,21 @@ class ProjectSerializerTestCase(TestCase):
         """
         Tests that the consortium cannot be updated.
         """
-        self.assertEqual(self.project.consortium.pk, self.consortium.pk)
-        # Make another valid consortium to update to
-        consortium = Consortium.objects.create(
-            name = 'Consortium 2',
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
             description = 'some description',
-            manager = get_user_model().objects.create_user('manager2')
+            owner = self.owner
+        )
+        self.assertEqual(project.consortium.pk, self.public_consortium.pk)
+        # Make another valid consortium public consortium to update to
+        consortium = Consortium.objects.create(
+            name = 'Public Consortium 2',
+            description = 'some description',
+            is_public = True,
+            manager = get_user_model().objects.create_user('manager3')
         )
         serializer = ProjectSerializer(
-            self.project,
+            project,
             data = dict(consortium = consortium.pk),
             partial = True
         )
@@ -252,15 +350,20 @@ class ProjectSerializerTestCase(TestCase):
         self.assertTrue(serializer.is_valid())
         project = serializer.save()
         project.refresh_from_db()
-        self.assertEqual(project.consortium.pk, self.consortium.pk)
+        self.assertEqual(project.consortium.pk, self.public_consortium.pk)
 
     def test_cannot_update_status(self):
         """
         Tests that the status cannot be updated.
         """
-        self.assertEqual(self.project.status, Project.Status.EDITABLE)
+        project = self.public_consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = self.owner
+        )
+        self.assertEqual(project.status, Project.Status.EDITABLE)
         serializer = ProjectSerializer(
-            self.project,
+            project,
             data = dict(status = Project.Status.UNDER_REVIEW.name),
             partial = True
         )
