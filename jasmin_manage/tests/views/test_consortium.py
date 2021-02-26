@@ -69,12 +69,10 @@ class ConsortiumViewSetTestCase(TestCase):
         Tests that a list response for a non-staff user includes a non-public consortium for
         which the user is the consortium manager while excluding all other non-public consortia.
         """
-        # Authenticate as a regular user
-        user = self.authenticate()
-        # Make them a manager of a non-public consortium
-        consortium = Consortium.objects.filter(is_public = False).first()
-        consortium.manager = user
-        consortium.save()
+        # Pick a non-public consortium
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        # Authenticate as the consortium manager
+        user = self.authenticateAsConsortiumManager(consortium)
         # Check that the response matches the appropriately filtered queryset
         self.assertListResponseMatchesQuerySet(
             "/consortia/",
@@ -90,8 +88,8 @@ class ConsortiumViewSetTestCase(TestCase):
         """
         # Authenticate as a regular user
         user = self.authenticate()
-        # Make them an owner of a project in a non-public consortium
-        Consortium.objects.filter(is_public = False).first().projects.create(
+        # Make a project in a non-public consortium with the user as the owner
+        Consortium.objects.filter(is_public = False).order_by('?').first().projects.create(
             name = 'Project 1',
             description = 'Some description.',
             owner = user
@@ -155,12 +153,10 @@ class ConsortiumViewSetTestCase(TestCase):
         Tests that a detail response is successful for a non-staff user and a non-public consortium
         when the user is the consortium manager.
         """
-        # Authenticate as a regular user
-        user = self.authenticate()
-        # Make them an owner of a project in a non-public consortium
+        # Pick a non-public consortium
         consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
-        consortium.manager = user
-        consortium.save()
+        # Authenticate as the consortium manager
+        user = self.authenticateAsConsortiumManager(consortium)
         self.assertDetailResponseMatchesInstance(
             "/consortia/{}/".format(consortium.pk),
             consortium,
@@ -174,8 +170,9 @@ class ConsortiumViewSetTestCase(TestCase):
         """
         # Authenticate as a regular user
         user = self.authenticate()
-        # Make them an owner of a project in a non-public consortium
+        # Pick a non-public consortium
         consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        # Make a project in the consortium with the user as the owner
         consortium.projects.create(
             name = 'Project 1',
             description = 'Some description.',
@@ -223,12 +220,14 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
         We want to make sure that we only return the projects for a particular consortium,
         so to do that we need multiple consortia.
         """
+        # Create a mixture of public and private consortia
         consortia = [
             Consortium.objects.create(
                 name = f'Consortium {i}',
+                is_public = (i < 5),
                 manager = get_user_model().objects.create_user(f'manager{i}')
             )
-            for i in range(5)
+            for i in range(10)
         ]
         # Attach each project to a random consortium
         projects = [
@@ -252,7 +251,7 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_list_valid_consortium(self):
+    def test_list_consortium_manager(self):
         """
         Tests that the consortium manager can successfully list the projects.
         """
@@ -265,13 +264,55 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
             ProjectSerializer
         )
 
-    def test_list_not_manager(self):
+    def test_list_public_consortium_not_manager(self):
         """
-        Tests that the list endpoint returns not found when an authenticated user who
-        is not the consortium manager attempts to list projects for a valid consortium.
+        Tests that the list endpoint returns forbidden for a public consortium when the user
+        is not the consortium manager.
+
+        This should be forbidden rather than not found because the user can see the consortium.
         """
         self.authenticate()
-        consortium = Consortium.objects.order_by('?').first()
+        consortium = Consortium.objects.filter(is_public = True).order_by('?').first()
+        self.assertPermissionDenied("/consortia/{}/projects/".format(consortium.pk))
+
+    def test_list_non_public_staff_user_not_manager(self):
+        """
+        Tests that the list endpoint returns forbidden for a non-public consortium and a staff
+        user who is not the consortium manager.
+
+        This should be forbidden rather than not found because the user can see the consortium.
+        """
+        user = self.authenticate()
+        user.is_staff = True
+        user.save()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        self.assertPermissionDenied("/consortia/{}/projects/".format(consortium.pk))
+
+    def test_list_non_public_user_belongs_to_project_not_manager(self):
+        """
+        Tests that the list endpoint returns forbidden for a non-public consortium where the user
+        belongs to a project in the consortium.
+
+        This should be forbidden rather than not found because the user can see the consortium.
+        """
+        user = self.authenticate()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        # Make a project in the consortium with the user as an owner
+        consortium.projects.create(
+            name = 'Owned project',
+            description = 'Some description.',
+            owner = user
+        )
+        self.assertPermissionDenied("/consortia/{}/projects/".format(consortium.pk))
+
+    def test_list_consortium_not_visible(self):
+        """
+        Tests that the list endpoint returns not found when the consortium itself is not
+        visible to the user.
+        """
+        # Authenticate as a regular user and pick a non-public consortium
+        self.authenticate()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
         self.assertNotFound("/consortia/{}/projects/".format(consortium.pk))
 
     def test_list_invalid_consortium(self):
@@ -306,9 +347,10 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
         consortia = [
             Consortium.objects.create(
                 name = f'Consortium {i}',
+                is_public = (i < 5),
                 manager = get_user_model().objects.create_user(f'manager{i}')
             )
-            for i in range(5)
+            for i in range(10)
         ]
         resources = [
             Resource.objects.create(name = f'Resource {i}')
@@ -332,27 +374,69 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_list_valid_consortium(self):
+    def test_list_consortium_manager(self):
         """
-        Tests that the consortium manager can list the consortium quotas.
+        Tests that the consortium manager can successfully list the quotas.
         """
-        # Pick a random but valid consortium to use in the endpoint
         consortium = Consortium.objects.order_by('?').first()
         # Authenticate as the consortium manager
         self.authenticateAsConsortiumManager(consortium)
         self.assertListResponseMatchesQuerySet(
             "/consortia/{}/quotas/".format(consortium.pk),
-            consortium.quotas.all(),
+            consortium.quotas.annotate_usage(),
             QuotaSerializer
         )
 
-    def test_list_not_manager(self):
+    def test_list_public_consortium_not_manager(self):
         """
-        Tests that the list endpoint returns not found when an authenticated user who
-        is not the consortium manager attempts to list quotas for a valid consortium.
+        Tests that the list endpoint returns forbidden for a public consortium when the user
+        is not the consortium manager.
+
+        This should be forbidden rather than not found because the user can see the consortium.
         """
         self.authenticate()
-        consortium = Consortium.objects.order_by('?').first()
+        consortium = Consortium.objects.filter(is_public = True).order_by('?').first()
+        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+
+    def test_list_non_public_staff_user_not_manager(self):
+        """
+        Tests that the list endpoint returns forbidden for a non-public consortium and a staff
+        user who is not the consortium manager.
+
+        This should be forbidden rather than not found because the user can see the consortium.
+        """
+        user = self.authenticate()
+        user.is_staff = True
+        user.save()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+
+    def test_list_non_public_user_belongs_to_project_not_manager(self):
+        """
+        Tests that the list endpoint returns forbidden for a non-public consortium where the user
+        belongs to a project in the consortium.
+
+        This should be forbidden rather than not found because the user can see the consortium.
+        """
+        user = self.authenticate()
+        # Pick a non-public consortium
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        # Make a project in the consortium with the user as an owner
+        consortium.projects.create(
+            name = 'Owned project',
+            description = 'Some description.',
+            owner = user
+        )
+        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+
+    def test_list_consortium_not_visible(self):
+        """
+        Tests that the list endpoint returns not found when the consortium itself is not
+        visible to the user.
+        """
+        # Authenticate as a regular user and pick a non-public consortium
+        self.authenticate()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
         self.assertNotFound("/consortia/{}/quotas/".format(consortium.pk))
 
     def test_list_invalid_consortium(self):

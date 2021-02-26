@@ -46,13 +46,18 @@ class ConsortiumNestedViewSetPermissions(IsAuthenticated):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        queryset = Consortium.objects.filter(
-            pk = view.kwargs['consortium_pk'],
-            manager = request.user
+        # Get the consortium using the key from the viewset
+        consortium = (Consortium.objects
+            .select_related('manager')
+            .filter(pk = view.kwargs['consortium_pk'])
+            .first()
         )
-        # Always raise a 404 on failure, as even if this is called with an unsafe method
-        # the same permissions apply for the corresponding safe method
-        if request.method in SAFE_METHODS and queryset.exists():
-            return True
+        if consortium and user_can_view_consortium(request.user, consortium):
+            # Only the consortium manager is allowed to access nested resources
+            # However we want to explicitly deny permission in the case where the consortium
+            # is visible to the user but they are not the manager
+            return request.user == consortium.manager
         else:
+            # Raise not found in the case where the consortium does not exist, but also in the
+            # case where the consortium is not visible to the user
             raise Http404
