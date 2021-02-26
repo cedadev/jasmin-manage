@@ -97,6 +97,39 @@ class ConsortiumModelTestCase(TestCase):
         self.assertEqual(queryset.count(), 5)
         self.assertTrue(all(c.is_public for c in queryset))
 
+    def test_filter_visible_includes_non_public_consortium_for_non_staff_user_if_manager(self):
+        """
+        Tests that filtering the visible consortia for a non-staff user includes a non-public consortium
+        for which the user is the manager while excluding all other non-public consortia.
+        """
+        # Create some consortia that are a mixture of public and non-public
+        for i in range(9):
+            Consortium.objects.create(
+                name = f'Consortium {i}',
+                description = 'Some description.',
+                is_public = (i < 5),
+                manager = get_user_model().objects.create_user(f'manager{i}')
+            )
+        # Create a regular user
+        user = get_user_model().objects.create_user('user1')
+        # Create another non-public consortium where the user is the manager
+        managed_consortium = Consortium.objects.create(
+            name = 'Non-public consortium',
+            description = 'Some description.',
+            is_public = False,
+            manager = user
+        )
+        # Check that the five public consortia plus the non-public consortium for which the user
+        # is manager appear in the filtered query
+        queryset = Consortium.objects.filter_visible(user)
+        self.assertEqual(queryset.count(), 6)
+        # Partition the query into public and non-public
+        public, non_public = queryset.filter(is_public = True), queryset.filter(is_public = False)
+        self.assertEqual(public.count(), 5)
+        self.assertEqual(non_public.count(), 1)
+        # Check that the non-public consortium is the right one
+        self.assertEqual(non_public.first(), managed_consortium)
+
     def test_filter_visible_includes_non_public_consortium_for_non_staff_user_if_collaborator(self):
         """
         Tests that filtering the visible consortia for a non-staff user includes a non-public consortium

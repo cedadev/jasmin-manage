@@ -21,6 +21,9 @@ class CurrentUserView(APIView):
             'first_name': request.user.first_name,
             'last_name': request.user.last_name,
         }
+        # If the user is a staff user, add that flag to the response
+        if request.user.is_staff:
+            data.update(is_staff = True)
         # If the request is impersonated, set a flag on the response
         # If the request is impersonated, just don't set the flag
         if getattr(request, 'impersonator', None):

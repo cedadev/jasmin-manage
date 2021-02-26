@@ -1,7 +1,10 @@
 from rest_framework import mixins, permissions, viewsets
 
 from ..models import Consortium, Project, Quota
-from ..permissions import ConsortiumNestedViewSetPermissions
+from ..permissions import (
+    ConsortiumPermissions,
+    ConsortiumNestedViewSetPermissions
+)
 from ..serializers import (
     ConsortiumSerializer,
     ProjectSerializer,
@@ -13,14 +16,17 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     """
     View set for the consortium model.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [ConsortiumPermissions]
 
     queryset = Consortium.objects.select_related('manager').annotate_summary()
     serializer_class = ConsortiumSerializer
 
     def get_queryset(self):
-        # We need to apply filtering based on the request user
-        return super().get_queryset().filter_visible(self.request.user)
+        queryset = super().get_queryset()
+        # When listing consortia, we need to apply filtering for the user
+        if self.action == 'list':
+            queryset = queryset.filter_visible(self.request.user)
+        return queryset
 
 
 class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

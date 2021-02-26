@@ -64,6 +64,24 @@ class ConsortiumViewSetTestCase(TestCase):
             ConsortiumSerializer
         )
 
+    def test_list_includes_non_public_consortium_for_non_staff_user_if_manager(self):
+        """
+        Tests that a list response for a non-staff user includes a non-public consortium for
+        which the user is the consortium manager while excluding all other non-public consortia.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them a manager of a non-public consortium
+        consortium = Consortium.objects.filter(is_public = False).first()
+        consortium.manager = user
+        consortium.save()
+        # Check that the response matches the appropriately filtered queryset
+        self.assertListResponseMatchesQuerySet(
+            "/consortia/",
+            Consortium.objects.filter_visible(user),
+            ConsortiumSerializer
+        )
+
     def test_list_includes_non_public_consortium_for_non_staff_user_if_collaborator(self):
         """
         Tests that a list response for a non-staff user includes a non-public consortium
@@ -132,9 +150,26 @@ class ConsortiumViewSetTestCase(TestCase):
             ConsortiumSerializer
         )
 
+    def test_detail_success_non_public_consortium_for_non_staff_user_if_manager(self):
+        """
+        Tests that a detail response is successful for a non-staff user and a non-public consortium
+        when the user is the consortium manager.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them an owner of a project in a non-public consortium
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        consortium.manager = user
+        consortium.save()
+        self.assertDetailResponseMatchesInstance(
+            "/consortia/{}/".format(consortium.pk),
+            consortium,
+            ConsortiumSerializer
+        )
+
     def test_detail_success_non_public_consortium_for_non_staff_user_if_collaborator(self):
         """
-        Tests that a detail response for a non-staff user and a non-public consortium
+        Tests that a detail response is successful for a non-staff user and a non-public consortium
         when the user has a project in that consortium on which they are a collaborator.
         """
         # Authenticate as a regular user

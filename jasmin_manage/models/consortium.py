@@ -23,9 +23,13 @@ class ConsortiumQuerySet(models.QuerySet):
             return self
         else:
             # For non-staff users we need to apply a filter
-            # We include consortia if they are public OR the user belongs to a project in it
+            # We include consortia if:
+            #   * The consortium is public OR
+            #   * The user is the manager of the consortium OR
+            #   * The user belongs to a project in the consortium
             return self.filter(
                 models.Q(is_public = True) |
+                models.Q(manager = user) |
                 models.Q(project__collaborator__user = user)
             )
 

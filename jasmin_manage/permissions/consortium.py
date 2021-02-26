@@ -5,6 +5,39 @@ from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from ..models import Consortium
 
 
+def user_can_view_consortium(user, consortium):
+    """
+    Returns true if the user can view the consortium, false otherwise.
+    """
+    if consortium.is_public:
+        # All users can view public consortia
+        return True
+    elif user.is_staff:
+        # Staff users can view all consortia
+        return True
+    elif consortium.manager == user:
+        # Managers can view their own consortia
+        return True
+    else:
+        # Non-staff users can view a non-public consortium if they belong
+        # to a project in the consortium
+        return consortium.projects.filter(collaborator__user = user).exists()
+
+
+class ConsortiumPermissions(IsAuthenticated):
+    """
+    DRF permissions class for the consortium viewset.
+    """
+    def has_object_permission(self, request, view, obj):
+        if not super().has_object_permission(request, view, obj):
+            return False
+        # Always raise a 404 on failure in order to hide information about valid consortia
+        if user_can_view_consortium(request.user, obj):
+            return True
+        else:
+            raise Http404
+
+
 class ConsortiumNestedViewSetPermissions(IsAuthenticated):
     """
     DRF permissions class for the nested consortium viewsets (for projects and quotas)

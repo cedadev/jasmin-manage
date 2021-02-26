@@ -26,7 +26,7 @@ class ConsortiumAdmin(admin.ModelAdmin):
         }
         js = ('js/admin/highlight.js', )
 
-    list_display = ('name', 'manager_link', 'num_quotas', 'num_projects')
+    list_display = ('name', 'is_public', 'manager_link', 'num_quotas', 'num_projects')
     search_fields = ('name', )
     autocomplete_fields = ('manager', )
     readonly_fields = ('num_quotas', 'num_projects', 'num_requirements')
