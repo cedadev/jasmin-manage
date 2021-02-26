@@ -28,14 +28,16 @@ class ProjectSerializer(BaseSerializer):
         return super().create(validated_data)
 
     def validate_consortium(self, consortium):
-        # Prevent the use of non-public consortia by non-staff users
         user = self.context['request'].user
-        if not user.is_staff and not consortium.is_public:
+        if user.is_staff or consortium.is_public:
+            # Allow the validation to proceed for staff users or public consortia
+            return consortium
+        else:
+            # Non-staff users cannot use non-public consortia
             raise serializers.ValidationError(
                 'You are not allowed to create projects in non-public consortia.',
                 'non_public_consortium'
             )
-        return consortium
 
     def get_num_services(self, obj):
         return obj.get_num_services()

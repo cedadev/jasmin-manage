@@ -18,6 +18,10 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Consortium.objects.select_related('manager').annotate_summary()
     serializer_class = ConsortiumSerializer
 
+    def get_queryset(self):
+        # We need to apply filtering based on the request user
+        return super().get_queryset().filter_visible(self.request.user)
+
 
 class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """

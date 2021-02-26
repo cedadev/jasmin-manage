@@ -52,24 +52,25 @@ class TestCase(APITestCase):
         user = self.authenticate(user)
         # Create the collaborator record
         project.collaborators.create(user = user, role = role)
+        return user
 
     def authenticateAsProjectContributor(self, project, user = None):
         """
         Authenticate the test client as a contributor for the given project.
         """
-        self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.CONTRIBUTOR)
+        return self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.CONTRIBUTOR)
 
     def authenticateAsProjectOwner(self, project, user = None):
         """
         Authenticate the test client as an owner for the given project.
         """
-        self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.OWNER)
+        return self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.OWNER)
 
     def authenticateAsConsortiumManager(self, consortium):
         """
         Authenticate the test client as the consortium manager for the given consortium.
         """
-        self.authenticate(consortium.manager)
+        return self.authenticate(consortium.manager)
 
     def assertAllowedMethods(self, endpoint, allowed_methods):
         """
@@ -92,7 +93,7 @@ class TestCase(APITestCase):
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
         serializer = serializer_class(queryset, many = True, context = dict(request = request))
-        self.assertEqual(response.data, serializer.data)
+        self.assertCountEqual(response.data, serializer.data)
 
     def assertListResponseEmpty(self, endpoint):
         """

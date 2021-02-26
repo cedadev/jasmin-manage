@@ -14,6 +14,21 @@ class ConsortiumQuerySet(models.QuerySet):
     """
     Queryset for the consortium model.
     """
+    def filter_visible(self, user):
+        """
+        Filters the query to only those consortia that should be visible to the given user.
+        """
+        if user.is_staff:
+            # Staff users get to see everything
+            return self
+        else:
+            # For non-staff users we need to apply a filter
+            # We include consortia if they are public OR the user belongs to a project in it
+            return self.filter(
+                models.Q(is_public = True) |
+                models.Q(project__collaborator__user = user)
+            )
+
     def annotate_summary(self):
         """
         Annotates the query with summary information for each consortium.

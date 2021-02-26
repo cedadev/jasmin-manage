@@ -20,9 +20,11 @@ class ConsortiumViewSetTestCase(TestCase):
         """
         Create some test consortia.
         """
-        for i in range(10):
+        # Make a mixture of public and non-public consortia
+        for i in range(20):
             Consortium.objects.create(
                 name = f'Consortium {i}',
+                is_public = (i < 12),
                 manager = get_user_model().objects.create_user(f'manager{i}')
             )
 
@@ -33,14 +35,53 @@ class ConsortiumViewSetTestCase(TestCase):
         self.authenticate()
         self.assertAllowedMethods("/consortia/", {'OPTIONS', 'HEAD', 'GET'})
 
-    def test_list_success(self):
+    def test_list_only_includes_public_consortia_for_non_staff(self):
         """
-        Tests that a list response is successful for an authenticated user.
+        Tests that a list response only includes public consortia for non-staff.
         """
-        self.authenticate()
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Check that the response matches the appropriately filtered queryset
         self.assertListResponseMatchesQuerySet(
             "/consortia/",
-            Consortium.objects.all(),
+            Consortium.objects.filter_visible(user),
+            ConsortiumSerializer
+        )
+
+    def test_list_includes_non_public_consortia_for_staff(self):
+        """
+        Tests that a list response includes non-public consortia for a staff user.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them a staff member
+        user.is_staff = True
+        user.save()
+        # Check that the response matches the appropriately filtered queryset
+        self.assertListResponseMatchesQuerySet(
+            "/consortia/",
+            Consortium.objects.filter_visible(user),
+            ConsortiumSerializer
+        )
+
+    def test_list_includes_non_public_consortium_for_non_staff_user_if_collaborator(self):
+        """
+        Tests that a list response for a non-staff user includes a non-public consortium
+        in which the user has a project on which they are a collaborator, while excluding all other
+        non-public consortia.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them an owner of a project in a non-public consortium
+        Consortium.objects.filter(is_public = False).first().projects.create(
+            name = 'Project 1',
+            description = 'Some description.',
+            owner = user
+        )
+        # Check that the response matches the appropriately filtered queryset
+        self.assertListResponseMatchesQuerySet(
+            "/consortia/",
+            Consortium.objects.filter_visible(user),
             ConsortiumSerializer
         )
 
@@ -62,17 +103,63 @@ class ConsortiumViewSetTestCase(TestCase):
             {'OPTIONS', 'HEAD', 'GET'}
         )
 
-    def test_detail_success(self):
+    def test_detail_success_public_consortium_for_non_staff(self):
         """
-        Tests that a detail response for a consortium looks correct.
+        Tests that a detail response is successful for a public consortium for non-staff.
         """
-        self.authenticate()
-        consortium = Consortium.objects.order_by('?').first()
+        # Authenticate as a regular user
+        user = self.authenticate()
+        consortium = Consortium.objects.filter(is_public = True).order_by('?').first()
         self.assertDetailResponseMatchesInstance(
             "/consortia/{}/".format(consortium.pk),
             consortium,
             ConsortiumSerializer
         )
+
+    def test_detail_success_non_public_consortium_for_staff(self):
+        """
+        Tests that a detail response is successful for a non-public consortium for a staff user.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them a staff member
+        user.is_staff = True
+        user.save()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        self.assertDetailResponseMatchesInstance(
+            "/consortia/{}/".format(consortium.pk),
+            consortium,
+            ConsortiumSerializer
+        )
+
+    def test_detail_success_non_public_consortium_for_non_staff_user_if_collaborator(self):
+        """
+        Tests that a detail response for a non-staff user and a non-public consortium
+        when the user has a project in that consortium on which they are a collaborator.
+        """
+        # Authenticate as a regular user
+        user = self.authenticate()
+        # Make them an owner of a project in a non-public consortium
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        consortium.projects.create(
+            name = 'Project 1',
+            description = 'Some description.',
+            owner = user
+        )
+        self.assertDetailResponseMatchesInstance(
+            "/consortia/{}/".format(consortium.pk),
+            consortium,
+            ConsortiumSerializer
+        )
+
+    def test_detail_missing_non_public_consortium_for_non_staff(self):
+        """
+        Tests that the detail endpoint returns not found for a non-staff user if the consortium
+        is non-public.
+        """
+        self.authenticate()
+        consortium = Consortium.objects.filter(is_public = False).order_by('?').first()
+        self.assertNotFound("/consortia/{}/".format(consortium.pk))
 
     def test_detail_unauthenticated(self):
         """
