@@ -33,14 +33,27 @@ class ConsortiumQuerySet(models.QuerySet):
                 models.Q(project__collaborator__user = user)
             )
 
-    def annotate_summary(self):
+    def annotate_summary(self, user = None):
         """
         Annotates the query with summary information for each consortium.
+
+        If a user is given, it will also annotate with information about the user's
+        projects in the consortium.
         """
-        # Just add the number of projects for now
-        return self.annotate(
+        # Annotate with the total number of projects
+        queryset = self.annotate(
             num_projects = models.Count('project', distinct = True)
         )
+        # Annotate with the number of projects that the user has in the consortium, if given
+        if user:
+            queryset = queryset.annotate(
+                num_projects_for_user = models.Count(
+                    'project',
+                    distinct = True,
+                    filter = models.Q(project__collaborator__user = user)
+                )
+            )
+        return queryset
 
 
 class Consortium(models.Model):
@@ -70,6 +83,14 @@ class Consortium(models.Model):
         else:
             # Otherwise calculate it on the fly
             return self.projects.count()
+
+    def get_num_projects_for_user(self, user):
+        if hasattr(self, 'num_projects_for_user'):
+            # Use the value from the object if present (e.g. from an annotation)
+            return self.num_projects_for_user
+        else:
+            # Otherwise calculate it on the fly
+            return self.projects.filter(collaborator__user = user).count()
 
     def natural_key(self):
         return (self.name, )

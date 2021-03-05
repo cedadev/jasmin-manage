@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import ProtectedError
 from django.test import TestCase
 
-from ...models import Consortium
+from ...models import Collaborator, Consortium
 
 
 class ConsortiumModelTestCase(TestCase):
@@ -30,8 +30,9 @@ class ConsortiumModelTestCase(TestCase):
 
     def test_get_num_projects(self):
         """
-        Tests that fetching the number of projects for a consortium works correctly
-        for projects that come from both annotated and un-annotated queries.
+        Tests that fetching the number of projects for a consortium and the number of projects
+        that a user has in a consortium works correctly for projects that come from both annotated
+        and un-annotated queries.
         """
         # Create some consortia
         consortia = [
@@ -43,22 +44,39 @@ class ConsortiumModelTestCase(TestCase):
             for i in range(10)
         ]
         # Create some projects spread across the consortia
-        # Leave one consortium with no projects to test that
+        projects = []
         project_counts = {}
-        for i, consortium in enumerate(consortia[1:]):
-            num_projects = random.randint(1, 20)
-            for j in range(num_projects):
+        for i in range(100):
+            # Pick a random consortium, but leave at least one consortium with no projects
+            consortium = random.choice(consortia[1:])
+            projects.append(
                 consortium.projects.create(
-                    name = f'Project {i} {j}',
+                    name = f'Project {i}',
                     description = 'Some description.',
-                    owner = get_user_model().objects.create_user(f'owner{i}{j}')
+                    owner = get_user_model().objects.create_user(f'owner{i}')
                 )
-            project_counts[consortium.pk] = num_projects
+            )
+            project_counts[consortium.pk] = project_counts.get(consortium.pk, 0) + 1
+        # Create a user and add them to a few projects
+        user_project_counts = {}
+        user = get_user_model().objects.create_user('current_user')
+        # Pick 10 random projects to add the user to
+        for project in random.sample(projects, 10):
+            project.collaborators.create(
+                user = user,
+                # Pick a role to use at random
+                role = random.choice(list(Collaborator.Role))
+            )
+            user_project_counts[project.consortium.pk] = user_project_counts.get(project.consortium.pk, 0) + 1
 
         # Test that the annotated and un-annotated querysets both return correct answers
-        for queryset in (Consortium.objects.all(), Consortium.objects.annotate_summary()):
+        for queryset in (Consortium.objects.all(), Consortium.objects.annotate_summary(user)):
             for consortium in queryset:
                 self.assertEqual(consortium.get_num_projects(), project_counts.get(consortium.pk, 0))
+                self.assertEqual(
+                    consortium.get_num_projects_for_user(user),
+                    user_project_counts.get(consortium.pk, 0)
+                )
 
     def test_filter_visible_includes_non_public_consortia_for_staff(self):
         """

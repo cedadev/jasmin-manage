@@ -29,6 +29,10 @@ class ConsortiumSerializer(BaseSerializer):
 
     # Add fields for summary data
     num_projects = serializers.SerializerMethodField()
+    num_projects_current_user = serializers.SerializerMethodField()
 
     def get_num_projects(self, obj):
         return obj.get_num_projects()
+
+    def get_num_projects_current_user(self, obj):
+        return obj.get_num_projects_for_user(self.context['request'].user)

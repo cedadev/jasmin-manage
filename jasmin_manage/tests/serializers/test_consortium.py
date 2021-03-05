@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from rest_framework.request import Request
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from ...models import Consortium
 from ...serializers import ConsortiumSerializer
@@ -32,7 +32,11 @@ class ConsortiumSerializerTestCase(TestCase):
             )
         # Serialize the consortium
         # In order to render the links correctly, there must be a request in the context
-        request = APIRequestFactory().post('/consortia/{}/'.format(consortium.pk))
+        request = APIRequestFactory().get('/consortia/{}/'.format(consortium.pk))
+        # In order for the num_projects_current_user to get populated properly, we need to authenticate the request
+        # Pick the first user that owns a project in the consortium
+        user = consortium.projects.first().collaborators.first().user
+        force_authenticate(request, user)
         serializer = ConsortiumSerializer(consortium, context = dict(request = Request(request)))
         # Check that the right keys are present
         self.assertCountEqual(
@@ -44,6 +48,7 @@ class ConsortiumSerializerTestCase(TestCase):
                 'is_public',
                 'manager',
                 'num_projects',
+                'num_projects_current_user',
                 '_links'
             }
         )
@@ -54,6 +59,7 @@ class ConsortiumSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['description'], consortium.description)
         self.assertEqual(serializer.data['is_public'], True)
         self.assertEqual(serializer.data['num_projects'], 10)
+        self.assertEqual(serializer.data['num_projects_current_user'], 1)
         # Check that the user nested dict has the correct shape
         self.assertCountEqual(serializer.data['manager'].keys(), {'id', 'username', 'first_name', 'last_name'})
         self.assertEqual(serializer.data['manager']['id'], consortium.manager.pk)
