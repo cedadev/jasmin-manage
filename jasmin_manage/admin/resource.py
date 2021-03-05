@@ -51,7 +51,7 @@ class ResourceAdmin(admin.ModelAdmin):
             return ()
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate_usage()
+        return super().get_queryset(request).annotate_available().annotate_usage()
 
     def total_available_formatted(self, obj):
         return obj.format_amount(obj.total_available)

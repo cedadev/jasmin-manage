@@ -10,6 +10,7 @@ from .util import change_link
 @admin.register(Collaborator)
 class CollaboratorAdmin(admin.ModelAdmin):
     list_display = ('id', 'project_link', 'user_link', 'role')
+    list_select_related = ('project', 'user')
     list_filter = (
         ('project', RelatedDropdownFilter),
         ('user', RelatedDropdownFilter),

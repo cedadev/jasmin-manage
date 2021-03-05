@@ -34,6 +34,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'start_date_formatted',
         'end_date_formatted',
     )
+    list_select_related = ('service__project', 'service', 'resource')
     list_filter = (
         ('service__project__consortium', RelatedDropdownFilter),
         ('service__project', RelatedDropdownFilter),

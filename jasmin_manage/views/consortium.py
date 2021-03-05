@@ -18,11 +18,13 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     """
     permission_classes = [ConsortiumPermissions]
 
-    queryset = Consortium.objects.select_related('manager').annotate_summary()
+    queryset = Consortium.objects.select_related('manager')
     serializer_class = ConsortiumSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        # Always annotate with summary information for the current user
+        queryset = queryset.annotate_summary(self.request.user)
         # When listing consortia, we need to apply filtering for the user
         if self.action == 'list':
             queryset = queryset.filter_visible(self.request.user)

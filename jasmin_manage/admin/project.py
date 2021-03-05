@@ -37,6 +37,7 @@ class ProjectAdmin(admin.ModelAdmin):
         ('consortium', RelatedDropdownFilter),
         'status',
     )
+    list_select_related = ('consortium', )
     autocomplete_fields = ('consortium', )
     search_fields = ('name', )
     readonly_fields = (

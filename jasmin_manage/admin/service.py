@@ -25,6 +25,7 @@ class ServiceAdmin(admin.ModelAdmin):
         js = ('js/admin/highlight.js', )
 
     list_display = ('name', 'project_link', 'category_link', 'num_requirements')
+    list_select_related = ('project', 'category')
     list_filter = (
         ('category', RelatedDropdownFilter),
         ('project', RelatedDropdownFilter),

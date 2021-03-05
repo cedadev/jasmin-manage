@@ -59,7 +59,7 @@ class ResourceModelTestCase(TestCase):
                 resource.chunks.create(name = f'r{i}chunk{j}', amount = amount)
 
         # Fetch the resources and check that the reported totals match our totals
-        for resource in Resource.objects.all():
+        for resource in Resource.objects.annotate_available():
             self.assertEqual(resource.total_available, expected[resource.pk])
 
     def test_annotate_usage_quotas(self):

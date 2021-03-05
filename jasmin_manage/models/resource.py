@@ -12,10 +12,6 @@ class ResourceManager(models.Manager):
     def get_by_natural_key(self, name):
         return self.get(name = name)
 
-    def get_queryset(self):
-        # By default, annotate the queryset with the total available from the chunks
-        return super().get_queryset().annotate_available()
-
 
 class ResourceQuerySet(models.QuerySet):
     def annotate_available(self):
@@ -100,9 +96,6 @@ class Resource(models.Model):
     """
     class Meta:
         ordering = ('name', )
-        # Use the objects manager as the base manager in order to get the total_available
-        # annotation on related object accesses
-        base_manager_name = 'objects'
 
     objects = ResourceManager.from_queryset(ResourceQuerySet)()
 
