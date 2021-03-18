@@ -462,9 +462,9 @@ class ProjectViewSetTestCase(TestCase):
             {'OPTIONS', 'POST'}
         )
 
-    def test_submit_for_review_editable_with_requested_requirements(self):
+    def test_submit_for_review_editable_with_requested_requirements_only(self):
         """
-        Tests that the project owner can submit an editable project with requested
+        Tests that the project owner can submit an editable project with only requested
         requirements for review.
         """
         project = Project.objects.order_by('?').first()
@@ -475,6 +475,65 @@ class ProjectViewSetTestCase(TestCase):
             service = project.services.create(name = 'service1', category = self.category),
             resource = self.resource,
             status = Requirement.Status.REQUESTED,
+            amount = 100
+        )
+        self.assertActionResponseMatchesUpdatedInstance(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            project,
+            ProjectSerializer
+        )
+        # Verify that the project is now under review
+        self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+
+    def test_submit_for_review_editable_with_approved_requirements_only(self):
+        """
+        Tests that the project owner can submit an editable project with only approved
+        requirements for review.
+
+        This is to cover the case where a project has been submitted for review and
+        on review, some requirements were approved and some were rejected with an
+        instruction to remove them. This leaves the project in the editable state
+        with only approved requirements, so it must be able to be submitted for a final
+        review before being submitted for provisioning.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertEqual(project.status, Project.Status.EDITABLE)
+        # Make an approved requirement before submitting
+        Requirement.objects.create(
+            service = project.services.create(name = 'service1', category = self.category),
+            resource = self.resource,
+            status = Requirement.Status.APPROVED,
+            amount = 100
+        )
+        self.assertActionResponseMatchesUpdatedInstance(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            project,
+            ProjectSerializer
+        )
+        # Verify that the project is now under review
+        self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+
+    def test_submit_for_review_editable_with_requested_and_approved_requirements(self):
+        """
+        Tests that the project owner can submit an editable project with required and
+        approved requirements for review.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertEqual(project.status, Project.Status.EDITABLE)
+        service = project.services.create(name = 'service1', category = self.category)
+        # Make a requested and an approved requirement before submitting
+        Requirement.objects.create(
+            service = service,
+            resource = self.resource,
+            status = Requirement.Status.REQUESTED,
+            amount = 100
+        )
+        Requirement.objects.create(
+            service = service,
+            resource = self.resource,
+            status = Requirement.Status.APPROVED,
             amount = 100
         )
         self.assertActionResponseMatchesUpdatedInstance(
@@ -511,7 +570,7 @@ class ProjectViewSetTestCase(TestCase):
     def test_submit_for_review_not_allowed_with_rejected_requirements(self):
         """
         Tests that a project cannot be submitted for review if it has rejected
-        requirements.
+        requirements, even if it has other requested and approved requirements.
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
@@ -533,6 +592,12 @@ class ProjectViewSetTestCase(TestCase):
             status = Requirement.Status.REQUESTED,
             amount = 100
         )
+        Requirement.objects.create(
+            service = service,
+            resource = self.resource,
+            status = Requirement.Status.APPROVED,
+            amount = 100
+        )
         # Then check that it cannot be submitted for review
         response_data = self.assertConflict(
             "/projects/{}/submit_for_review/".format(project.pk),
@@ -544,10 +609,10 @@ class ProjectViewSetTestCase(TestCase):
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.EDITABLE)
 
-    def test_submit_for_review_not_allowed_without_requested_requirements(self):
+    def test_submit_for_review_not_allowed_without_requested_or_approved_requirements(self):
         """
         Tests that a project cannot be submitted for review unless it has at
-        least one requirement in the requested state.
+        least one requirement in the requested or approved state.
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
@@ -565,7 +630,7 @@ class ProjectViewSetTestCase(TestCase):
             "POST"
         )
         # Check that the error code is what we expected
-        self.assertEqual(response_data['code'], 'no_requested_requirements')
+        self.assertEqual(response_data['code'], 'no_requirements_to_review')
         # Verify that the state is still editable
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.EDITABLE)

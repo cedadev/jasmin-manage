@@ -67,6 +67,10 @@ class ProjectViewSet(mixins.ListModelMixin,
                         'status',
                         filter = models.Q(status = Requirement.Status.REJECTED)
                     ),
+                    approved_count = models.Count(
+                        'status',
+                        filter = models.Q(status = Requirement.Status.APPROVED)
+                    ),
                 )
         )
         # A project with requirements in the rejected state cannot be submitted for review
@@ -75,11 +79,14 @@ class ProjectViewSet(mixins.ListModelMixin,
                 'Cannot submit project with rejected requirements.',
                 'rejected_requirements'
             )
-        # A project with no requirements in the requested state cannot be submitted for review
-        if requirement_counts.get('requested_count', 0) < 1:
+        # A project must have at least one requirement in either the requested or approved
+        # state to be submitted for review
+        requested_count = requirement_counts.get('requested_count', 0)
+        approved_count = requirement_counts.get('approved_count', 0)
+        if (requested_count + approved_count) < 1:
             raise Conflict(
                 'Project has no requirements to review.',
-                'no_requested_requirements'
+                'no_requirements_to_review'
             )
         # Update the project status and return it
         project.status = Project.Status.UNDER_REVIEW
