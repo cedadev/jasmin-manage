@@ -107,9 +107,38 @@ class Project(models.Model):
             return getattr(collaborator, 'role', None)
 
     def get_event_type(self, diff):
-        # If the status is in the diff, use it as the event type, otherwise use the default
-        if 'status' in diff:
-            return '{}.{}'.format(self._meta.label_lower, self.Status(diff['status']).name.lower())
+        # If the status is not in the diff, just use the default
+        if 'status' not in diff:
+            return
+        # If the status is in the diff, we want to use a custom event type that reflects
+        # the action taking place
+        status = self.Status(diff['status'])
+        # To do this, we may need to check the requirements for the project
+        from .requirement import Requirement
+        requirements = Requirement.objects.filter(service__project = self)
+        if status == self.Status.EDITABLE:
+            if requirements.filter(status = Requirement.Status.REJECTED).exists():
+                # If there are rejected requirements it is a request for changes
+                event_type = 'changes_requested'
+            elif requirements.filter(status = Requirement.Status.AWAITING_PROVISIONING).exists():
+                # If there are requirements awaiting provisioning, then the project
+                # is being submitted for provisioning
+                event_type = 'submitted_for_provisioning'
+            else:
+                # If there are no requirements in either status, use the default event type
+                return None
+        elif status == self.Status.UNDER_REVIEW:
+            if requirements.filter(status = Requirement.Status.REQUESTED).exists():
+                # If there are requested requirements, then the project is being
+                # submitted for review
+                event_type = 'submitted_for_review'
+            else:
+                # If not, then use the default event type
+                return None
+        else:
+            # For any other status, just use the status name
+            event_type = status.name.lower()
+        return '{}.{}'.format(self._meta.label_lower, event_type)
 
     def get_event_aggregates(self):
         # Aggregate project events over the consortium

@@ -56,6 +56,7 @@ class ResourceAdmin(admin.ModelAdmin):
     def total_available_formatted(self, obj):
         return obj.format_amount(obj.total_available)
     total_available_formatted.short_description = 'total available'
+    total_available_formatted.admin_order_field = 'total_available'
 
     def total_quotas(self, obj):
         total_formatted = obj.format_amount(obj.quota_total)

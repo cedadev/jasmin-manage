@@ -3,7 +3,7 @@ import random
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ...models import Category, Collaborator, Consortium, Project, Resource
+from ...models import Category, Collaborator, Consortium, Project, Requirement, Resource
 
 from ..utils import AssertValidationErrorsMixin
 
@@ -129,12 +129,123 @@ class ProjectModelTestCase(AssertValidationErrorsMixin, TestCase):
         project = Project.objects.get_by_natural_key('Project 1')
         self.assertEqual(project.pk, 1)
 
-    def test_get_event_type(self):
+    def test_get_event_type_editable_requirements_rejected(self):
+        """
+        Tests that get_event_type reports "changes_requested" when a project
+        transitions to the EDITABLE status with rejected requirements.
+        """
         project = Project.objects.first()
-        # If status is in diff, the event type should have the status in it
+        service = project.services.create(
+            category = Category.objects.create(name = "Category 1", description = 'Description.'),
+            name = 'service1'
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 1'),
+            amount = 1000,
+            status = Requirement.Status.REJECTED
+        )
+        diff = dict(status = Project.Status.EDITABLE)
+        event_type = project.get_event_type(diff)
+        self.assertEqual(event_type, 'jasmin_manage.project.changes_requested')
+
+    def test_get_event_type_editable_requirements_awaiting_provisioning(self):
+        """
+        Tests that get_event_type reports "submitted_for_provisioning" when a project
+        transitions to the EDITABLE status with requirements awaiting provisioning.
+        """
+        project = Project.objects.first()
+        service = project.services.create(
+            category = Category.objects.create(name = "Category 1", description = 'Description.'),
+            name = 'service1'
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 1'),
+            amount = 1000,
+            status = Requirement.Status.AWAITING_PROVISIONING
+        )
+        diff = dict(status = Project.Status.EDITABLE)
+        event_type = project.get_event_type(diff)
+        self.assertEqual(event_type, 'jasmin_manage.project.submitted_for_provisioning')
+
+    def test_get_event_type_editable(self):
+        """
+        Tests that, other than the two circumstances above, get_event_type defers to the
+        default event type when a project moves to the EDITABLE status.
+        """
+        project = Project.objects.first()
+        diff = dict(status = Project.Status.EDITABLE)
+        self.assertIsNone(project.get_event_type(diff))
+        service = project.services.create(
+            category = Category.objects.create(name = "Category 1", description = 'Description.'),
+            name = 'service1'
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 1'),
+            amount = 1000,
+            status = Requirement.Status.APPROVED
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 2'),
+            amount = 1000,
+            status = Requirement.Status.PROVISIONED
+        )
+        self.assertIsNone(project.get_event_type(diff))
+
+    def test_get_event_type_under_review_requirements_requested(self):
+        """
+        Tests that get_event_type reports "submitted_for_review" when a project
+        transitions to the UNDER_REVIEW status with requested requirements.
+        """
+        project = Project.objects.first()
+        service = project.services.create(
+            category = Category.objects.create(name = "Category 1", description = 'Description.'),
+            name = 'service1'
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 1'),
+            amount = 1000,
+            status = Requirement.Status.REQUESTED
+        )
         diff = dict(status = Project.Status.UNDER_REVIEW)
         event_type = project.get_event_type(diff)
-        self.assertEqual(event_type, 'jasmin_manage.project.under_review')
+        self.assertEqual(event_type, 'jasmin_manage.project.submitted_for_review')
+
+    def test_get_event_type_under_review(self):
+        """
+        Tests that, other than the circumstances above, get_event_type defers to the default
+        event type when a project moves to the UNDER_REVIEW status.
+        """
+        project = Project.objects.first()
+        diff = dict(status = Project.Status.UNDER_REVIEW)
+        self.assertIsNone(project.get_event_type(diff))
+        service = project.services.create(
+            category = Category.objects.create(name = "Category 1", description = 'Description.'),
+            name = 'service1'
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 1'),
+            amount = 1000,
+            status = Requirement.Status.APPROVED
+        )
+        service.requirements.create(
+            resource = Resource.objects.create(name = 'Resource 2'),
+            amount = 1000,
+            status = Requirement.Status.PROVISIONED
+        )
+        self.assertIsNone(project.get_event_type(diff))
+
+    def test_get_event_type_completed(self):
+        """
+        Tests that get_event_type reports "completed" when a project transitions into
+        the COMPLETED state.
+        """
+        project = Project.objects.first()
+        diff = dict(status = Project.Status.COMPLETED)
+        event_type = project.get_event_type(diff)
+        self.assertEqual(event_type, 'jasmin_manage.project.completed')
+
+    def test_get_event_type_no_status(self):
+        project = Project.objects.first()
         # If status is not in diff, the event type should be null
         diff = dict(name = 'New project name')
         self.assertIsNone(project.get_event_type(diff))

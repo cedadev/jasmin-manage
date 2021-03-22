@@ -64,6 +64,7 @@ class QuotaAdmin(admin.ModelAdmin):
     def amount_formatted(self, obj):
         return obj.resource.format_amount(obj.amount)
     amount_formatted.short_description = 'amount'
+    amount_formatted.admin_order_field = 'amount'
 
     def _cell_content(self, obj, status):
         count = getattr(obj, '{}_count'.format(status.name.lower()))

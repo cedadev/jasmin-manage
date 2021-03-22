@@ -92,6 +92,7 @@ class ProjectAdmin(admin.ModelAdmin):
     def status_formatted(self, obj):
         return format_html('<code>{}</code>', Project.Status(obj.status).label)
     status_formatted.short_description = 'status'
+    status_formatted.admin_order_field = 'status'
 
     def consortium_link(self, obj):
         return change_link(obj.consortium)

@@ -102,10 +102,12 @@ class RequirementAdmin(admin.ModelAdmin):
             css = self.STATUS_CLASSES.get(status.name, '')
         )
     status_formatted.short_description = 'status'
+    status_formatted.admin_order_field = 'status'
 
     def amount_formatted(self, obj):
         return obj.resource.format_amount(obj.amount)
     amount_formatted.short_description = 'amount'
+    amount_formatted.admin_order_field = 'amount'
 
     def start_date_formatted(self, obj):
         formatted_date = formats.date_format(obj.start_date)
@@ -119,6 +121,7 @@ class RequirementAdmin(admin.ModelAdmin):
         else:
             return formatted_date
     start_date_formatted.short_description = 'start date'
+    start_date_formatted.admin_order_field = 'start_date'
 
     def end_date_formatted(self, obj):
         formatted_date = formats.date_format(obj.end_date)
@@ -131,3 +134,4 @@ class RequirementAdmin(admin.ModelAdmin):
         else:
             return formatted_date
     end_date_formatted.short_description = 'end date'
+    end_date_formatted.admin_order_field = 'end_date'
