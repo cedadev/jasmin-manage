@@ -1,0 +1,9 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+The consortium manager has approved the requirements for your project '{{ target.name }}'.
+
+The project requirements have been sent to the JASMIN Team to be provisioned. You will be contacted when your project resources are available to use.
+
+You can check the current status of your project at any time using the JASMIN Projects Portal.
+{% endblock %}

@@ -1,0 +1,7 @@
+Hi {{ recipient.first_name }},
+
+{% block content %}
+{% endblock %}
+
+Thanks,
+The JASMIN Team

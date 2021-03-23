@@ -1,0 +1,7 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+The consortium manager has requested changes to your project '{{ target.name }}' before it can be submitted for provisioning.
+
+Please use the JASMIN Projects Portal to amend the project requirements before re-submitting for review.
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "tsunami_notify/layout.txt" %}
+{% load format_amount %}
+
+{% block content %}
+The following resource in your project '{{ target.service.project.name }}' is now available for use:
+
+    Service: {{ target.service.category.name }} / {{ target.service.name }}
+    Resource: {% if target.resource.short_name %}{{ target.resource.short_name }}{% else %}{{ target.resource.name }}{% endif %}
+    Amount: {{ target.amount|format_amount:target.resource }}
+
+You can check the current status of your project at any time using the JASMIN Projects Portal.
+{% endblock %}

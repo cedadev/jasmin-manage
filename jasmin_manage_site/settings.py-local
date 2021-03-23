@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'tsunami',
+    'tsunami_notify',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +96,24 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}
 
 
 STATIC_URL = '/assets/'

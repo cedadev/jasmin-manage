@@ -1,0 +1,7 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+Your project '{{ target.name }}' has been marked as completed.
+
+The resources associated with the project should have been decommissioned, and the project will no longer be editable in the JASMIN Projects Portal.
+{% endblock %}

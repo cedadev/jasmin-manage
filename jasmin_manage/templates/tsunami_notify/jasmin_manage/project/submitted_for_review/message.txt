@@ -1,0 +1,13 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+{% if consortium_manager %}
+The project '{{ target.name }}' in your consortium ({{ target.consortium.name }}) has been submitted for review.
+
+Please use the JASMIN Projects Portal to review the project requirements as soon as possible.
+{% else %}
+The project '{{ target.name }}', on which you are a collaborator, has been submitted for review.
+
+You can check the current status of your project on the JASMIN Projects Portal at any time.
+{% endif %}
+{% endblock %}
