@@ -6,6 +6,8 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'jasmin_manage',
+    'tsunami',
+    'tsunami_notify',
 ]
 
 DATABASES = {
