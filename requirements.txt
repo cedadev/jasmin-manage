@@ -10,7 +10,7 @@ django-debug-toolbar==3.2
 django-markupfield==2.0.0
 -e git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb#egg=django_settings_object
 -e git+https://github.com/mkjpryor-stfc/django-tsunami.git@8e1e78e326bbe423fc0eaaaadf22bd4421d9da61#egg=django_tsunami
--e git+https://github.com/mkjpryor-stfc/django-tsunami-notify.git@c6e01a77fce24fbb7d961be38b7dc40da2431970#egg=django_tsunami_notify
+-e git+https://github.com/mkjpryor-stfc/django-tsunami-notify.git@1f93bca85eb09823d75bf737ee3f48ed7014f674#egg=django_tsunami_notify
 djangorestframework==3.12.2
 drf-nested-routers==0.93.3
 drf-spectacular==0.14.0
