@@ -45,3 +45,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [],
     'EXCEPTION_HANDLER': 'jasmin_manage.views.exception_handler',
 }
+
+# Disable the tsunami tracking to avoid the overhead
+# We are not testing that tsunami does what it is supposed to!
+TSUNAMI = {
+    'IS_TRACKED_PREDICATE': lambda model: False,
+}

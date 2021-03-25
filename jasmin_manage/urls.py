@@ -22,10 +22,14 @@ consortia_router = routers.NestedSimpleRouter(router, r'consortia', lookup = 'co
 consortia_router.register(r'projects', views.ConsortiumProjectsViewSet, basename = 'consortium-projects')
 consortia_router.register(r'quotas', views.ConsortiumQuotasViewSet, basename = 'consortium-quotas')
 
+# Routes for invitations
+router.register(r'invitations', views.InvitationViewSet)
+
 # Routes for projects
 router.register(r'projects', views.ProjectViewSet)
 projects_router = routers.NestedSimpleRouter(router, r'projects', lookup = 'project')
 projects_router.register(r'collaborators', views.ProjectCollaboratorsViewSet, basename = 'project-collaborators')
+projects_router.register(r'invitations', views.ProjectInvitationsViewSet, basename = 'project-invitations')
 projects_router.register(r'services', views.ProjectServicesViewSet, basename = 'project-services')
 
 # Routes for requirements

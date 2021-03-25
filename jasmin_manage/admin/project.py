@@ -12,7 +12,7 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
-from ..models import Collaborator, Project, Requirement, Service
+from ..models import Collaborator, Invitation, Project, Requirement, Service
 from .util import changelist_link, change_link
 
 
@@ -44,6 +44,7 @@ class ProjectAdmin(admin.ModelAdmin):
         'num_services',
         'num_requirements',
         'num_collaborators',
+        'num_invitations',
         'created_at'
     )
 
@@ -66,8 +67,9 @@ class ProjectAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         qs = qs.annotate(
-            # Annotate the queryset with information about the number of collaborators, services and requirements
+            # Annotate the queryset with information about the numbers of related objects
             collaborator_count = Count('collaborator', distinct = True),
+            invitation_count = Count('invitation', distinct = True),
             service_count = Count('service', distinct = True),
             requirement_count = Count('service__requirement', distinct = True),
             # Also annotate with information about the number of requirements awaiting provisioning
@@ -129,3 +131,11 @@ class ProjectAdmin(admin.ModelAdmin):
             dict(project__id__exact = obj.pk)
         )
     num_collaborators.short_description = '# collaborators'
+
+    def num_invitations(self, obj):
+        return changelist_link(
+            Invitation,
+            "{} invitation{}".format(obj.invitation_count, pluralize(obj.invitation_count)),
+            dict(project__id__exact = obj.pk)
+        )
+    num_invitations.short_description = '# invitations'

@@ -16,7 +16,7 @@ class ServiceViewSet(mixins.RetrieveModelMixin,
                      mixins.DestroyModelMixin,
                      viewsets.GenericViewSet):
     """
-    View set for the resource model.
+    View set for the service model.
     """
     permission_classes = [ServicePermissions]
 
