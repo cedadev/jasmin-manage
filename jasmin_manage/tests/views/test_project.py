@@ -14,7 +14,12 @@ from ...models import (
     Resource,
     Service
 )
-from ...serializers import CollaboratorSerializer, ProjectSerializer, ServiceSerializer
+from ...serializers import (
+    CollaboratorSerializer,
+    InvitationSerializer,
+    ProjectSerializer,
+    ServiceSerializer
+)
 
 from .utils import TestCase
 
@@ -1123,6 +1128,241 @@ class ProjectCollaboratorsViewSetTestCase(TestCase):
         """
         self.authenticate()
         self.assertNotFound("/projects/100/collaborators/")
+
+
+class ProjectInvitationsViewSetTestCase(TestCase):
+    """
+    Tests for the project invitations viewset.
+    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.consortium = Consortium.objects.create(
+            name = 'Consortium 1',
+            manager = get_user_model().objects.create_user('manager1')
+        )
+        projects = [
+            cls.consortium.projects.create(
+                name = f'Project {i}',
+                description = 'some description',
+                owner = get_user_model().objects.create_user(f'owner{i}')
+            )
+            for i in range(10)
+        ]
+        # Create between 1 and 3 invitations for each project
+        for i, project in enumerate(projects):
+            for j in range(random.randint(1, 3)):
+                project.invitations.create(email = f'user{i}@university{j}.ac.uk')
+
+    def test_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted for the endpoint.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertAllowedMethods(
+            "/projects/{}/invitations/".format(project.pk),
+            {'OPTIONS', 'HEAD', 'GET', 'POST'}
+        )
+
+    def test_list_project_owner(self):
+        """
+        Tests that a project owner can list the invitations for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/invitations/".format(project.pk),
+            project.invitations.all(),
+            InvitationSerializer
+        )
+
+    def test_list_project_contributor(self):
+        """
+        Tests that a project contributor can list the invitations for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/invitations/".format(project.pk),
+            project.invitations.all(),
+            InvitationSerializer
+        )
+
+    def test_list_consortium_manager(self):
+        """
+        Tests that the consortium manager can list the invitations for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/invitations/".format(project.pk),
+            project.invitations.all(),
+            InvitationSerializer
+        )
+
+    def test_list_not_permitted_authenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        list the invitations.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # The user is not permitted to view the project, so should get not found
+        self.assertNotFound("/projects/{}/invitations/".format(project.pk))
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that listing invitations for a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        self.assertUnauthorized("/projects/{}/invitations/".format(project.pk))
+
+    def test_list_invalid_project(self):
+        """
+        Tests that a list response for an invalid project returns not found.
+        """
+        self.authenticate()
+        self.assertNotFound("/projects/100/invitations/")
+
+    def test_create_as_project_owner(self):
+        """
+        Tests that a project owner can create a invitation.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        invitation = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/invitations/".format(project.pk),
+            dict(email = 'joe.bloggs@example.com'),
+            InvitationSerializer
+        )
+        self.assertEqual(invitation.project.pk, project.pk)
+        self.assertEqual(invitation.email, 'joe.bloggs@example.com')
+
+    def test_create_enforces_required_fields_present(self):
+        """
+        Tests that the required fields are enforced on create.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/{}/invitations/".format(project.pk),
+            dict()
+        )
+        self.assertCountEqual(response_data.keys(), {'email'})
+        self.assertEqual(response_data['email'][0]['code'], 'required')
+
+    def test_create_cannot_override_project(self):
+        """
+        Tests that the project cannot be overridden by specifying it in the input data.
+        """
+        project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
+        other_project = Project.objects.get(pk = 2)
+        # Create the invitation
+        # It should create successfully, but the invitation should belong to the project
+        # in the URL, not the one in the input data
+        invitation = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/invitations/".format(project.pk),
+            dict(
+                email = 'joe.bloggs@example.com',
+                project = other_project.pk
+            ),
+            InvitationSerializer
+        )
+        # Check that the service belongs to the correct project
+        self.assertEqual(invitation.project.pk, project.pk)
+
+    def test_cannot_create_email_already_collaborator(self):
+        """
+        Tests that an invitation cannot be created if a user with the same email
+        address is already a collaborator.
+        """
+        project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
+        # Make a collaborator with the same email address that we will use,
+        # but with different capitalisation
+        user = get_user_model().objects.create_user('jbloggs', email = 'Joe.Bloggs@example.com')
+        project.collaborators.create(user = user)
+        # Try to make an invitation with the same email address
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/{}/invitations/".format(project.pk),
+            dict(email = 'joe.bloggs@example.com')
+        )
+        self.assertCountEqual(response_data.keys(), {'email'})
+        self.assertEqual(response_data['email'][0]['code'], 'invalid')
+
+    def test_cannot_create_email_already_invited(self):
+        """
+        Tests that an invitation cannot be created if an invitation with the same email
+        address already exists.
+        """
+        project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
+        # Make an invitation with the same email address, but with different capitalisation
+        project.invitations.create(email = 'Joe.Bloggs@example.com')
+        # Try to make an invitation with the same email address
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/{}/invitations/".format(project.pk),
+            dict(email = 'joe.bloggs@example.com')
+        )
+        self.assertCountEqual(response_data.keys(), {'email'})
+        self.assertEqual(response_data['email'][0]['code'], 'invalid')
+
+    def test_create_not_permitted_for_project_contributor(self):
+        """
+        Tests that a project contributor cannot create an invitation.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        # This should be permission denied as the user can see the project
+        self.assertPermissionDenied(
+            "/projects/{}/invitations/".format(project.pk),
+            "POST",
+            dict(email = 'joe.bloggs@example.com')
+        )
+
+    def test_create_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        # This should be permission denied as the user can see the project
+        self.assertPermissionDenied(
+            "/projects/{}/invitations/".format(project.pk),
+            "POST",
+            dict(email = 'joe.bloggs@example.com')
+        )
+
+    def test_create_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot create a contributor.
+        """
+        self.authenticate()
+        project = Project.objects.order_by('?').first()
+        # This should be not found as the user cannot see the project
+        self.assertNotFound(
+            "/projects/{}/invitations/".format(project.pk),
+            "POST",
+            dict(email = 'joe.bloggs@example.com')
+        )
+
+    def test_create_requires_authentication(self):
+        """
+        Tests that an unauthenticated user cannot create a contributor.
+        """
+        project = Project.objects.order_by('?').first()
+        # This should be unauthorized as the endpoint requires authentication
+        self.assertUnauthorized(
+            "/projects/{}/invitations/".format(project.pk),
+            "POST",
+            dict(email = 'joe.bloggs@example.com')
+        )
 
 
 class ProjectServicesViewSetTestCase(TestCase):

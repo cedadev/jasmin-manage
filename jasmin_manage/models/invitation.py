@@ -35,11 +35,24 @@ class Invitation(models.Model):
     #: The time at which the invitation was created
     created_at = models.DateTimeField(auto_now_add = True)
 
+    def accept(self, user):
+        """
+        Accepts the invitation, which creates a contributor record for the project
+        and the given user, and deletes the invitation.
+        """
+        # If the user is already a collaborator on the project, we don't make another
+        # But we do still consider the invitation accepted
+        self.project.collaborators.get_or_create(
+            user = user,
+            defaults = dict(role = Collaborator.Role.CONTRIBUTOR)
+        )
+        self.delete()
+
     def clean(self):
         super().clean()
         # We only have extra validation to do if the project and email are set
         if not self.project or not self.email:
-            return
+            return  # pragma: nocover
         # Check if there is already a collaborator record for a user with the
         # same email address as the invitation
         collaborator = (
@@ -61,3 +74,10 @@ class Invitation(models.Model):
         if invitations.exists():
             message = 'Email address already has an invitation for this project.'
             raise ValidationError({ 'email': message })
+
+    def get_event_aggregates(self):
+        # Aggregate invitation events over the project
+        return (self.project, )
+
+    def __str__(self):
+        return "{} / {}".format(self.project, self.email)

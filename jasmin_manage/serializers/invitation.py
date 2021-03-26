@@ -20,14 +20,11 @@ class InvitationSerializer(BaseSerializer):
 
     def validate(self, data):
         validated_data = super().validate(data)
-        # Use the validated data to instantiate a model instance
-        # If there is an instance, use the data from it as a starting point
-        if self.instance:
-            instance_data = model_to_dict(self.instance)
-        else:
-            # On create, use the project from the context
-            instance_data = dict(project = self.context['project'])
-        # Overwrite with the data from the serializer
+        # We do not allow updating of invitations via the API
+        # So this serializer doesn't need to deal with updates
+        # So we just let this be a key error on updates
+        instance_data = dict(project = self.context['project'])
+        # Update with the data from the serializer
         instance_data.update(validated_data)
         # Run the model validation
         instance = Invitation(**instance_data)
