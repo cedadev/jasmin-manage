@@ -1,0 +1,17 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+You have been invited to contribute to the JASMIN project '{{ target.project.name }}' by {{ event.user.first_name }} {{ event.user.last_name }}.
+
+Before you can accept this invitation you must have a JASMIN account, which you can get from the JASMIN Accounts Portal.
+
+To accept this invitation, sign in to the JASMIN Projects Portal and navigate to "My Projects".
+
+On the "My Projects" page, click "Join existing project" and enter the following code:
+
+
+    Invitation code: {{ target.code }}
+
+
+This code will expire in seven days, at which point you will need to be invited again.
+{% endblock %}

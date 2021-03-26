@@ -47,6 +47,7 @@ services_router.register(r'requirements', views.ServiceRequirementsViewSet, base
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [
     path('me/', views.CurrentUserView.as_view(), name = 'current-user'),
+    path('join/', views.ProjectJoinView.as_view(), name = 'project-join'),
     path('', include(router.urls)),
     path('', include(consortia_router.urls)),
     path('', include(projects_router.urls)),

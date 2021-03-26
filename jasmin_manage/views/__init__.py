@@ -3,6 +3,7 @@ from .collaborator import CollaboratorViewSet
 from .consortium import ConsortiumViewSet, ConsortiumProjectsViewSet, ConsortiumQuotasViewSet
 from .invitation import InvitationViewSet
 from .exception_handler import exception_handler
+from .project_join import ProjectJoinView
 from .project import (
     ProjectViewSet,
     ProjectCollaboratorsViewSet,

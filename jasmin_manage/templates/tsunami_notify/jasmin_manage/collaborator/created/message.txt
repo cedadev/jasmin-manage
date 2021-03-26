@@ -1,0 +1,11 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}{% if recipient == target.user %}
+You have been added as a collaborator on the JASMIN project '{{ target.project.name }}'.
+
+You can contribute to the project by visiting the JASMIN Projects Portal and navigating to "My Projects".
+{% else %}
+A new collaborator, {{ target.user.first_name }} {{ target.user.last_name }}, has joined your JASMIN project '{{ target.project.name }}'.
+
+You can check your projects at any time by visiting the JASMIN Projects Portal and navigating to "My Projects".
+{% endif %}{% endblock %}

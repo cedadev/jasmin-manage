@@ -1,0 +1,7 @@
+{% extends "tsunami_notify/layout.txt" %}
+
+{% block content %}
+You have been removed as a collaborator on the JASMIN project '{{ project_name }}' by {{ event.user.first_name }} {{ event.user.last_name }}.
+
+If you believe this was done in error, please contact the project manager.
+{% endblock %}

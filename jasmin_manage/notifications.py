@@ -1,8 +1,10 @@
+from django.contrib.auth import get_user_model
+
 from tsunami.helpers import model_event_listener
 
 from tsunami_notify.models import Notification
 
-from .models import Collaborator, Project, Requirement
+from .models import Collaborator, Invitation, Project, Requirement
 
 
 @model_event_listener(Project, [
@@ -67,3 +69,50 @@ def notify_project_collaborators_requirement_provisioned(event):
                 collaborator.user.email,
                 dict(project_role = Collaborator.Role(collaborator.role).name)
             )
+
+
+@model_event_listener(Collaborator, ['created'])
+def notify_project_collaborators_new_collaborator(event):
+    """
+    Notify the collaborators when a new collaborator joins a project.
+    """
+    collaborators = event.target.project.collaborators.select_related('user')
+    if event.user:
+        collaborators = collaborators.exclude(user = event.user)
+    for collaborator in collaborators:
+        # It is possible that the user may not have an email address defined yet
+        if collaborator.user.email:
+            Notification.create(
+                event,
+                collaborator.user.email,
+                dict(project_role = Collaborator.Role(collaborator.role).name)
+            )
+
+
+@model_event_listener(Collaborator, ['deleted'])
+def notify_project_collaborator_removed(event):
+    """
+    When a collaborator is removed from a project, notify them.
+    """
+    # The collaborator record, i.e. event.target, will no longer exist
+    # But the last known state is recorded in the event data, so we can get the user from that
+    user = get_user_model().objects.filter(pk = event.data["user"]).first()
+    # If we found a user and they have an email set, notify them, unless they
+    # removed themselves
+    if user and user.email and user != event.user:
+        # Get the project from the event data and store the project name in the context,
+        # since we can't access it in the template using target.project.name
+        project = Project.objects.get(pk = event.data["project"])
+        Notification.create(
+            event,
+            user.email,
+            dict(project_name = project.name)
+        )
+
+
+@model_event_listener(Invitation, ['created'])
+def notify_invitee(event):
+    """
+    Notify the invitee when an invitation is created.
+    """
+    Notification.create(event, event.target.email)

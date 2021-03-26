@@ -67,12 +67,9 @@ class LinksField(fields.Field):
         # Derive the urlconf to use from the app containing the model
         if not self.urlconf:
             self.urlconf = "{}.urls".format(parent.Meta.model._meta.app_label)
-        # Get the set of all view names in the app
-        view_names = set(
-            key
-            for key in get_resolver(self.urlconf).reverse_dict.keys()
-            if isinstance(key, str)
-        )
+        # Get information about the views in the app
+        views = get_resolver(self.urlconf).reverse_dict
+        view_names = set(key for key in views.keys() if isinstance(key, str))
         # Calculate the views that correspond to related objects in either direction
         related_object_links = []
         related_list_links = []
@@ -97,9 +94,15 @@ class LinksField(fields.Field):
             if view_name in {link[1] for link in related_list_links}:
                 continue
             action = view_name[len(self.basename) + 1:]
+            # Exclude the default actions
             if action in {'list', 'detail'}:
                 continue
-            action_links.append((action, view_name))
+            # We only want to include instance actions, i.e. those that accept a
+            # primary key as an argument
+            # We can get the names of the capture groups for the first URL in the resolver
+            view_capture_groups = views[view_name][0][0][1]
+            if 'pk' in view_capture_groups:
+                action_links.append((action, view_name))
         if self.related_object_links is None:
             self.related_object_links = related_object_links
         if self.related_list_links is None:

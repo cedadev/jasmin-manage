@@ -1,4 +1,4 @@
-Hi {{ recipient.first_name }},
+Hi{% if recipient %} {{ recipient.first_name }}{% endif %},
 
 {% block content %}
 {% endblock %}

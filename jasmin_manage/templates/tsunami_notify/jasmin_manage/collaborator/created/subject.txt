@@ -1,0 +1,1 @@
+{% if recipient == target.user %}Added as collaborator on JASMIN project{% else %}New collaborator joined JASMIN project{% endif %}
