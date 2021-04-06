@@ -14,6 +14,7 @@ class InvitationAdmin(admin.ModelAdmin):
     list_filter = (('project', RelatedDropdownFilter), )
     autocomplete_fields = ('project', )
     search_fields = ('project__name', 'email')
+    readonly_fields = ('created_at', )
 
     def project_link(self, obj):
         return change_link(obj.project)
