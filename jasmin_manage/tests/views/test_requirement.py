@@ -87,7 +87,7 @@ class RequirementViewSetTestCase(TestCase):
 
     def test_detail_project_owner(self):
         """
-        Tests that the detail endpoint successfully retrieves a valid collaborator
+        Tests that the detail endpoint successfully retrieves a valid requirement
         when the authenticated user is a project owner.
         """
         requirement = Requirement.objects.order_by('?').first()
@@ -100,7 +100,7 @@ class RequirementViewSetTestCase(TestCase):
 
     def test_detail_project_contributor(self):
         """
-        Tests that the detail endpoint successfully retrieves a valid collaborator
+        Tests that the detail endpoint successfully retrieves a valid requirement
         when the authenticated user is a project contributor.
         """
         requirement = Requirement.objects.order_by('?').first()
@@ -113,7 +113,7 @@ class RequirementViewSetTestCase(TestCase):
 
     def test_detail_consortium_manager(self):
         """
-        Tests that the detail endpoint successfully retrieves a valid collaborator
+        Tests that the detail endpoint successfully retrieves a valid requirement
         when the authenticated user is a project contributor.
         """
         requirement = Requirement.objects.order_by('?').first()
@@ -127,7 +127,7 @@ class RequirementViewSetTestCase(TestCase):
     def test_detail_authenticated_not_collaborator(self):
         """
         Tests that the detail endpoint returns not found when the user is authenticated
-        but does not have permission to view the collaborator.
+        but does not have permission to view the requirement.
         """
         self.authenticate()
         requirement = Requirement.objects.order_by('?').first()
@@ -136,14 +136,14 @@ class RequirementViewSetTestCase(TestCase):
     def test_detail_unauthenticated(self):
         """
         Tests that the detail endpoint returns unauthorized when an unauthenticated
-        user attempts to access a valid collaborator.
+        user attempts to access a valid requirement.
         """
         requirement = Requirement.objects.order_by('?').first()
         self.assertUnauthorized("/requirements/{}/".format(requirement.pk))
 
     def test_detail_missing(self):
         """
-        Tests that the detail endpoint correctly reports not found for invalid collaborator.
+        Tests that the detail endpoint correctly reports not found for invalid requirement.
         """
         self.authenticate()
         self.assertNotFound("/requirements/100/")

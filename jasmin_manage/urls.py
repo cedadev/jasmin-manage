@@ -16,6 +16,9 @@ router.register(r'categories', views.CategoryViewSet)
 # Routes for collaborators
 router.register(r'collaborators', views.CollaboratorViewSet)
 
+# Routes for comments
+router.register(r'comments', views.CommentViewSet)
+
 # Routes for consortia
 router.register(r'consortia', views.ConsortiumViewSet)
 consortia_router = routers.NestedSimpleRouter(router, r'consortia', lookup = 'consortium')
@@ -29,6 +32,7 @@ router.register(r'invitations', views.InvitationViewSet)
 router.register(r'projects', views.ProjectViewSet)
 projects_router = routers.NestedSimpleRouter(router, r'projects', lookup = 'project')
 projects_router.register(r'collaborators', views.ProjectCollaboratorsViewSet, basename = 'project-collaborators')
+projects_router.register(r'comments', views.ProjectCommentsViewSet, basename = 'project-comments')
 projects_router.register(r'invitations', views.ProjectInvitationsViewSet, basename = 'project-invitations')
 projects_router.register(r'services', views.ProjectServicesViewSet, basename = 'project-services')
 

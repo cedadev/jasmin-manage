@@ -13,7 +13,7 @@ class InvitationPermissions(BaseProjectPermissions):
     def get_project_from_object(self, obj):
         return obj.project
 
-    def has_action_permission(self, project, user, action):
+    def has_action_permission(self, project, user, action, obj = None):
         # Allow project collaborators and consortium managers to view the invitations
         # Allow only owners to create or delete invitations
         if action in {'list', 'retrieve'}:

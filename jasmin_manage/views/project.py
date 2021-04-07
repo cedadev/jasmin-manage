@@ -7,15 +7,24 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from ..exceptions import Conflict
-from ..models import Collaborator, Invitation, Project, Requirement, Service
+from ..models import (
+    Collaborator,
+    Comment,
+    Invitation,
+    Project,
+    Requirement,
+    Service
+)
 from ..permissions import (
     CollaboratorPermissions,
+    CommentPermissions,
     InvitationPermissions,
     ProjectPermissions,
     ServicePermissions
 )
 from ..serializers import (
     CollaboratorSerializer,
+    CommentSerializer,
     InvitationSerializer,
     ProjectSerializer,
     RequirementSerializer,
@@ -197,6 +206,33 @@ class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         return super().get_queryset().filter(project = self.kwargs['project_pk'])
+
+    # This property is required for the permissions check for listing
+    @cached_property
+    def project(self):
+        return get_object_or_404(Project, pk = self.kwargs['project_pk'])
+
+
+class ProjectCommentsViewSet(mixins.ListModelMixin,
+                             mixins.CreateModelMixin,
+                             viewsets.GenericViewSet):
+    """
+    View set for listing and creating comments for a project.
+    """
+    permission_classes = [CommentPermissions]
+
+    queryset = Comment.objects.select_related('user')
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(project = self.kwargs['project_pk'])
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        # Creating a comment requires that we inject the project into the serializer context
+        if self.action == 'create':
+            context.update(project = self.project)
+        return context
 
     # This property is required for the permissions check for listing
     @cached_property

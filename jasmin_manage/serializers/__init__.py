@@ -1,5 +1,6 @@
 from .category import CategorySerializer
 from .collaborator import CollaboratorSerializer
+from .comment import CommentSerializer
 from .consortium import ConsortiumSerializer
 from .invitation import InvitationSerializer
 from .project import ProjectSerializer

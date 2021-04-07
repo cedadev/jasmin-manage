@@ -16,6 +16,7 @@ from ...models import (
 )
 from ...serializers import (
     CollaboratorSerializer,
+    CommentSerializer,
     InvitationSerializer,
     ProjectSerializer,
     ServiceSerializer
@@ -1130,6 +1131,247 @@ class ProjectCollaboratorsViewSetTestCase(TestCase):
         self.assertNotFound("/projects/100/collaborators/")
 
 
+class ProjectCommentsViewSetTestCase(TestCase):
+    """
+    Tests for the project comments viewset.
+    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name = 'Category 1')
+        cls.consortium = Consortium.objects.create(
+            name = 'Consortium 1',
+            manager = get_user_model().objects.create_user('manager1')
+        )
+        project_owners = [
+            get_user_model().objects.create_user(f'owner{i}')
+            for i in range(10)
+        ]
+        projects = [
+            cls.consortium.projects.create(
+                name = f'Project {i}',
+                description = 'some description',
+                owner = project_owners[i]
+            )
+            for i in range(10)
+        ]
+        # Create between 1 and 3 comments for each project
+        for i, project in enumerate(projects):
+            for j in range(random.randint(1, 3)):
+                project.comments.create(
+                    content = f'Comment {j} content.',
+                    user = project_owners[i]
+                )
+
+    def test_allowed_methods(self):
+        """
+        Tests that the correct methods are permitted for the endpoint.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertAllowedMethods(
+            "/projects/{}/comments/".format(project.pk),
+            {'OPTIONS', 'HEAD', 'GET', 'POST'}
+        )
+
+    def test_list_project_owner(self):
+        """
+        Tests that a project owner can list the comments for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/comments/".format(project.pk),
+            project.comments.all(),
+            CommentSerializer
+        )
+
+    def test_list_project_contributor(self):
+        """
+        Tests that a project contributor can list the comments for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(project)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/comments/".format(project.pk),
+            project.comments.all(),
+            CommentSerializer
+        )
+
+    def test_list_consortium_manager(self):
+        """
+        Tests that the consortium manager can list the comments for a project.
+        """
+        # Pick a random but valid project to use in the endpoint
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        self.assertListResponseMatchesQuerySet(
+            "/projects/{}/comments/".format(project.pk),
+            project.comments.all(),
+            CommentSerializer
+        )
+
+    def test_list_not_permitted_authenticated_user(self):
+        """
+        Tests that an authenticated user that is not associated with the project cannot
+        list the comments.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticate()
+        # The user is not permitted to view the project, so should get not found
+        self.assertNotFound("/projects/{}/comments/".format(project.pk))
+
+    def test_list_requires_authentication(self):
+        """
+        Tests that listing comments for a project requires authentication.
+        """
+        project = Project.objects.order_by('?').first()
+        # The user is not permitted to view the project, so should get not found
+        self.assertUnauthorized("/projects/{}/comments/".format(project.pk))
+
+    def test_list_invalid_project(self):
+        """
+        Tests that a list response for an invalid project returns not found.
+        """
+        self.authenticate()
+        self.assertNotFound("/projects/100/comments/")
+
+    def test_create_as_consortium_manager(self):
+        """
+        Tests that a consortium manager can create a comment.
+        """
+        project = Project.objects.order_by('?').first()
+        user = self.authenticateAsConsortiumManager(project.consortium)
+        comment = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "Comment content."),
+            CommentSerializer
+        )
+        self.assertEqual(comment.project.pk, project.pk)
+        self.assertEqual(comment.user.pk, user.pk)
+        self.assertEqual(comment.content, "Comment content.")
+
+    def test_create_as_project_owner(self):
+        """
+        Tests that a project owner can create a comment.
+        """
+        project = Project.objects.order_by('?').first()
+        user = self.authenticateAsProjectOwner(project)
+        comment = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "Comment content."),
+            CommentSerializer
+        )
+        self.assertEqual(comment.project.pk, project.pk)
+        self.assertEqual(comment.user.pk, user.pk)
+        self.assertEqual(comment.content, "Comment content.")
+
+    def test_create_as_project_contributor(self):
+        """
+        Tests that a project contributor can create a comment.
+        """
+        project = Project.objects.order_by('?').first()
+        user = self.authenticateAsProjectContributor(project)
+        comment = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "Comment content."),
+            CommentSerializer
+        )
+        self.assertEqual(comment.project.pk, project.pk)
+        self.assertEqual(comment.user.pk, user.pk)
+        self.assertEqual(comment.content, "Comment content.")
+
+    def test_create_enforces_required_fields_present(self):
+        """
+        Tests that the required fields are enforced on create.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/{}/comments/".format(project.pk),
+            dict()
+        )
+        self.assertCountEqual(response_data.keys(), {'content'})
+        self.assertEqual(response_data['content'][0]['code'], 'required')
+
+    def test_cannot_create_with_blank_content(self):
+        """
+        Tests that creating with blank content correctly fails.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        response_data = self.assertCreateResponseIsBadRequest(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "")
+        )
+        self.assertCountEqual(response_data.keys(), {'content'})
+        self.assertEqual(response_data['content'][0]['code'], 'blank')
+
+    def test_create_cannot_override_project(self):
+        """
+        Tests that the project cannot be overridden by specifying it in the input data.
+        """
+        project = Project.objects.get(pk = 1)
+        self.authenticateAsProjectOwner(project)
+        other_project = Project.objects.get(pk = 2)
+        # Create the comment
+        # It should create successfully, but the comment should belong to the project
+        # in the URL, not the one in the input data
+        comment = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "Comment content.", project = other_project.pk),
+            CommentSerializer
+        )
+        # Check that the service belongs to the correct project
+        self.assertEqual(comment.project.pk, project.pk)
+
+    def test_create_cannot_override_project(self):
+        """
+        Tests that the user cannot be overridden by specifying it in the input data.
+        """
+        project = Project.objects.order_by('?').first()
+        user = self.authenticateAsProjectOwner(project)
+        other_user = get_user_model().objects.create_user('otheruser')
+        # Create the comment
+        # It should create successfully, but the comment should belong to the authenticated
+        # user, not the one in the input data
+        comment = self.assertCreateResponseMatchesCreatedInstance(
+            "/projects/{}/comments/".format(project.pk),
+            dict(content = "Comment content.", user = other_user.pk),
+            CommentSerializer
+        )
+        # Check that the service belongs to the correct project
+        self.assertEqual(comment.user.pk, user.pk)
+
+    def test_create_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user who is not associated with the project
+        cannot create a comment.
+        """
+        self.authenticate()
+        project = Project.objects.order_by('?').first()
+        # This should be not found as the user cannot see the project
+        self.assertNotFound(
+            "/projects/{}/comments/".format(project.pk),
+            "POST",
+            dict(content = "Comment content."),
+        )
+
+    def test_create_requires_authentication(self):
+        """
+        Tests that an unauthenticated user cannot create a comment.
+        """
+        project = Project.objects.order_by('?').first()
+        # This should be unauthorized as the endpoint requires authentication
+        self.assertUnauthorized(
+            "/projects/{}/comments/".format(project.pk),
+            "POST",
+            dict(content = "Comment content."),
+        )
+
+
 class ProjectInvitationsViewSetTestCase(TestCase):
     """
     Tests for the project invitations viewset.
@@ -1327,7 +1569,7 @@ class ProjectInvitationsViewSetTestCase(TestCase):
 
     def test_create_not_permitted_for_consortium_manager(self):
         """
-        Tests that a consortium manager cannot create a contributor.
+        Tests that a consortium manager cannot create an invitation.
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsConsortiumManager(project.consortium)
@@ -1341,7 +1583,7 @@ class ProjectInvitationsViewSetTestCase(TestCase):
     def test_create_not_permitted_for_authenticated_user(self):
         """
         Tests that an authenticated user who is not associated with the project
-        cannot create a contributor.
+        cannot create an invitation.
         """
         self.authenticate()
         project = Project.objects.order_by('?').first()
@@ -1354,7 +1596,7 @@ class ProjectInvitationsViewSetTestCase(TestCase):
 
     def test_create_requires_authentication(self):
         """
-        Tests that an unauthenticated user cannot create a contributor.
+        Tests that an unauthenticated user cannot create an invitation.
         """
         project = Project.objects.order_by('?').first()
         # This should be unauthorized as the endpoint requires authentication
@@ -1615,7 +1857,7 @@ class ProjectServicesViewSetTestCase(TestCase):
 
     def test_create_not_permitted_for_consortium_manager(self):
         """
-        Tests that a consortium manager cannot create a contributor.
+        Tests that a consortium manager cannot create a service.
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsConsortiumManager(project.consortium)
@@ -1629,7 +1871,7 @@ class ProjectServicesViewSetTestCase(TestCase):
     def test_create_not_permitted_for_authenticated_user(self):
         """
         Tests that an authenticated user who is not associated with the project
-        cannot create a contributor.
+        cannot create a service.
         """
         self.authenticate()
         project = Project.objects.order_by('?').first()
@@ -1642,7 +1884,7 @@ class ProjectServicesViewSetTestCase(TestCase):
 
     def test_create_requires_authentication(self):
         """
-        Tests that an unauthenticated user cannot create a contributor.
+        Tests that an unauthenticated user cannot create a service.
         """
         project = Project.objects.order_by('?').first()
         # This should be unauthorized as the endpoint requires authentication

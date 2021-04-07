@@ -11,7 +11,7 @@ class ServicePermissions(BaseProjectPermissions):
     def get_project_from_object(self, obj):
         return obj.project
 
-    def has_action_permission(self, project, user, action):
+    def has_action_permission(self, project, user, action, obj = None):
         if action in {'list', 'retrieve'}:
             # Collaborators and consortium managers can see services
             return (

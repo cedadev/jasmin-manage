@@ -45,13 +45,13 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         raise NotImplementedError  # pragma: nocover
 
-    def has_action_permission(self, project, user, action):
+    def has_action_permission(self, project, user, action, obj = None):
         """
         Returns true if the user has permission for the given action and project.
         """
         raise NotImplementedError  # pragma: nocover
 
-    def _has_permission_or_404(self, request, view, project):
+    def _has_permission_or_404(self, request, view, project, obj = None):
         """
         Returns either a boolean indicating whether the user has permission to perform
         the action or raises a 404, depending on whether project is None or not.
@@ -72,7 +72,7 @@ class BaseProjectPermissions(IsAuthenticated):
         if action == 'metadata':
             action = safe_action
         # Check whether the authenticated user has permission for the primary action
-        has_permission = self.has_action_permission(project, request.user, action)
+        has_permission = self.has_action_permission(project, request.user, action, obj)
         # If the user has permission, we are done
         if has_permission:
             return True
@@ -86,7 +86,7 @@ class BaseProjectPermissions(IsAuthenticated):
         # For unsafe methods, it depends whether they are denied from seeing the object
         # at all or whether they are just not allowed to execute this action
         # Use the permission for the safe action to determine this
-        if self.has_action_permission(project, request.user, safe_action):
+        if self.has_action_permission(project, request.user, safe_action, obj):
             return False
         else:
             raise Http404
@@ -107,4 +107,4 @@ class BaseProjectPermissions(IsAuthenticated):
         # Get the project from the object
         project = self.get_project_from_object(obj)
         # Use the project to determine the permissions
-        return self._has_permission_or_404(request, view, project)
+        return self._has_permission_or_404(request, view, project, obj)

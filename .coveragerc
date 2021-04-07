@@ -2,5 +2,10 @@
 source = jasmin_manage
 omit =
   jasmin_manage/admin/*
+  jasmin_manage/management/**
   jasmin_manage/migrations/*
+  jasmin_manage/notifications.py
+  jasmin_manage/static/**
+  jasmin_manage/templates/**
+  jasmin_manage/templatetags/*
   jasmin_manage/tests/*

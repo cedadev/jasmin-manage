@@ -1,4 +1,5 @@
 from .collaborator import CollaboratorPermissions
+from .comment import CommentPermissions
 from .consortium import ConsortiumPermissions, ConsortiumNestedViewSetPermissions
 from .invitation import InvitationPermissions
 from .project import ProjectPermissions

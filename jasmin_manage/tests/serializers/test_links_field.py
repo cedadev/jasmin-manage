@@ -46,6 +46,7 @@ class LinksFieldTestCase(TestCase):
             field.related_list_links,
             [
                 ('collaborators', 'project-collaborators-list'),
+                ('comments', 'project-comments-list'),
                 ('invitations', 'project-invitations-list'),
                 ('services', 'project-services-list'),
             ]

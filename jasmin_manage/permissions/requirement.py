@@ -12,7 +12,7 @@ class RequirementPermissions(BaseProjectPermissions):
     def get_project_from_object(self, obj):
         return obj.service.project
 
-    def has_action_permission(self, project, user, action):
+    def has_action_permission(self, project, user, action, obj = None):
         if action in {'list', 'retrieve'}:
             return (
                 self.is_consortium_manager(project, user) or

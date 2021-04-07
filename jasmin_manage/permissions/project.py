@@ -12,7 +12,7 @@ class ProjectPermissions(BaseProjectPermissions):
     def get_project_from_object(self, obj):
         return obj
 
-    def has_action_permission(self, project, user, action):
+    def has_action_permission(self, project, user, action, obj = None):
         if action in {'list', 'create'}:
             # List and create are permitted for any authenticated user
             return True
