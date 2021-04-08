@@ -1,4 +1,6 @@
-from django.db import models
+from functools import partial, wraps
+
+from django.db import models, transaction
 from django.utils.functional import cached_property
 
 from rest_framework import mixins, serializers, viewsets
@@ -32,6 +34,65 @@ from ..serializers import (
 )
 
 
+class ActionCommentSerializer(serializers.Serializer):
+    """
+    Serializer for requiring a comment when a project action is performed.
+    """
+    comment = serializers.CharField(
+        help_text = "Can contain markdown syntax.",
+        # Use a textarea when rendering the browsable API
+        style = dict(base_template = 'textarea.html')
+    )
+
+
+def project_action(viewset_method = None, serializer_class = serializers.Serializer):
+    """
+    Decorator that turns a project viewset method into an action that receives
+    the project as its only argument.
+    """
+    # If no viewset method is given, return a decorator function
+    if viewset_method is None:
+        return partial(project_action, serializer_class = serializer_class)
+    # Define the wrapper that processes the incoming data and finds the project
+    @wraps(viewset_method)
+    def wrapper(viewset, request, pk = None):
+        # Get the project first - this will also process permissions
+        project = viewset.get_object()
+        # Then process the input data according to the serializer
+        serializer = viewset.get_serializer(data = request.data)
+        serializer.is_valid(raise_exception = True)
+        # Then call the view function
+        return viewset_method(viewset, project, serializer.data)
+    # Wrap the viewset method in the action decorator
+    action_decorator = action(
+        detail = True,
+        methods = ['POST'],
+        serializer_class = serializer_class
+    )
+    return action_decorator(wrapper)
+
+
+def project_action_with_comment(viewset_method):
+    """
+    Decorator that turns a project viewset method into an action that requires
+    a comment to be attached to the project.
+    """
+    @wraps(viewset_method)
+    def wrapper(viewset, project, data):
+        # Add the comment in the same transaction as the action runs
+        with transaction.atomic():
+            # Run the method first
+            response = viewset_method(viewset, project, data)
+            # If it is successful, add the comment as the authenticated user
+            project.comments.create(
+                content = data['comment'],
+                user = viewset.request.user
+            )
+            # Return the original response
+            return response
+    return project_action(wrapper, ActionCommentSerializer)
+
+
 # Projects cannot be deleted via the API
 class ProjectViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
@@ -56,12 +117,11 @@ class ProjectViewSet(mixins.ListModelMixin,
             queryset = queryset.filter(collaborator__user = self.request.user)
         return queryset
 
-    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
-    def submit_for_review(self, request, pk = None):
+    @project_action_with_comment
+    def submit_for_review(self, project, data):
         """
         Submit the project for review.
         """
-        project = self.get_object()
         # The project must be editable
         if project.status != Project.Status.EDITABLE:
             status = Project.Status(project.status).name
@@ -109,12 +169,11 @@ class ProjectViewSet(mixins.ListModelMixin,
         context = self.get_serializer_context()
         return Response(ProjectSerializer(project, context = context).data)
 
-    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
-    def request_changes(self, request, pk = None):
+    @project_action_with_comment
+    def request_changes(self, project, data):
         """
         Request changes to the project before it is submitted for provisioning.
         """
-        project = self.get_object()
         # The project must be under review
         if project.status != Project.Status.UNDER_REVIEW:
             status = Project.Status(project.status).name
@@ -157,12 +216,11 @@ class ProjectViewSet(mixins.ListModelMixin,
         context = self.get_serializer_context()
         return Response(ProjectSerializer(project, context = context).data)
 
-    @action(detail = True, methods = ['POST'], serializer_class = serializers.Serializer)
-    def submit_for_provisioning(self, request, pk = None):
+    @project_action
+    def submit_for_provisioning(self, project, data):
         """
         Submit approved requirements for provisioning.
         """
-        project = self.get_object()
         # The project must be under review
         if project.status != Project.Status.UNDER_REVIEW:
             status = Project.Status(project.status).name

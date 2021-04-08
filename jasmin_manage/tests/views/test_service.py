@@ -407,8 +407,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
         """
         service = Service.objects.order_by('?').first()
         self.authenticateAsProjectOwner(service.project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict()
         )
         required_fields = {'resource', 'amount'}
@@ -422,8 +423,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
         """
         service = Service.objects.order_by('?').first()
         self.authenticateAsProjectOwner(service.project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(
                 resource = service.category.resources.first().pk,
                 amount = -100
@@ -481,8 +483,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
         self.authenticateAsProjectOwner(service.project)
         # Select a resource that does not belong to the service's category
         resource = Resource.objects.exclude(category = service.category).order_by('?').first()
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(resource = resource.pk, amount = 1000)
         )
         self.assertCountEqual(response_data.keys(), {'resource'})
@@ -496,8 +499,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
         self.authenticateAsProjectOwner(service.project)
         resource = service.category.resources.first()
         start_date = date.today() - relativedelta(weeks = 2)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(
                 resource = resource.pk,
                 amount = 1000,
@@ -517,8 +521,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
 
         # Test with just a start date that is after the default end date
         start_date = date.today() + relativedelta(years = 5, weeks = 2)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(resource = resource.pk, amount = 1000, start_date = start_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})
@@ -526,8 +531,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
 
         # Test with just an end date that is before the default start date
         end_date = date.today() - relativedelta(weeks = 2)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(resource = resource.pk, amount = 1000, end_date = end_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})
@@ -536,8 +542,9 @@ class ServiceRequirementsViewSetTestCase(TestCase):
         # Test with a start and an end date where the end date is before
         start_date = date.today() + relativedelta(months = 6)
         end_date = start_date - relativedelta(weeks = 2)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/services/{}/requirements/".format(service.pk),
+            "POST",
             dict(resource = resource.pk, amount = 1000, start_date = start_date, end_date = end_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})

@@ -130,16 +130,6 @@ class TestCase(APITestCase):
         self.assertEqual(response.data, serializer.data)
         return instance
 
-    def assertCreateResponseIsBadRequest(self, endpoint, data):
-        """
-        Asserts that a create with bad data results in a bad request response.
-        """
-        response = self.client.post(endpoint, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Return the actual parsed JSON, rather than the raw serializer data as that
-        # has the weird ErrorDetail strings in
-        return json.loads(response.content)
-
     def assertUpdateResponseMatchesUpdatedInstance(self, endpoint, instance, data, serializer_class):
         """
         Asserts that an update to an instance is correctly applied and that the response
@@ -155,16 +145,6 @@ class TestCase(APITestCase):
         self.assertEqual(response.data, serializer.data)
         return instance
 
-    def assertUpdateResponseIsBadRequest(self, endpoint, data):
-        """
-        Asserts that an update with bad data results in a bad request response.
-        """
-        response = self.client.patch(endpoint, data)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Return the actual parsed JSON, rather than the raw serializer data as that
-        # has the weird ErrorDetail strings in
-        return json.loads(response.content)
-
     def assertDeleteResponseIsEmpty(self, endpoint):
         """
         Asserts that a delete response is empty.
@@ -173,12 +153,12 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(response.content, b'')
 
-    def assertActionResponseMatchesUpdatedInstance(self, endpoint, instance, serializer_class):
+    def assertActionResponseMatchesUpdatedInstance(self, endpoint, instance, data, serializer_class):
         """
         Asserts that executing an action on an instance is correctly applied and that the response
         data matches the updated instance.
         """
-        response = self.client.post(endpoint)
+        response = self.client.post(endpoint, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Refresh the instance before comparing the response data
         instance.refresh_from_db()
@@ -187,6 +167,16 @@ class TestCase(APITestCase):
         serializer = serializer_class(instance, context = dict(request = request))
         self.assertEqual(response.data, serializer.data)
         return instance
+
+    def assertBadRequest(self, endpoint, method = "GET", data = None):
+        """
+        Asserts that a create with bad data results in a bad request response.
+        """
+        response = getattr(self.client, method.lower())(endpoint, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Return the actual parsed JSON, rather than the raw serializer data as that
+        # has the weird ErrorDetail strings in
+        return json.loads(response.content)
 
     def assertNotFound(self, endpoint, method = "GET", data = None):
         """

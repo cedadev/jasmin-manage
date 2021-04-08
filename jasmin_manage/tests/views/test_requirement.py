@@ -307,8 +307,9 @@ class RequirementViewSetTestCase(TestCase):
         """
         requirement = Requirement.objects.order_by('?').first()
         self.authenticateAsProjectContributor(requirement.service.project)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/requirements/{}/".format(requirement.pk),
+            "PATCH",
             dict(amount = -100)
         )
         self.assertCountEqual(response_data.keys(), {'amount'})
@@ -322,8 +323,9 @@ class RequirementViewSetTestCase(TestCase):
         self.authenticateAsProjectContributor(requirement.service.project)
         # Get a new start date in the past to attempt to update to
         start_date = date.today() - relativedelta(weeks = 2)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/requirements/{}/".format(requirement.pk),
+            "PATCH",
             dict(start_date = start_date)
         )
         self.assertCountEqual(response_data.keys(), {'start_date'})
@@ -339,8 +341,9 @@ class RequirementViewSetTestCase(TestCase):
 
         # Test with just a start date that is after the requirement's end date
         start_date = requirement.end_date + relativedelta(weeks = 2)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/requirements/{}/".format(requirement.pk),
+            "PATCH",
             dict(start_date = start_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})
@@ -348,8 +351,9 @@ class RequirementViewSetTestCase(TestCase):
 
         # Test with just an end date that is before the requirement's start date
         end_date = requirement.start_date - relativedelta(weeks = 2)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/requirements/{}/".format(requirement.pk),
+            "PATCH",
             dict(end_date = end_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})
@@ -358,8 +362,9 @@ class RequirementViewSetTestCase(TestCase):
         # Test with a start and an end date where the end date is before
         start_date = date.today() + relativedelta(months = 6)
         end_date = start_date - relativedelta(weeks = 2)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/requirements/{}/".format(requirement.pk),
+            "PATCH",
             dict(start_date = start_date, end_date = end_date)
         )
         self.assertCountEqual(response_data.keys(), {'end_date'})
@@ -590,6 +595,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/approve/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is now approved
@@ -614,6 +620,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/approve/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is now approved
@@ -638,6 +645,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/approve/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is now approved
@@ -795,6 +803,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/reject/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is now rejected
@@ -814,6 +823,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/reject/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is now rejected
@@ -833,6 +843,7 @@ class RequirementViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/requirements/{}/reject/".format(requirement.pk),
             requirement,
+            None,
             RequirementSerializer
         )
         # Verify that the status is still rejected

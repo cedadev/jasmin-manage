@@ -156,8 +156,9 @@ class CollaboratorViewSetTestCase(TestCase):
         )
         # Authenticate the client as an owner of the project
         self.authenticateAsProjectOwner(collaborator.project)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/collaborators/{}/".format(collaborator.pk),
+            "PATCH",
             dict(role = "NOT_VALID")
         )
         self.assertEqual(response_data['role'][0]['code'], 'invalid_choice')

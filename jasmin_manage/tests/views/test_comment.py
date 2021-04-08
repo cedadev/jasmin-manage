@@ -350,8 +350,9 @@ class CommentViewSetTestCase(TestCase):
         """
         comment = Comment.objects.order_by('?').first()
         self.authenticate(comment.user)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/comments/{}/".format(comment.pk),
+            "PATCH",
             dict(content = "")
         )
         self.assertCountEqual(response_data.keys(), {'content'})

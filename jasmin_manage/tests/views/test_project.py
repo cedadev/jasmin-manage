@@ -138,7 +138,7 @@ class ProjectViewSetTestCase(TestCase):
         Tests that the required fields are enforced on create.
         """
         self.client.force_authenticate(self.authenticated_user)
-        response_data = self.assertCreateResponseIsBadRequest("/projects/", dict())
+        response_data = self.assertBadRequest("/projects/", "POST", dict())
         required_fields = {'consortium', 'name', 'description'}
         self.assertCountEqual(response_data.keys(), required_fields)
         for name in required_fields:
@@ -149,8 +149,9 @@ class ProjectViewSetTestCase(TestCase):
         Tests that the required fields cannot be blank on create.
         """
         self.client.force_authenticate(self.authenticated_user)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/",
+            "POST",
             dict(consortium = self.consortium.pk, name = "", description = "")
         )
         required_fields = {'name', 'description'}
@@ -164,8 +165,9 @@ class ProjectViewSetTestCase(TestCase):
         """
         self.client.force_authenticate(self.authenticated_user)
         # Try to create another project with the same name as an existing project
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/",
+            "POST",
             dict(
                 consortium = self.consortium.pk,
                 name = "Project 1",
@@ -180,8 +182,9 @@ class ProjectViewSetTestCase(TestCase):
         Tests that attempting to create with an invalid consortium will fail.
         """
         self.client.force_authenticate(self.authenticated_user)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/",
+            "POST",
             dict(
                 consortium = 10,
                 name = "New project",
@@ -203,8 +206,9 @@ class ProjectViewSetTestCase(TestCase):
             manager = get_user_model().objects.create_user('manager2')
         )
         self.client.force_authenticate(self.authenticated_user)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/",
+            "POST",
             dict(
                 consortium = consortium.pk,
                 name = "New project",
@@ -339,8 +343,9 @@ class ProjectViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/".format(project.pk),
+            "PATCH",
             data = dict(name = '', description = '')
         )
         self.assertCountEqual(response_data.keys(), {'name', 'description'})
@@ -353,8 +358,9 @@ class ProjectViewSetTestCase(TestCase):
         """
         project = Project.objects.get(name = 'Project 1')
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertUpdateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/".format(project.pk),
+            "PATCH",
             # Change the project name to a name that collides with another project
             data = dict(name = 'Project 2')
         )
@@ -474,7 +480,7 @@ class ProjectViewSetTestCase(TestCase):
         requirements for review.
         """
         project = Project.objects.order_by('?').first()
-        self.authenticateAsProjectOwner(project)
+        user = self.authenticateAsProjectOwner(project)
         self.assertEqual(project.status, Project.Status.EDITABLE)
         # Make a requested requirement before submitting
         Requirement.objects.create(
@@ -486,10 +492,17 @@ class ProjectViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/projects/{}/submit_for_review/".format(project.pk),
             project,
+            dict(comment = "Submitting for review."),
             ProjectSerializer
         )
         # Verify that the project is now under review
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+        # Verify that the project has a comment
+        self.assertEqual(project.comments.count(), 1)
+        # Verify that the comment has the right content and user
+        comment = project.comments.first()
+        self.assertEqual(comment.content, "Submitting for review.")
+        self.assertEqual(comment.user.pk, user.pk)
 
     def test_submit_for_review_editable_with_approved_requirements_only(self):
         """
@@ -503,7 +516,7 @@ class ProjectViewSetTestCase(TestCase):
         review before being submitted for provisioning.
         """
         project = Project.objects.order_by('?').first()
-        self.authenticateAsProjectOwner(project)
+        user = self.authenticateAsProjectOwner(project)
         self.assertEqual(project.status, Project.Status.EDITABLE)
         # Make an approved requirement before submitting
         Requirement.objects.create(
@@ -515,10 +528,17 @@ class ProjectViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/projects/{}/submit_for_review/".format(project.pk),
             project,
+            dict(comment = "Submitting for review."),
             ProjectSerializer
         )
         # Verify that the project is now under review
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+        # Verify that the project has a comment
+        self.assertEqual(project.comments.count(), 1)
+        # Verify that the comment has the right content and user
+        comment = project.comments.first()
+        self.assertEqual(comment.content, "Submitting for review.")
+        self.assertEqual(comment.user.pk, user.pk)
 
     def test_submit_for_review_editable_with_requested_and_approved_requirements(self):
         """
@@ -526,7 +546,7 @@ class ProjectViewSetTestCase(TestCase):
         approved requirements for review.
         """
         project = Project.objects.order_by('?').first()
-        self.authenticateAsProjectOwner(project)
+        user = self.authenticateAsProjectOwner(project)
         self.assertEqual(project.status, Project.Status.EDITABLE)
         service = project.services.create(name = 'service1', category = self.category)
         # Make a requested and an approved requirement before submitting
@@ -545,10 +565,45 @@ class ProjectViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/projects/{}/submit_for_review/".format(project.pk),
             project,
+            dict(comment = "Submitting for review."),
             ProjectSerializer
         )
         # Verify that the project is now under review
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+        # Verify that the project has a comment
+        self.assertEqual(project.comments.count(), 1)
+        # Verify that the comment has the right content and user
+        comment = project.comments.first()
+        self.assertEqual(comment.content, "Submitting for review.")
+        self.assertEqual(comment.user.pk, user.pk)
+
+    def test_submit_for_review_requires_comment(self):
+        """
+        Tests that a comment is required when submitting a project for review.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        response_data = self.assertBadRequest(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST",
+            dict()
+        )
+        self.assertCountEqual(response_data.keys(), {'comment'})
+        self.assertEqual(response_data['comment'][0]['code'], 'required')
+
+    def test_submit_for_review_blank_comment_not_permitted(self):
+        """
+        Tests that a blank comment is not allowed when submitting a project for review.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(project)
+        response_data = self.assertBadRequest(
+            "/projects/{}/submit_for_review/".format(project.pk),
+            "POST",
+            dict(comment = "")
+        )
+        self.assertCountEqual(response_data.keys(), {'comment'})
+        self.assertEqual(response_data['comment'][0]['code'], 'blank')
 
     def test_submit_for_review_only_permitted_for_status_editable(self):
         """
@@ -565,13 +620,16 @@ class ProjectViewSetTestCase(TestCase):
             # Then check that it cannot be submitted for review
             response_data = self.assertConflict(
                 "/projects/{}/submit_for_review/".format(project.pk),
-                "POST"
+                "POST",
+                dict(comment = "Submitting for review.")
             )
             # Check that the error code is what we expected
             self.assertEqual(response_data['code'], 'invalid_status')
             # Check that the state in the DB was not changed
             project.refresh_from_db()
             self.assertEqual(project.status, status)
+            # Check that no comment was created
+            self.assertEqual(project.comments.count(), 0)
 
     def test_submit_for_review_not_allowed_with_rejected_requirements(self):
         """
@@ -607,13 +665,16 @@ class ProjectViewSetTestCase(TestCase):
         # Then check that it cannot be submitted for review
         response_data = self.assertConflict(
             "/projects/{}/submit_for_review/".format(project.pk),
-            "POST"
+            "POST",
+            dict(comment = "Submitting for review.")
         )
         # Check that the error code is what we expected
         self.assertEqual(response_data['code'], 'rejected_requirements')
         # Verify that the state is still editable
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.EDITABLE)
+        # Check that no comment was created
+        self.assertEqual(project.comments.count(), 0)
 
     def test_submit_for_review_not_allowed_without_requested_or_approved_requirements(self):
         """
@@ -633,13 +694,16 @@ class ProjectViewSetTestCase(TestCase):
         # Then check that it cannot be submitted for review
         response_data = self.assertConflict(
             "/projects/{}/submit_for_review/".format(project.pk),
-            "POST"
+            "POST",
+            dict(comment = "Submitting for review.")
         )
         # Check that the error code is what we expected
         self.assertEqual(response_data['code'], 'no_requirements_to_review')
         # Verify that the state is still editable
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.EDITABLE)
+        # Check that no comment was created
+        self.assertEqual(project.comments.count(), 0)
 
     def test_submit_for_review_not_permitted_for_contributor(self):
         """
@@ -705,7 +769,7 @@ class ProjectViewSetTestCase(TestCase):
         can be returned to the user requesting changes.
         """
         project = Project.objects.order_by('?').first()
-        self.authenticateAsConsortiumManager(project.consortium)
+        user = self.authenticateAsConsortiumManager(project.consortium)
         # Put the project into the expected state
         project.status = Project.Status.UNDER_REVIEW
         project.save()
@@ -719,10 +783,45 @@ class ProjectViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/projects/{}/request_changes/".format(project.pk),
             project,
+            dict(comment = "Requesting changes."),
             ProjectSerializer
         )
         # Verify that the project is now editable
         self.assertEqual(project.status, Project.Status.EDITABLE)
+        # Verify that the project has a comment
+        self.assertEqual(project.comments.count(), 1)
+        # Verify that the comment has the right content and user
+        comment = project.comments.first()
+        self.assertEqual(comment.content, "Requesting changes.")
+        self.assertEqual(comment.user.pk, user.pk)
+
+    def test_request_changes_requires_comment(self):
+        """
+        Tests that a comment is required when requesting changes to a project.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        response_data = self.assertBadRequest(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST",
+            dict()
+        )
+        self.assertCountEqual(response_data.keys(), {'comment'})
+        self.assertEqual(response_data['comment'][0]['code'], 'required')
+
+    def test_request_changes_blank_comment_not_permitted(self):
+        """
+        Tests that a blank comment is not allowed when requesting changes to a project.
+        """
+        project = Project.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(project.consortium)
+        response_data = self.assertBadRequest(
+            "/projects/{}/request_changes/".format(project.pk),
+            "POST",
+            dict(comment = "")
+        )
+        self.assertCountEqual(response_data.keys(), {'comment'})
+        self.assertEqual(response_data['comment'][0]['code'], 'blank')
 
     def test_request_changes_only_permitted_for_status_under_review(self):
         """
@@ -739,13 +838,16 @@ class ProjectViewSetTestCase(TestCase):
             # Then check that it cannot be returned for changes
             response_data = self.assertConflict(
                 "/projects/{}/request_changes/".format(project.pk),
-                "POST"
+                "POST",
+                dict(comment = "Requesting changes.")
             )
             # Check that the error code is what we expected
             self.assertEqual(response_data['code'], 'invalid_status')
             # Check that the state in the DB was not changed
             project.refresh_from_db()
             self.assertEqual(project.status, status)
+            # Check that no comment was created
+            self.assertEqual(project.comments.count(), 0)
 
     def test_request_changes_not_allowed_with_requested_requirements(self):
         """
@@ -778,13 +880,16 @@ class ProjectViewSetTestCase(TestCase):
         # Then check that it cannot be returned for changes
         response_data = self.assertConflict(
             "/projects/{}/request_changes/".format(project.pk),
-            "POST"
+            "POST",
+            dict(comment = "Requesting changes.")
         )
         # Check that the error code is what we expected
         self.assertEqual(response_data['code'], 'unresolved_requirements')
         # Verify that the state is still under review
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+        # Check that no comment was created
+        self.assertEqual(project.comments.count(), 0)
 
     def test_request_changes_not_allowed_without_rejected_requirements(self):
         """
@@ -805,13 +910,16 @@ class ProjectViewSetTestCase(TestCase):
         # Then check that it cannot be returned for changes
         response_data = self.assertConflict(
             "/projects/{}/request_changes/".format(project.pk),
-            "POST"
+            "POST",
+            dict(comment = "Requesting changes.")
         )
         # Check that the error code is what we expected
         self.assertEqual(response_data['code'], 'no_changes_required')
         # Verify that the state is still under review
         project.refresh_from_db()
         self.assertEqual(project.status, Project.Status.UNDER_REVIEW)
+        # Check that no comment was created
+        self.assertEqual(project.comments.count(), 0)
 
     def test_request_changes_not_permitted_for_contributor(self):
         """
@@ -891,6 +999,7 @@ class ProjectViewSetTestCase(TestCase):
         self.assertActionResponseMatchesUpdatedInstance(
             "/projects/{}/submit_for_provisioning/".format(project.pk),
             project,
+            None,
             ProjectSerializer
         )
         # Verify that the project is now editable
@@ -1289,8 +1398,9 @@ class ProjectCommentsViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/comments/".format(project.pk),
+            "POST",
             dict()
         )
         self.assertCountEqual(response_data.keys(), {'content'})
@@ -1302,8 +1412,9 @@ class ProjectCommentsViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/comments/".format(project.pk),
+            "POST",
             dict(content = "")
         )
         self.assertCountEqual(response_data.keys(), {'content'})
@@ -1490,8 +1601,9 @@ class ProjectInvitationsViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/invitations/".format(project.pk),
+            "POST",
             dict()
         )
         self.assertCountEqual(response_data.keys(), {'email'})
@@ -1530,8 +1642,9 @@ class ProjectInvitationsViewSetTestCase(TestCase):
         user = get_user_model().objects.create_user('jbloggs', email = 'Joe.Bloggs@example.com')
         project.collaborators.create(user = user)
         # Try to make an invitation with the same email address
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/invitations/".format(project.pk),
+            "POST",
             dict(email = 'joe.bloggs@example.com')
         )
         self.assertCountEqual(response_data.keys(), {'email'})
@@ -1547,8 +1660,9 @@ class ProjectInvitationsViewSetTestCase(TestCase):
         # Make an invitation with the same email address, but with different capitalisation
         project.invitations.create(email = 'Joe.Bloggs@example.com')
         # Try to make an invitation with the same email address
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/invitations/".format(project.pk),
+            "POST",
             dict(email = 'joe.bloggs@example.com')
         )
         self.assertCountEqual(response_data.keys(), {'email'})
@@ -1743,8 +1857,9 @@ class ProjectServicesViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict()
         )
         required_fields = {'name', 'category'}
@@ -1761,8 +1876,9 @@ class ProjectServicesViewSetTestCase(TestCase):
         # Create an initial service
         project.services.create(name = "service1", category = self.category)
         # Then try to make the same service using the API
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict(name = "service1", category = self.category.pk)
         )
         self.assertCountEqual(response_data.keys(), {'name'})
@@ -1796,8 +1912,9 @@ class ProjectServicesViewSetTestCase(TestCase):
         """
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict(name = "service1", category = 10)
         )
         self.assertCountEqual(response_data.keys(), {'category'})
@@ -1810,22 +1927,25 @@ class ProjectServicesViewSetTestCase(TestCase):
         project = Project.objects.order_by('?').first()
         self.authenticateAsProjectOwner(project)
         # Test with a blank name
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict(name = "", category = self.category.pk)
         )
         self.assertCountEqual(response_data.keys(), {'name'})
         self.assertEqual(response_data['name'][0]['code'], 'blank')
         # Test with whitespace
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict(name = "service 1", category = self.category.pk)
         )
         self.assertCountEqual(response_data.keys(), {'name'})
         self.assertEqual(response_data['name'][0]['code'], 'invalid')
         # Test with unicode characters
-        response_data = self.assertCreateResponseIsBadRequest(
+        response_data = self.assertBadRequest(
             "/projects/{}/services/".format(project.pk),
+            "POST",
             dict(name = "sèrvíçë1", category = self.category.pk)
         )
         self.assertCountEqual(response_data.keys(), {'name'})
