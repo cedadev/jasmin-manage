@@ -71,7 +71,6 @@ class EventSerializer(serializers.ModelSerializer):
             'event_type',
             'target_type',
             'target_id',
-            'target',
             'target_link',
             'data',
             'user',
@@ -79,16 +78,12 @@ class EventSerializer(serializers.ModelSerializer):
         )
 
     target_type = serializers.SerializerMethodField()
-    target = serializers.SerializerMethodField()
     target_link = serializers.SerializerMethodField()
     data = serializers.SerializerMethodField()
     user = EventUserSerializer(read_only = True)
 
     def get_target_type(self, obj):
         return "{}.{}".format(obj.target_ctype.app_label, obj.target_ctype.model)
-
-    def get_target(self, obj):
-        return instance_as_dict(obj.target)
 
     def get_target_link(self, obj):
         try:
@@ -203,7 +198,6 @@ class ProjectViewSet(mixins.ListModelMixin,
                     aggregate__aggregate_id = project.pk
                 )
                 .select_related('target_ctype', 'user')
-                .prefetch_related('target')
         )
         # Check if the since parameter was given and use it to filter the events
         if request.query_params:
