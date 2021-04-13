@@ -1,19 +1,19 @@
-asgiref==3.3.1
+asgiref==3.3.4
 attrs==20.3.0
 certifi==2020.12.5
 chardet==4.0.0
-Django==3.1.7
+Django==3.2
 django-admin-list-filter-dropdown==1.0.3
-django-admin-rangefilter==0.7.0
+django-admin-rangefilter==0.8.1
 django-concurrency==2.3
 django-debug-toolbar==3.2
 django-markupfield==2.0.0
 -e git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb#egg=django_settings_object
--e git+https://github.com/mkjpryor-stfc/django-tsunami.git@8e1e78e326bbe423fc0eaaaadf22bd4421d9da61#egg=django_tsunami
--e git+https://github.com/mkjpryor-stfc/django-tsunami-notify.git@68d9532b36ab475578750c59ec59caaeec9cf431#egg=django_tsunami_notify
-djangorestframework==3.12.2
+-e git+https://github.com/mkjpryor-stfc/django-tsunami.git@b4f0f4345a99229d268f37853568c0e630459988#egg=django_tsunami
+-e git+https://github.com/mkjpryor-stfc/django-tsunami-notify.git@7cd53acea8912cd5fdfe9eb3e1b5c899a8ef03b5#egg=django_tsunami_notify
+djangorestframework==3.12.4
 drf-nested-routers==0.93.3
-drf-spectacular==0.14.0
+drf-spectacular==0.15.1
 idna==2.10
 inflection==0.5.1
 -e git+https://github.com/cedadev/jasmin-auth-django.git@ea544523fab2fb71a934cd6e8e6a3303b4b85aca#egg=jasmin_auth_django

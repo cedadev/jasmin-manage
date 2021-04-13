@@ -16,7 +16,7 @@ class ProjectPermissions(BaseProjectPermissions):
         if action in {'list', 'create'}:
             # List and create are permitted for any authenticated user
             return True
-        elif action in {'retrieve'}:
+        elif action in {'retrieve', 'events'}:
             return (
                 self.is_consortium_manager(project, user) or
                 self.is_project_collaborator(project, user)

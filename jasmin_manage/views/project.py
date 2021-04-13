@@ -1,5 +1,7 @@
 from functools import partial, wraps
 
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 from django.utils.functional import cached_property
 
@@ -7,6 +9,10 @@ from rest_framework import mixins, serializers, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
+
+from tsunami.models import Event
+from tsunami.tracking import _instance_as_dict as instance_as_dict
 
 from ..exceptions import Conflict
 from ..models import (
@@ -43,6 +49,66 @@ class ActionCommentSerializer(serializers.Serializer):
         # Use a textarea when rendering the browsable API
         style = dict(base_template = 'textarea.html')
     )
+
+
+class EventUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the user of an event.
+    """
+    class Meta:
+        model = get_user_model()
+        fields = ('id', 'username', 'first_name', 'last_name')
+
+
+class EventSerializer(serializers.ModelSerializer):
+    """
+    Serializer for project events.
+    """
+    class Meta:
+        model = Event
+        fields = (
+            'id',
+            'event_type',
+            'target_type',
+            'target_id',
+            'target',
+            'target_link',
+            'data',
+            'user',
+            'created_at'
+        )
+
+    target_type = serializers.SerializerMethodField()
+    target = serializers.SerializerMethodField()
+    target_link = serializers.SerializerMethodField()
+    data = serializers.SerializerMethodField()
+    user = EventUserSerializer(read_only = True)
+
+    def get_target_type(self, obj):
+        return "{}.{}".format(obj.target_ctype.app_label, obj.target_ctype.model)
+
+    def get_target(self, obj):
+        return instance_as_dict(obj.target)
+
+    def get_target_link(self, obj):
+        try:
+            return reverse(
+                "{}-detail".format(obj.target_ctype.model),
+                kwargs = dict(pk = obj.target_id),
+                request = self.context['request']
+            )
+        except:
+            return None
+
+    def get_data(self, obj):
+        return obj.data
+
+
+class EventQueryParamsSerializer(serializers.Serializer):
+    """
+    Serializer used for parsing the query parameters for the project events view.
+    """
+    since = serializers.DateTimeField()
 
 
 def project_action(viewset_method = None, serializer_class = serializers.Serializer):
@@ -116,6 +182,36 @@ class ProjectViewSet(mixins.ListModelMixin,
         if self.action == 'list':
             queryset = queryset.filter(collaborator__user = self.request.user)
         return queryset
+
+    @action(detail = True, serializer_class = EventSerializer)
+    def events(self, request, pk = None):
+        """
+        List of events for the project.
+
+        Supports a GET parameter called `since` that, if given, should be an ISO-formatted
+        datetime and only events that occured since that time will be returned.
+        """
+        # Get the project itself
+        project = self.get_object()
+        # Get the content type for the project model
+        content_type = ContentType.objects.get_for_model(project)
+        # Filter the events so that only project events are included
+        events = (
+            Event.objects
+                .filter(
+                    aggregate__aggregate_ctype = content_type,
+                    aggregate__aggregate_id = project.pk
+                )
+                .select_related('target_ctype', 'user')
+                .prefetch_related('target')
+        )
+        # Check if the since parameter was given and use it to filter the events
+        if request.query_params:
+            params_serializer = EventQueryParamsSerializer(data = request.query_params)
+            params_serializer.is_valid(raise_exception = True)
+            events = events.filter(created_at__gt = params_serializer.data['since'])
+        serializer = self.get_serializer(events, many = True)
+        return Response(serializer.data)
 
     @project_action_with_comment
     def submit_for_review(self, project, data):

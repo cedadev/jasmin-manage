@@ -55,6 +55,7 @@ class LinksFieldTestCase(TestCase):
         self.assertCountEqual(
             field.action_links,
             [
+                ('events', 'project-events'),
                 ('submit-for-review', 'project-submit-for-review'),
                 ('request-changes', 'project-request-changes'),
                 ('submit-for-provisioning', 'project-submit-for-provisioning'),
