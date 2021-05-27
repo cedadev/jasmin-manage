@@ -33,6 +33,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'amount_formatted',
         'start_date_formatted',
         'end_date_formatted',
+        'location'
     )
     list_select_related = ('service__project', 'service', 'resource')
     list_filter = (
@@ -50,7 +51,8 @@ class RequirementAdmin(admin.ModelAdmin):
         'status',
         'amount',
         'start_date',
-        'end_date'
+        'end_date', 
+        'location'
     )
     readonly_fields = (
         'project_link',
