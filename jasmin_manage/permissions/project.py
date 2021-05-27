@@ -1,4 +1,5 @@
 from .base import BaseProjectPermissions
+from _ast import Or
 
 
 class ProjectPermissions(BaseProjectPermissions):
@@ -19,7 +20,8 @@ class ProjectPermissions(BaseProjectPermissions):
         elif action in {'retrieve', 'events'}:
             return (
                 self.is_consortium_manager(project, user) or
-                self.is_project_collaborator(project, user)
+                self.is_project_collaborator(project, user) or 
+                user.is_staff
             )
         elif action in {'update', 'partial_update', 'submit_for_review'}:
             return self.is_project_owner(project, user)

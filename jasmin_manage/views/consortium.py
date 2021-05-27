@@ -46,7 +46,7 @@ class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         queryset = queryset.annotate_summary(self.request.user)
         # Filter the resources by consortium
         return queryset.filter(consortium = self.kwargs['consortium_pk'])
-
+    
 
 class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """

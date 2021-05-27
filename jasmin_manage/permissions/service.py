@@ -16,7 +16,8 @@ class ServicePermissions(BaseProjectPermissions):
             # Collaborators and consortium managers can see services
             return (
                 self.is_consortium_manager(project, user) or
-                self.is_project_collaborator(project, user)
+                self.is_project_collaborator(project, user) or 
+                user.is_staff
             )
         elif action in {'create', 'destroy'}:
             # Any project collaborator can create and delete services
