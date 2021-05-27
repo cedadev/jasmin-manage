@@ -6,7 +6,7 @@ Django==3.2
 django-admin-list-filter-dropdown==1.0.3
 django-admin-rangefilter==0.8.1
 django-concurrency==2.3
-django-debug-toolbar==3.2
+django-debug-toolbar==3.2.1
 django-markupfield==2.0.0
 -e git+https://github.com/cedadev/django-settings-object.git@2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb#egg=django_settings_object
 -e git+https://github.com/cedadev/django-tsunami.git@b4f0f4345a99229d268f37853568c0e630459988#egg=django_tsunami
