@@ -20,7 +20,8 @@ class CollaboratorPermissions(BaseProjectPermissions):
         if action in {'list', 'retrieve'}:
             return (
                 self.is_consortium_manager(project, user) or
-                self.is_project_collaborator(project, user)
+                self.is_project_collaborator(project, user) or 
+                user.is_staff
             )
         elif action in {'update', 'partial_update', 'destroy'}:
             return self.is_project_owner(project, user)

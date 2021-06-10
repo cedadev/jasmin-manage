@@ -20,7 +20,8 @@ class CommentPermissions(BaseProjectPermissions):
                 # Consortium managers
                 self.is_consortium_manager(project, user) or
                 # Project collaborators
-                self.is_project_collaborator(project, user)
+                self.is_project_collaborator(project, user) or 
+                user.is_staff
             )
         elif action in {'update', 'partial_update', 'destroy'}:
             # Project owners can update or delete any comments

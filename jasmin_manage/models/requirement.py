@@ -52,6 +52,7 @@ class Requirement(models.Model):
     # Default end date is 5 years
     end_date = models.DateField(default = _five_years)
     created_at = models.DateTimeField(auto_now_add = True)
+    location = models.CharField(max_length=100, default='TBC')
 
     def get_event_aggregates(self):
         # Aggregate requirement events over the service and resource
