@@ -32,7 +32,11 @@ class ServiceAdmin(admin.ModelAdmin):
     )
     search_fields = ('project__name', 'name')
     autocomplete_fields = ('category', 'project')
-    readonly_fields = ('num_requirements', )
+    readonly_fields = ('num_requirements', 'service_id')
+
+    def service_id(self, obj):
+        return obj.id
+    service_id.short_description = 'Service ID'
 
     def get_exclude(self, request, obj = None):
         exclude = tuple(super().get_exclude(request, obj) or ())
@@ -97,3 +101,5 @@ class ServiceAdmin(admin.ModelAdmin):
         else:
             return content
     num_requirements.short_description = '# requirements'
+
+    
