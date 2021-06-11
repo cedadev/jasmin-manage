@@ -32,7 +32,7 @@ class RequirementSerializerTestCase(TestCase):
             description = 'some description',
             owner = cls.owner
         )
-        cls.service = cls.project.services.create(name = 'service1', category = cls.category)
+        cls.service = cls.project.services.create(name = 'service1', category = cls.category, location = 'TBC')
 
     def test_renders_instance_correctly(self):
         """
@@ -58,6 +58,7 @@ class RequirementSerializerTestCase(TestCase):
                 'start_date',
                 'end_date',
                 'created_at',
+                'location',
                 '_links'
             }
         )
@@ -68,6 +69,7 @@ class RequirementSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['resource'], self.resource.pk)
         self.assertEqual(serializer.data['status'], Requirement.Status.AWAITING_PROVISIONING.name)
         self.assertEqual(serializer.data['amount'], requirement.amount)
+        self.assertEqual(serializer.data['location'], requirement.location)
         start_date = date.today()
         self.assertEqual(serializer.data['start_date'], start_date.strftime("%Y-%m-%d"))
         end_date = date.today() + relativedelta(years = 5)
