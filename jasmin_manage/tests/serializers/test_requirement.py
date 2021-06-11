@@ -32,7 +32,7 @@ class RequirementSerializerTestCase(TestCase):
             description = 'some description',
             owner = cls.owner
         )
-        cls.service = cls.project.services.create(name = 'service1', category = cls.category, location = 'TBC')
+        cls.service = cls.project.services.create(name = 'service1', category = cls.category)
 
     def test_renders_instance_correctly(self):
         """

@@ -36,7 +36,7 @@ class CollaboratorSerializerTestCase(TestCase):
         request = APIRequestFactory().post('/collaborators/{}/'.format(collaborator.pk))
         serializer = CollaboratorSerializer(collaborator, context = dict(request = request))
         # Check that the right keys are present
-        self.assertCountEqual(serializer.data.keys(), {'id', 'project', 'user', 'role', 'created_at', '_links'})
+        self.assertCountEqual(serializer.data.keys(), {'id', 'project', 'user', 'role', 'created_at', 'email', '_links'})
         # Check the the values are correct
         # Don't explicitly check the links field - it has tests
         self.assertEqual(serializer.data['id'], collaborator.pk)
