@@ -43,7 +43,7 @@ class CollaboratorSerializerTestCase(TestCase):
         self.assertEqual(serializer.data['project'], collaborator.project.pk)
         self.assertEqual(serializer.data['role'], Collaborator.Role.OWNER.name)
         # Check that the user nested dict has the correct shape
-        self.assertCountEqual(serializer.data['user'].keys(), {'id', 'username', 'first_name', 'last_name'})
+        self.assertCountEqual(serializer.data['user'].keys(), {'id', 'username', 'first_name', 'last_name', 'email'})
         self.assertEqual(serializer.data['user']['id'], collaborator.user.pk)
         self.assertEqual(serializer.data['user']['username'], collaborator.user.username)
         self.assertEqual(serializer.data['user']['first_name'], collaborator.user.first_name)
