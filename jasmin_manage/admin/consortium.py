@@ -27,9 +27,9 @@ class ConsortiumAdmin(admin.ModelAdmin):
         js = ('js/admin/highlight.js', )
 
     list_display = ('name', 'is_public',)# 'manager_link', 'num_quotas', 'num_projects')
-    #list_select_related = ('manager', )
+    list_select_related = ('manager', )
     search_fields = ('name', )
-    #autocomplete_fields = ('manager', )
+    autocomplete_fields = ('manager', )
     #readonly_fields = ('num_quotas', 'num_projects', 'num_requirements')
 
     def get_exclude(self, request, obj = None):
@@ -37,7 +37,7 @@ class ConsortiumAdmin(admin.ModelAdmin):
         if obj and not self.has_change_permission(request, obj):
             return exclude + ('manager', 'num_quotas', 'num_projects', 'num_requirements')
         else:
-            return exclude +('manager', 'num_quotas', 'num_projects', 'num_requirements')
+            return exclude +('num_quotas', 'num_projects', 'num_requirements')
 
     """ def get_readonly_fields(self, request, obj = None):
         readonly_fields = super().get_readonly_fields(request, obj)
@@ -113,8 +113,8 @@ class ConsortiumAdmin(admin.ModelAdmin):
             dict(service__project__consortium__id__exact = obj.pk)
         )
     num_requirements.short_description = '# requirements'
-
+"""
     def manager_link(self, obj):
         return change_link(obj.manager)
     manager_link.short_description = 'manager'
- """
+ 
