@@ -48,7 +48,7 @@ class ConsortiumNestedViewSetPermissions(IsAuthenticated):
             return False
         # Get the consortium using the key from the viewset
         consortium = (Consortium.objects
-            .select_related('manager')
+            .prefetch_related('manager')
             .filter(pk = view.kwargs['consortium_pk'])
             .first()
         )

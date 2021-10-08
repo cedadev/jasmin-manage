@@ -18,7 +18,7 @@ class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
     """
     permission_classes = [ConsortiumPermissions]
 
-    queryset = Consortium.objects.select_related('manager')
+    queryset = Consortium.objects.prefetch_related('manager')
     serializer_class = ConsortiumSerializer
 
     def get_queryset(self):
