@@ -114,6 +114,6 @@ class ConsortiumAdmin(admin.ModelAdmin):
         )
     num_requirements.short_description = '# requirements'
 
-    def manager_link(self, obj):
-        return change_link(obj.manager)
-    manager_link.short_description = 'manager'
+    #def manager_link(self, obj):
+    #    return change_link(obj.manager)
+    #manager_link.short_description = 'manager'
