@@ -37,7 +37,7 @@ class ConsortiumAdmin(admin.ModelAdmin):
         if obj and not self.has_change_permission(request, obj):
             return exclude + ('manager', 'num_quotas', 'num_projects', 'num_requirements')
         else:
-            return exclude +('num_quotas', 'num_projects', 'num_requirements')
+            return exclude +('manager', 'num_quotas', 'num_projects', 'num_requirements')
 
     def get_readonly_fields(self, request, obj = None):
         readonly_fields = super().get_readonly_fields(request, obj)
