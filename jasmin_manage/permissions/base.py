@@ -92,7 +92,7 @@ class BaseProjectPermissions(IsAuthenticated):
             raise Http404
 
     def has_permission(self, request, view):
-        # If the parent check fails, we are done
+        # If the parent check fails, we are done (the user is not logged in.)
         if not super().has_permission(request, view):
             return False
         # If the view is a detail view, defer to the object permissions

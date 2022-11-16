@@ -12,7 +12,8 @@ from ..serializers import RequirementSerializer, ServiceSerializer
 
 # Services can only be listed and created via a project
 # They also cannot be updated via the API
-class ServiceViewSet(mixins.RetrieveModelMixin,
+class ServiceViewSet(mixins.ListModelMixin,
+                     mixins.RetrieveModelMixin,
                      mixins.DestroyModelMixin,
                      viewsets.GenericViewSet):
     """
@@ -20,7 +21,7 @@ class ServiceViewSet(mixins.RetrieveModelMixin,
     """
     permission_classes = [ServicePermissions]
 
-    queryset = Service.objects.all()
+    queryset = Service.objects.all().prefetch_related('project')
     serializer_class = ServiceSerializer
 
     def perform_destroy(self, instance):

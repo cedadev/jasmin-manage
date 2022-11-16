@@ -47,7 +47,6 @@ router.register(r'services', views.ServiceViewSet)
 services_router = routers.NestedSimpleRouter(router, r'services', lookup = 'service')
 services_router.register(r'requirements', views.ServiceRequirementsViewSet, basename = 'service-requirements')
 
-
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [
     path('me/', views.CurrentUserView.as_view(), name = 'current-user'),
@@ -56,6 +55,7 @@ urlpatterns = [
     path('', include(consortia_router.urls)),
     path('', include(projects_router.urls)),
     path('', include(services_router.urls)),
+    # path('', include(service_list_router.urls)),
     path('schema.json', SpectacularAPIView.as_view(), name = 'openapi-schema'),
     path('doc/', SpectacularSwaggerView.as_view(url_name = 'openapi-schema'), name = 'openapi-docs'),
 ]
