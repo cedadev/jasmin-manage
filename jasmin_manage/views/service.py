@@ -20,9 +20,12 @@ class ServiceViewSet(mixins.ListModelMixin,
     View set for the service model.
     """
     permission_classes = [ServicePermissions]
-
-    queryset = Service.objects.all().prefetch_related('project')
+    queryset = Service.objects.all()
     serializer_class = ServiceSerializer
+
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     return super().get_queryset().filter(user = user)
 
     def perform_destroy(self, instance):
         # To delete a service, the project must be editable
