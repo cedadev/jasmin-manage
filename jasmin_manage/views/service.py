@@ -10,8 +10,7 @@ from ..permissions import RequirementPermissions, ServicePermissions
 from ..serializers import RequirementSerializer, ServiceSerializer
 
 
-# Services can only be listed and created via a project
-# They also cannot be updated via the API
+# Services cannot be updated via the API
 class ServiceViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      mixins.DestroyModelMixin,
@@ -23,9 +22,6 @@ class ServiceViewSet(mixins.ListModelMixin,
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     return super().get_queryset().filter(user = user)
 
     def perform_destroy(self, instance):
         # To delete a service, the project must be editable
