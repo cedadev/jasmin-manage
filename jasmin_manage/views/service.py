@@ -19,7 +19,7 @@ class ServiceViewSet(mixins.ListModelMixin,
     View set for the service model.
     """
     permission_classes = [ServicePermissions]
-    queryset = Service.objects.all()
+    queryset = Service.objects.all().prefetch_related('requirements')
     serializer_class = ServiceSerializer
 
 
