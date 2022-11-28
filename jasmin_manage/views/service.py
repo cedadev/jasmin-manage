@@ -7,7 +7,7 @@ from rest_framework.permissions import SAFE_METHODS
 from ..exceptions import Conflict
 from ..models import Project, Requirement, Service
 from ..permissions import RequirementPermissions, ServicePermissions
-from ..serializers import RequirementSerializer, ServiceSerializer
+from ..serializers import RequirementSerializer, ServiceSerializer, ServiceListSerializer
 
 
 # Services cannot be updated via the API
@@ -20,8 +20,6 @@ class ServiceViewSet(mixins.ListModelMixin,
     """
     permission_classes = [ServicePermissions]
     queryset = Service.objects.all().prefetch_related('requirements')
-    serializer_class = ServiceSerializer
-
 
     def perform_destroy(self, instance):
         # To delete a service, the project must be editable
@@ -31,6 +29,11 @@ class ServiceViewSet(mixins.ListModelMixin,
         if instance.requirements.exists():
             raise Conflict('Cannot delete service with requirements.', 'has_requirements')
         super().perform_destroy(instance)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ServiceListSerializer
+        return ServiceSerializer 
 
 
 class ServiceRequirementsViewSet(mixins.ListModelMixin,

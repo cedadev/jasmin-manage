@@ -59,12 +59,6 @@ class ServiceViewSetTestCase(TestCase):
             for i, project in enumerate(self.projects)
         ])
 
-    def test_list_not_found(self):
-        """
-        Services can only be listed via a project, so check that the list endpoint is not found.
-        """
-        self.assertNotFound("/services/")
-
     def test_detail_allowed_methods(self):
         """
         Tests that the correct methods are permitted by the detail endpoint.
