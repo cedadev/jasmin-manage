@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
 from ...models import Category, Consortium
-from ...serializers import ServiceSerializer
+from ...serializers import ServiceSerializer, ServiceListSerializer
 
 
 class ServiceSerializerTestCase(TestCase):
@@ -151,3 +151,53 @@ class ServiceSerializerTestCase(TestCase):
         )
         self.assertFalse(serializer.is_valid())
         self.assertEqual(serializer.errors['name'][0].code, 'invalid')
+
+
+class ServiceListSerializerTestCase(TestCase):
+    """
+    Tests for the service list serializer.
+    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = Category.objects.create(name = 'Category 1')
+        cls.consortium = Consortium.objects.create(
+            name = 'Consortium 1',
+            description = 'some description',
+            manager = get_user_model().objects.create_user('manager1')
+        )
+        cls.project = cls.consortium.projects.create(
+            name = 'Project 1',
+            description = 'some description',
+            owner = get_user_model().objects.create_user('owner1')
+        )
+
+    def test_list_renders_instance_correctly(self):
+        """
+        Tests that the list serializer renders an existing instance correctly.
+        """
+        # Make a service to render
+        service = self.project.services.create(name = 'service1', category = self.category)
+        # In order to render the links correctly there must be a request in the context
+        request = APIRequestFactory().post('/')
+        serializer = ServiceListSerializer(service, context = dict(request = request))
+        # Check that the right keys are present
+        self.assertCountEqual(serializer.data.keys(), {'id', 'name', 'requirements', 'category', 'project', '_links'})
+
+    def test_list_cannot_create_with_invalid_requirement(self):
+        """
+        Tests that invalid requirements correctly fails for the list of services.
+        """
+        # Test with a string for the requirements
+        serializer = ServiceListSerializer(
+            data = dict(name = "service2", category = self.category.pk, requirements = "requirements1"),
+            context = dict(project = self.project)
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['requirements']['non_field_errors'][0].code, 'not_a_list')
+        # Test with an int for the requirements
+        serializer = ServiceListSerializer(
+            data = dict(name = "service2", category = self.category.pk, requirements = 10),
+            context = dict(project = self.project)
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(serializer.errors['requirements']['non_field_errors'][0].code, 'not_a_list')
