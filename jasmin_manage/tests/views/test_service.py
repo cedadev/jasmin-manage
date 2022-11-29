@@ -17,7 +17,7 @@ from ...models import (
     Resource,
     Service
 )
-from ...serializers import RequirementSerializer, ServiceSerializer
+from ...serializers import RequirementSerializer, ServiceSerializer, ServiceListSerializer
 
 from .utils import TestCase
 
@@ -214,6 +214,13 @@ class ServiceViewSetTestCase(TestCase):
         """
         service = Service.objects.order_by('?').first()
         self.assertUnauthorized("/services/{}/".format(service.pk), "DELETE")
+
+    def test_service_list_requires_authentication(self):
+        """
+        Tests that listing services requires authentication.
+        """
+        self.assertUnauthorized("/services/")
+
 
 
 class ServiceRequirementsViewSetTestCase(TestCase):
