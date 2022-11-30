@@ -217,11 +217,54 @@ class ServiceViewSetTestCase(TestCase):
 
     def test_service_list_requires_authentication(self):
         """
-        Tests that listing services requires authentication.
+        Tests that listing all services requires authentication.
         """
         self.assertUnauthorized("/services/")
 
+    def test_service_list_as_staff(self):
+        """
+        Test that staff can list all services.
+        """
+        self.authenticateAsStaff()
+        self.assertListResponseMatchesQuerySet(
+            "/services/",
+            Service.objects.all(),
+            ServiceListSerializer
+        )
 
+    def test_service_list_not_permitted_for_project_owner(self):
+        """
+        Tests that a project owner cannot list all services.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectOwner(service.project)
+        self.assertPermissionDenied("/services/")
+
+    def test_service_list_not_permitted_for_project_contributor(self):
+        """
+        Tests that a project contributor cannot list all services.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsProjectContributor(service.project)
+        self.assertPermissionDenied("/services/")
+
+    def test_service_list_not_permitted_for_consortium_manager(self):
+        """
+        Tests that a consortium manager cannot list all services.
+        """
+        service = Service.objects.order_by('?').first()
+        self.authenticateAsConsortiumManager(service.project.consortium)
+        self.assertPermissionDenied("/services/")
+
+    def test_service_list_not_permitted_for_authenticated_user(self):
+        """
+        Tests that an authenticated user cannot list all services.
+        """
+        self.authenticate()
+        service = Service.objects.order_by('?').first()
+        self.assertPermissionDenied("/services/")
+
+    
 
 class ServiceRequirementsViewSetTestCase(TestCase):
     """

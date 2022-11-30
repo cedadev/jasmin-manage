@@ -44,6 +44,13 @@ class TestCase(APITestCase):
         self.client.force_authenticate(user = user)
         return user
 
+    def authenticateAsStaff(self):
+        """
+        Authenticate the test client as a member of staff.
+        """
+        user = get_user_model().objects.create_user('teststaff', is_staff=True)
+        return self.authenticate(user)
+
     def authenticateAsProjectCollaborator(self, project, user, role):
         """
         Authenticate the test client as a collaborator of the given project with the given role.
