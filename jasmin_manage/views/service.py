@@ -3,6 +3,8 @@ from django.utils.functional import cached_property
 from rest_framework import mixins, viewsets
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import SAFE_METHODS
+import rest_framework.permissions as rf_perms
+import oauth2_provider.contrib.rest_framework as oauth2_rf
 
 from ..exceptions import Conflict
 from ..models import Project, Requirement, Service
@@ -19,6 +21,7 @@ class ServiceViewSet(mixins.ListModelMixin,
     View set for the service model.
     """
     permission_classes = [ServicePermissions]
+    required_scopes = ['jasmin.projects.services.all']
     queryset = Service.objects.all().prefetch_related('requirements')
 
     def perform_destroy(self, instance):
@@ -30,10 +33,17 @@ class ServiceViewSet(mixins.ListModelMixin,
             raise Conflict('Cannot delete service with requirements.', 'has_requirements')
         super().perform_destroy(instance)
 
+    def get_permissions(self):
+        # If listing the services, edit the perimission classes.
+        if self.action == 'list':
+            permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
+            return permission_classes
+        return super().get_permissions()
+
     def get_serializer_class(self):
         if self.action == 'list':
             return ServiceListSerializer
-        return ServiceSerializer 
+        return ServiceSerializer
 
 
 class ServiceRequirementsViewSet(mixins.ListModelMixin,

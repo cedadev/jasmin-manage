@@ -3,6 +3,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: DO NOT USE THIS IN PRODUCTION
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 SECRET_KEY = 'notsecret'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -12,6 +13,7 @@ ALLOWED_HOSTS = []
 
 
 INSTALLED_APPS = [
+    'oauth2_provider',
     'jasmin_auth',
     'jasmin_auth.apps.AdminConfig',
     'django.contrib.auth',
@@ -29,7 +31,13 @@ INSTALLED_APPS = [
     'tsunami_notify',
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'oauth2_provider.backends.OAuth2Backend',
+]
+
 MIDDLEWARE = [
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -86,6 +94,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+OAUTH2_PROVIDER = {
+    'RESOURCE_SERVER_INTROSPECTION_URL': 'https://accounts.jasmin.ac.uk/oauth/introspect/',
+    # Don't forget to set 'RESOURCE_SERVER_AUTH_TOKEN' too.
+}
+
+JASMIN_MANAGE_AUTH_URLS = 'jasmin_auth.urls'
+#Also set JASMIN_AUTH CLIENT_ID and CLIENT_SECRET
 
 LANGUAGE_CODE = 'en-gb'
 

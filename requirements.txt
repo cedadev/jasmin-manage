@@ -16,7 +16,7 @@ drf-nested-routers==0.93.3
 drf-spectacular==0.15.1
 idna==2.10
 inflection==0.5.1
--e git+https://github.com/cedadev/jasmin-auth-django.git@ea544523fab2fb71a934cd6e8e6a3303b4b85aca#egg=jasmin_auth_django
+-e git+https://github.com/cedadev/jasmin-auth-django.git@00dce9daedec543fb7fe87f33e408ac45782f8ed#egg=jasmin_auth_django
 jsonfield==3.1.0
 jsonschema==3.2.0
 Markdown==3.3.4
