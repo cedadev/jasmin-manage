@@ -1,7 +1,7 @@
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
-from ..models import Service
+from ..models import Service, Requirement, Resource
 
 from .base import BaseSerializer
 
@@ -25,6 +25,25 @@ class CategoryNameUniqueTogether(UniqueTogetherValidator):
             )
 
 
+class ServiceRequirementResourceSerializer(BaseSerializer):
+    """
+    Serializer for resource for the requirements of service.
+    """
+    class Meta:
+        model = Resource
+        fields = ['id','name','short_name','description','units']
+
+
+class ServiceRequirementSerializer(BaseSerializer):
+    """
+    Serializer for requirements of a service.
+    """
+    resource = ServiceRequirementResourceSerializer()
+    class Meta:
+        model = Requirement
+        fields = ['id', 'status', 'amount', 'start_date', 'end_date', 'created_at', 'location','service','resource']
+
+
 class ServiceSerializer(BaseSerializer):
     """
     Serializer for the service model.
@@ -32,6 +51,26 @@ class ServiceSerializer(BaseSerializer):
     class Meta:
         model = Service
         fields = '__all__'
+        # Replace the default unique_together validator for category and name
+        # in order to customise the error message
+        validators = [CategoryNameUniqueTogether()]
+        read_only_fields = ('project', )
+        create_only_fields = ('category', 'name')
+
+    def create(self, validated_data):
+        # Inject the project from the context into the model
+        validated_data.update(project = self.context['project'])
+        return super().create(validated_data)
+
+
+class ServiceListSerializer(BaseSerializer):
+    """
+    Serializer for the service model.
+    """
+    requirements = ServiceRequirementSerializer(many=True)
+    class Meta:
+        model = Service
+        fields = ['id', 'name', 'category', 'project', 'requirements', '_links']
         # Replace the default unique_together validator for category and name
         # in order to customise the error message
         validators = [CategoryNameUniqueTogether()]

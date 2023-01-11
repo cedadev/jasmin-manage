@@ -56,6 +56,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('jasmin_manage.urls')),
     path('auth/', include(auth_urls)),
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
 
 if settings.DEBUG:

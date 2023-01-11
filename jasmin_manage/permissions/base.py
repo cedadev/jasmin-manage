@@ -13,7 +13,10 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         Returns true if the user is a collaborator for the project.
         """
-        return project.collaborators.filter(user = user).exists()
+        try:
+            return project.collaborators.filter(user = user).exists()
+        except AttributeError:
+            return None
 
     def is_project_owner(self, project, user):
         """
@@ -25,7 +28,10 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         Returns true if the user is the consortium manager for the project.
         """
-        return project.consortium.manager == user
+        try:
+            return project.consortium.manager == user
+        except AttributeError:
+            return None
 
     def get_project_from_viewset(self, viewset):
         """
@@ -92,7 +98,7 @@ class BaseProjectPermissions(IsAuthenticated):
             raise Http404
 
     def has_permission(self, request, view):
-        # If the parent check fails, we are done
+        # If the parent check fails, we are done (the user is not logged in.)
         if not super().has_permission(request, view):
             return False
         # If the view is a detail view, defer to the object permissions

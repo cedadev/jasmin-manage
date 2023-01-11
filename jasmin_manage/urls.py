@@ -47,7 +47,6 @@ router.register(r'services', views.ServiceViewSet)
 services_router = routers.NestedSimpleRouter(router, r'services', lookup = 'service')
 services_router.register(r'requirements', views.ServiceRequirementsViewSet, basename = 'service-requirements')
 
-
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [
     path('me/', views.CurrentUserView.as_view(), name = 'current-user'),

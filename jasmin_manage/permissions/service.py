@@ -6,7 +6,10 @@ class ServicePermissions(BaseProjectPermissions):
     DRF permissions class determining permissions for services.
     """
     def get_project_from_viewset(self, viewset):
-        return viewset.project
+        try:
+            return viewset.project
+        except AttributeError:
+            return None
 
     def get_project_from_object(self, obj):
         return obj.project
