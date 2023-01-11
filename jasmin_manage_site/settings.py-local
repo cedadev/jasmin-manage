@@ -37,7 +37,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 MIDDLEWARE = [
-    'oauth2_provider.middleware.OAuth2TokenMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -48,6 +47,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'jasmin_auth.middleware.ImpersonateMiddleware',
     'tsunami.middleware.user_tracking',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
 ]
 
 ROOT_URLCONF = 'jasmin_manage_site.urls'
@@ -94,13 +94,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-OAUTH2_PROVIDER = {
-    'RESOURCE_SERVER_INTROSPECTION_URL': 'https://accounts.jasmin.ac.uk/oauth/introspect/',
-    # Don't forget to set 'RESOURCE_SERVER_AUTH_TOKEN' too.
-}
-
-JASMIN_MANAGE_AUTH_URLS = 'jasmin_auth.urls'
-#Also set JASMIN_AUTH CLIENT_ID and CLIENT_SECRET
 
 LANGUAGE_CODE = 'en-gb'
 
@@ -144,6 +137,11 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [],
     'EXCEPTION_HANDLER': 'jasmin_manage.views.exception_handler',
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
 }
 
 SPECTACULAR_SETTINGS = {
