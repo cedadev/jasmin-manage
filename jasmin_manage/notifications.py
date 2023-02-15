@@ -4,7 +4,15 @@ from tsunami.helpers import model_event_listener
 
 from tsunami_notify.models import Notification
 
-from .models import Collaborator, Invitation, Project, Requirement
+from .models import Collaborator, Invitation, Project, Requirement, Comment
+
+import json 
+
+import requests
+
+import os
+
+import datetime
 
 
 @model_event_listener(Project, [
@@ -49,6 +57,23 @@ def notify_consortium_manager_project_submitted_for_review(event):
             consortium_manager.email,
             dict(consortium_manager = True)
         )
+
+@model_event_listener(Project, ['submitted_for_provisioning'])
+def notify_slack_project_submitted_for_provisioning(event):
+    """
+    Notify staff via slack channel when a project is submitted for provisioning.
+    """
+    comments = (
+        Comment.objects
+        .filter(project = event.target.id)
+        .select_related('project')
+    )
+    message = json.dumps({
+        "text":"A requirement was submitted for provisioning for the project '"+event.target.name+"' in the '"+str(event.target.consortium)+"' consortium with the following recent comments: "+
+        comments[0].created_at.strftime('%d %b %y %H:%M') + " " +comments[0].content
+        })
+
+    r = requests.post(os.environ.get('SLACK_WEBHOOK_URL'), message)
 
 
 @model_event_listener(Requirement, ['provisioned'])
