@@ -62,32 +62,34 @@ def notify_slack_project_submitted_for_provisioning(event):
     """
     Notify staff via slack channel when a project is submitted for provisioning.
     """
-    # Get the comments on the project
-    comments = (
-        Comment.objects
-        .filter(project = event.target.id)
-        .select_related('project')
-    )
-    # Get the requirements associated with the project
-    requirements = (
-        # Requirements with status=40 are awaiting provisioning
-        Requirement.objects
-        .filter(status="40", service__project=event.target.id)
-        .order_by('service_id')
-    )
-    # The message to send to the slack channel
-    message = {
-        "text": "New requirement[s] submitted for provisioning for the `"+event.target.name+\
-        "` project in the `"+str(event.target.consortium)+"` consortium with the comment: \n>*"\
-        +""+comments[0].created_at.strftime('%d %b %y %H:%M') + "* ' _" +comments[0].content+"_ '\n"+\
-        "*Service Name         Resource Name               Amount Requested* \n"
-    }
-    # For each requirement list the service, resource and amount requested
-    for j in requirements:
-        message["text"] = message["text"] +"<"+os.environ["SERVICE_REQUEST_URL"]+str(j.service.id)+"|"\
-        +j.service.name+">        "+j.resource.name+"       "+str(j.amount)+"\n"
-    # Send the message
-    r = requests.post(os.environ.get('SLACK_WEBHOOK_URL'), json.dumps(message))
+    # Only send a notification if a webhook is given
+    if "SLACK_WEBHOOK_URL" in os.environ:
+        # Get the comments on the project
+        comments = (
+            Comment.objects
+            .filter(project = event.target.id)
+            .select_related('project')
+        )
+        # Get the requirements associated with the project
+        requirements = (
+            # Requirements with status=40 are awaiting provisioning
+            Requirement.objects
+            .filter(status="40", service__project=event.target.id)
+            .order_by('service_id')
+        )
+        # The message to send to the slack channel
+        message = {
+            "text": "New requirement[s] submitted for provisioning for the `"+event.target.name+\
+            "` project in the `"+str(event.target.consortium)+"` consortium with the comment: \n>*"\
+            +""+comments[0].created_at.strftime('%d %b %y %H:%M') + "* ' _" +comments[0].content+"_ '\n"+\
+            "*Service Name         Resource Name               Amount Requested* \n"
+        }
+        # For each requirement list the service, resource and amount requested
+        for j in requirements:
+            message["text"] = message["text"] +"<"+os.environ["SERVICE_REQUEST_URL"]+str(j.service.id)+"|"\
+            +j.service.name+">        "+j.resource.name+"       "+str(j.amount)+"\n"
+        # Send the message
+        r = requests.post(os.environ.get('SLACK_WEBHOOK_URL'), json.dumps(message))
 
 
 @model_event_listener(Requirement, ['provisioned'])
