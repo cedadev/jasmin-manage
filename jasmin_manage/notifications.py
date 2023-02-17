@@ -80,7 +80,7 @@ def notify_slack_project_submitted_for_provisioning(event):
         # For each requirement list the service, resource and amount requested
         service_str =""
         for j in requirements:
-            service_str = service_str+" \n *Service:      * <"+os.environ["SERVICE_REQUEST_URL"]+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
+            service_str = service_str+" \n *Service:      * <"+os.environ.get("SERVICE_REQUEST_URL")+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
         # Compose the message to send using slack blocks
         message = {
             "text": "New requirement[s] submitted for provisioning.",
