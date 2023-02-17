@@ -77,18 +77,41 @@ def notify_slack_project_submitted_for_provisioning(event):
             .filter(status="40", service__project=event.target.id)
             .order_by('service_id')
         )
-        # The message to send to the slack channel
-        message = {
-            "text": "New requirement[s] submitted for provisioning for the `"+event.target.name+\
-            "` project in the `"+str(event.target.consortium)+"` consortium with the comment: \n>*"\
-            +""+comments[0].created_at.strftime('%d %b %y %H:%M') + "* ' _" +comments[0].content+"_ '\n"+\
-            "*Service Name         Resource Name               Amount Requested* \n"
-        }
         # For each requirement list the service, resource and amount requested
+        service_str =""
         for j in requirements:
-            message["text"] = message["text"] +"<"+os.environ["SERVICE_REQUEST_URL"]+str(j.service.id)+"|"\
-            +j.service.name+">        "+j.resource.name+"       "+str(j.amount)+"\n"
-        # Send the message
+            service_str = service_str+" \n *Service:      * <"+os.environ["SERVICE_REQUEST_URL"]+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
+        # Compose the message to send using slack blocks
+        message = {
+            "text": "New requirement[s] submitted for provisioning.",
+            "blocks": [
+		            {
+			            "type": "header",
+			            "text": {
+				            "type": "plain_text",
+				            "text": "New requirement[s] submitted for provisioning for the `"+event.target.name+"` project in the `"+str(event.target.consortium)+"` consortium.",
+			            }
+		            },
+		            {
+			            "type": "section",
+			            "fields": [
+				            {
+					            "type": "mrkdwn",
+					            "text": ">*Comment:*\n>*"+comments[0].created_at.strftime('%d %b %y %H:%M')+"* ' _" +comments[0].content+"_ '"
+				            }
+			            ]
+		            },
+		            {
+			            "type": "section",
+			            "fields": [
+                            {
+                                "type":"mrkdwn",
+                                "text": service_str
+                            },
+			            ]
+		            }
+	            ]
+        }
         r = requests.post(os.environ.get('SLACK_WEBHOOK_URL'), json.dumps(message))
 
 
