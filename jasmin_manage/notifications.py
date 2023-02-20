@@ -119,6 +119,7 @@ def notify_slack_project_submitted_for_provisioning(event):
                 'Request to slack returned an error %s, the response is:\n%s'
                 % (response.status_code, response.text)
             )
+    print("no webhook")
 
 @model_event_listener(Requirement, ['provisioned'])
 def notify_project_collaborators_requirement_provisioned(event):
