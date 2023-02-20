@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 
+from django.conf import settings
+
 from tsunami.helpers import model_event_listener
 
 from tsunami_notify.models import Notification
@@ -9,8 +11,6 @@ from .models import Collaborator, Invitation, Project, Requirement, Comment
 import json 
 
 import requests
-
-import os
 
 
 @model_event_listener(Project, [
@@ -63,9 +63,8 @@ def notify_slack_project_submitted_for_provisioning(event):
     Notify staff via slack channel when a project is submitted for provisioning.
     """
     # Only send a notification if a webhook is given
-    if "SLACK_WEBHOOK_URL" in os.environ:
+    if settings.SLACK_NOTIFICATIONS['WEBHOOK_URL']:
         # Get the comments on the project
-        print(os.environ.get('SLACK_WEBHOOK_URL'), os.environ.get('SERVICE_REQUEST_URL'))
         comments = (
             Comment.objects
             .filter(project = event.target.id)
@@ -81,7 +80,7 @@ def notify_slack_project_submitted_for_provisioning(event):
         # For each requirement list the service, resource and amount requested
         service_str =""
         for j in requirements:
-            service_str = service_str+" \n *Service:      * <"+os.environ.get('SERVICE_REQUEST_URL')+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
+            service_str = service_str+" \n *Service:      * <"+settings.SLACK_NOTIFICATIONS['SERVICE_REQUEST_URL']+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
         # Compose the message to send using slack blocks
         message = {
             "text": "New requirement[s] submitted for provisioning.",
@@ -113,13 +112,12 @@ def notify_slack_project_submitted_for_provisioning(event):
 		            }
 	            ]
         }
-        response = requests.post(os.environ.get('SLACK_WEBHOOK_URL'), json.dumps(message))
+        response = requests.post(settings.SLACK_NOTIFICATIONS['WEBHOOK_URL'], json.dumps(message))
         if response.status_code != 200:
             raise ValueError(
                 'Request to slack returned an error %s, the response is:\n%s'
                 % (response.status_code, response.text)
             )
-    print("no webhook")
 
 @model_event_listener(Requirement, ['provisioned'])
 def notify_project_collaborators_requirement_provisioned(event):
