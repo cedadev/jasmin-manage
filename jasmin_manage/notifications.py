@@ -63,8 +63,9 @@ def notify_slack_project_submitted_for_provisioning(event):
     Notify staff via slack channel when a project is submitted for provisioning.
     """
     # Only send a notification if a webhook is given
-    if "SLACK_WEBHOOK_URL":
+    if "SLACK_WEBHOOK_URL" in os.environ:
         # Get the comments on the project
+        print(os.environ.get('SLACK_WEBHOOK_URL'), os.environ.get('SERVICE_REQUEST_URL'))
         comments = (
             Comment.objects
             .filter(project = event.target.id)
