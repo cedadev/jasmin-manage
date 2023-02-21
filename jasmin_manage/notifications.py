@@ -72,16 +72,16 @@ def notify_slack_project_submitted_for_provisioning(event):
         )
         # Get the requirements associated with the project
         requirements = (
-            # Requirements with status=40 are awaiting provisioning
+            # Requirements with status=40 are 'awaiting provisioning'
             Requirement.objects
             .filter(status="40", service__project=event.target.id)
             .order_by('service_id')
         )
-        # For each requirement list the service, resource and amount requested
+        # For each requirement add the service, resource and amount requested to the string
         service_str =""
         for j in requirements:
             service_str = service_str+" \n *Service:      * <"+settings.SLACK_NOTIFICATIONS['SERVICE_REQUEST_URL']+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
-        # Compose the message to send using slack blocks
+        # Compose the message using slack blocks
         message = {
             "text": "New requirement[s] submitted for provisioning.",
             "blocks": [
@@ -89,7 +89,7 @@ def notify_slack_project_submitted_for_provisioning(event):
 			            "type": "header",
 			            "text": {
 				            "type": "plain_text",
-				            "text": "New requirement[s] submitted for provisioning for the `"+event.target.name+"` project in the `"+str(event.target.consortium)+"` consortium.",
+				            "text": "New requirement[s] submitted for provisioning for the '"+event.target.name+"' project in the '"+str(event.target.consortium)+"' consortium.",
 			            }
 		            },
 		            {
@@ -112,6 +112,7 @@ def notify_slack_project_submitted_for_provisioning(event):
 		            }
 	            ]
         }
+        # Send the message
         response = requests.post(settings.SLACK_NOTIFICATIONS['WEBHOOK_URL'], json.dumps(message))
         if response.status_code != 200:
             raise ValueError(
