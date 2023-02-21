@@ -1,10 +1,16 @@
 from django.contrib.auth import get_user_model
 
+from django.conf import settings
+
 from tsunami.helpers import model_event_listener
 
 from tsunami_notify.models import Notification
 
-from .models import Collaborator, Invitation, Project, Requirement
+from .models import Collaborator, Invitation, Project, Requirement, Comment
+
+import json 
+
+import requests
 
 
 @model_event_listener(Project, [
@@ -50,6 +56,69 @@ def notify_consortium_manager_project_submitted_for_review(event):
             dict(consortium_manager = True)
         )
 
+
+@model_event_listener(Project, ['submitted_for_provisioning'])
+def notify_slack_project_submitted_for_provisioning(event):
+    """
+    Notify staff via slack channel when a project is submitted for provisioning.
+    """
+    # Only send a notification if a webhook is given
+    if settings.SLACK_NOTIFICATIONS['WEBHOOK_URL']:
+        # Get the comments on the project
+        comments = (
+            Comment.objects
+            .filter(project = event.target.id)
+            .select_related('project')
+        )
+        # Get the requirements associated with the project
+        requirements = (
+            # Requirements with status=40 are 'awaiting provisioning'
+            Requirement.objects
+            .filter(status="40", service__project=event.target.id)
+            .order_by('service_id')
+        )
+        # For each requirement add the service, resource and amount requested to the string
+        service_str =""
+        for j in requirements:
+            service_str = service_str+" \n *Service:      * <"+settings.SLACK_NOTIFICATIONS['SERVICE_REQUEST_URL']+str(j.service.id)+"|"+j.service.name+">\n *Resource:  * "+j.resource.name+"\n *Amount:    * "+str(j.amount)+"\n"
+        # Compose the message using slack blocks
+        message = {
+            "text": "New requirement[s] submitted for provisioning.",
+            "blocks": [
+		            {
+			            "type": "header",
+			            "text": {
+				            "type": "plain_text",
+				            "text": "New requirement[s] submitted for provisioning for the '"+event.target.name+"' project in the '"+str(event.target.consortium)+"' consortium.",
+			            }
+		            },
+		            {
+			            "type": "section",
+			            "fields": [
+				            {
+					            "type": "mrkdwn",
+					            "text": ">*Comment:*\n>*"+comments[0].created_at.strftime('%d %b %y %H:%M')+"* ' _" +comments[0].content+"_ '"
+				            }
+			            ]
+		            },
+		            {
+			            "type": "section",
+			            "fields": [
+                            {
+                                "type":"mrkdwn",
+                                "text": service_str
+                            },
+			            ]
+		            }
+	            ]
+        }
+        # Send the message
+        response = requests.post(settings.SLACK_NOTIFICATIONS['WEBHOOK_URL'], json.dumps(message))
+        if response.status_code != 200:
+            raise ValueError(
+                'Request to slack returned an error %s, the response is:\n%s'
+                % (response.status_code, response.text)
+            )
 
 @model_event_listener(Requirement, ['provisioned'])
 def notify_project_collaborators_requirement_provisioned(event):
