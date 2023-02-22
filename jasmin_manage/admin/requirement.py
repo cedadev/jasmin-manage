@@ -26,6 +26,7 @@ class RequirementAdmin(admin.ModelAdmin):
 
     list_display = (
         'id',
+        'consortium_link',
         'project_link',
         'service_link',
         'resource_link',
@@ -55,6 +56,7 @@ class RequirementAdmin(admin.ModelAdmin):
         'location'
     )
     readonly_fields = (
+        'consortium_link',
         'project_link',
         'service_link',
         'resource_link',
@@ -76,6 +78,10 @@ class RequirementAdmin(admin.ModelAdmin):
             return super().get_readonly_fields(request, obj)
         else:
             return ()
+
+    def consortium_link(self, obj):
+        return change_link(obj.service.project.consortium)
+    consortium_link.short_description = 'consortium'
 
     def project_link(self, obj):
         return change_link(obj.service.project)
