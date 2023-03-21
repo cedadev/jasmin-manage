@@ -25,7 +25,7 @@ class Category(models.Model):
 
     name = models.CharField(max_length = 250, unique = True)
     description = models.TextField()
-    is_public = models.BooleanField(default = False)
+    is_public = models.BooleanField(default = True)
     resources = models.ManyToManyField(
         Resource,
         related_name = 'categories',
