@@ -8,7 +8,7 @@ from .util import changelist_link
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'num_resources', 'num_services')
+    list_display = ('name', 'num_resources', 'num_services', 'is_public')
     search_fields = ('name', )
     filter_horizontal = ('resources', )
 
