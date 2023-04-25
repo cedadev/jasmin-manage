@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 
 from ..models import Consortium
 
+from .base import BaseProjectPermissions
+
 
 def user_can_view_consortium(user, consortium):
     """
@@ -57,6 +59,25 @@ class ConsortiumNestedViewSetPermissions(IsAuthenticated):
             # However we want to explicitly deny permission in the case where the consortium
             # is visible to the user but they are not the manager
             return request.user == consortium.manager
+        else:
+            # Raise not found in the case where the consortium does not exist, but also in the
+            # case where the consortium is not visible to the user
+            raise Http404
+        
+class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
+    """
+    DRF permissions class for the nested consortium quota viewset that allow
+    consortium managers, project owners and project collaborators to see quotas.
+    """
+    def has_permission(self, request, view):
+        # Get the consortium using the key from the viewset
+        consortium = (Consortium.objects
+            .prefetch_related('manager')
+            .filter(pk = view.kwargs['consortium_pk'])
+            .first()
+        )
+        if consortium and user_can_view_consortium(request.user, consortium):
+            return True
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user
