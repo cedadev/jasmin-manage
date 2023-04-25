@@ -76,7 +76,8 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
             .filter(pk = view.kwargs['consortium_pk'])
             .first()
         )
-        if consortium and user_can_view_consortium(request.user, consortium):
+        if consortium and (consortium.manager == request.user or 
+                           consortium.projects.filter(collaborator__user = request.user).exists()):
             return True
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
