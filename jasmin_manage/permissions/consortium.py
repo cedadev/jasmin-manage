@@ -24,6 +24,20 @@ def user_can_view_consortium(user, consortium):
         # Non-staff users can view a non-public consortium if they belong
         # to a project in the consortium
         return consortium.projects.filter(collaborator__user = user).exists()
+    
+def user_can_view_quota(user, consortium):
+    """
+    Returns true if the user can view the nested quota, false otherwise.
+    """
+    # Consortium managers can view the quotas
+    if consortium.manager == user:
+        return True
+    # Project collaborators and owners can view the quotas
+    elif consortium.projects.filter(collaborator__user = user).exists():
+        return True
+    # Nobody else can see the quotas
+    else:
+        return False
 
 
 class ConsortiumPermissions(IsAuthenticated):
@@ -76,9 +90,10 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
             .filter(pk = view.kwargs['consortium_pk'])
             .first()
         )
-        if consortium and (consortium.manager == request.user or 
-                           consortium.projects.filter(collaborator__user = request.user).exists()):
+        if consortium and user_can_view_quota(request.user, consortium):
             return True
+        elif consortium and user_can_view_consortium(request.user, consortium):
+          return False
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user
