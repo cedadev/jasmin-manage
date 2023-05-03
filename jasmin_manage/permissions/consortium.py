@@ -4,8 +4,6 @@ from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 
 from ..models import Consortium
 
-from .base import BaseProjectPermissions
-
 
 def user_can_view_consortium(user, consortium):
     """
@@ -84,9 +82,9 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     consortium managers, project owners and project collaborators to see quotas.
     """
     def has_permission(self, request, view):
-        # Get the consortium using the key from the viewset
         if not super().has_permission(request, view):
             return False
+        # Get the consortium using the key from the viewset
         consortium = (Consortium.objects
             .prefetch_related('manager')
             .filter(pk = view.kwargs['consortium_pk'])
@@ -94,6 +92,7 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
         )
         if consortium and user_can_view_quota(request.user, consortium):
             return True
+        # If a user can see the consortium but can't see the quota, explicitly deny permission
         elif consortium and user_can_view_consortium(request.user, consortium):
             return False
         else:

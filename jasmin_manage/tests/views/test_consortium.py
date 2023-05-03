@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase, APIRequestFactory
 from rest_framework import mixins, status, viewsets
 
-from ...models import Consortium, Project, Quota, Resource, Collaborator
+from ...models import Consortium, Project, Quota, Resource
 from ...serializers import ConsortiumSerializer, ProjectSerializer, QuotaSerializer
 
 from .utils import TestCase
