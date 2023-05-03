@@ -85,6 +85,8 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     """
     def has_permission(self, request, view):
         # Get the consortium using the key from the viewset
+        if not super().has_permission(request, view):
+            return False
         consortium = (Consortium.objects
             .prefetch_related('manager')
             .filter(pk = view.kwargs['consortium_pk'])
@@ -93,7 +95,7 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
         if consortium and user_can_view_quota(request.user, consortium):
             return True
         elif consortium and user_can_view_consortium(request.user, consortium):
-          return False
+            return False
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user
