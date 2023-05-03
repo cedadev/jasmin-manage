@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase, APIRequestFactory
 from rest_framework import mixins, status, viewsets
 
-from ...models import Consortium, Project, Quota, Resource
+from ...models import Consortium, Project, Quota, Resource, Collaborator
 from ...serializers import ConsortiumSerializer, ProjectSerializer, QuotaSerializer
 
 from .utils import TestCase
@@ -456,8 +456,3 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
         """
         consortium = Consortium.objects.order_by('?').first()
         self.assertUnauthorized("/consortia/{}/quotas/".format(consortium.pk))
-
-    # Test that a project owner can list quotas for their project
-    #Test that a project collaborator can list quotas for that project
-    #Test that project owner can't access quotas for the projects they dont own
-    #Test that a collaborator cant see prpjects they dont collaborate on 
