@@ -3,7 +3,8 @@ from rest_framework import mixins, permissions, viewsets
 from ..models import Consortium, Project, Quota
 from ..permissions import (
     ConsortiumPermissions,
-    ConsortiumNestedViewSetPermissions
+    ConsortiumNestedViewSetPermissions,
+    ConsortiumQuotaViewSetPermissions
 )
 from ..serializers import (
     ConsortiumSerializer,
@@ -52,7 +53,7 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing the quotas for a consortium.
     """
-    permission_classes = [ConsortiumNestedViewSetPermissions]
+    permission_classes = [ConsortiumQuotaViewSetPermissions]
 
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer

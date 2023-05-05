@@ -413,10 +413,8 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
 
     def test_list_non_public_user_belongs_to_project_not_manager(self):
         """
-        Tests that the list endpoint returns forbidden for a non-public consortium where the user
-        belongs to a project in the consortium.
-
-        This should be forbidden rather than not found because the user can see the consortium.
+        Tests that the endpoint for a non-public consortium where the user owns a project 
+        in the consortium return the list successfully.
         """
         user = self.authenticate()
         # Pick a non-public consortium
@@ -427,7 +425,11 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
             description = 'Some description.',
             owner = user
         )
-        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+        self.assertListResponseMatchesQuerySet(
+            "/consortia/{}/quotas/".format(consortium.pk),
+            consortium.quotas.annotate_usage(),
+            QuotaSerializer
+        )
 
     def test_list_consortium_not_visible(self):
         """
