@@ -21,7 +21,7 @@ class ServiceViewSet(mixins.ListModelMixin,
     View set for the service model.
     """
     permission_classes = [ServicePermissions]
-    required_scopes = ['jasmin.projects.services.all']
+    #required_scopes = ['jasmin.projects.services.all']
     queryset = Service.objects.all().prefetch_related('requirements')
 
     def perform_destroy(self, instance):
@@ -35,9 +35,9 @@ class ServiceViewSet(mixins.ListModelMixin,
 
     def get_permissions(self):
         # If listing the services, edit the perimission classes.
-        if self.action == 'list':
-            permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
-            return permission_classes
+        # if self.action == 'list':
+        #     permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
+        #     return permission_classes
         return super().get_permissions()
 
     def get_serializer_class(self):
