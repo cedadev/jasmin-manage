@@ -11,7 +11,9 @@ class BaseViewSet(viewsets.GenericViewSet):
     def get_permissions(self):
         # If listing the services, edit the perimission classes to check user has permission
         # or is authenticated using a token with the required scopes.
-        if self.action == 'list':
-            permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
-            return permission_classes
+        is_real_user = self.request.user
+        if not is_real_user:
+            if self.action == 'list':
+                permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
+                return permission_classes
         return super().get_permissions()
