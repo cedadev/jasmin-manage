@@ -1,8 +1,6 @@
 from django.http import Http404
 
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
-import rest_framework.permissions as rf_perms
-import oauth2_provider.contrib.rest_framework as oauth2_rf
 
 from ..models import Collaborator
 
@@ -57,10 +55,6 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         Returns true if the user has permission for the given action and project.
         """
-        required_scopes = ['jasmin.projects.services.all']
-        if action == 'list':
-            permission_classes = [rf_perms.OR(oauth2_rf.TokenHasResourceScope(), rf_perms.IsAdminUser())]
-            return permission_classes
         raise NotImplementedError  # pragma: nocover
 
     def _has_permission_or_404(self, request, view, project, obj = None):
