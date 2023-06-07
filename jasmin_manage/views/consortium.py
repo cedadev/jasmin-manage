@@ -11,9 +11,10 @@ from ..serializers import (
     ProjectSerializer,
     QuotaSerializer
 )
+from .base import BaseViewSet
 
 
-class ConsortiumViewSet(viewsets.ReadOnlyModelViewSet):
+class ConsortiumViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
     """
     View set for the consortium model.
     """

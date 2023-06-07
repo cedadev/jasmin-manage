@@ -18,20 +18,20 @@ class ConsortiumQuerySet(models.QuerySet):
         """
         Filters the query to only those consortia that should be visible to the given user.
         """
-        if user.is_staff:
-            # Staff users get to see everything
-            return self
-        else:
-            # For non-staff users we need to apply a filter
-            # We include consortia if:
-            #   * The consortium is public OR
-            #   * The user is the manager of the consortium OR
-            #   * The user belongs to a project in the consortium
-            return self.filter(
-                models.Q(is_public = True) |
-                models.Q(manager = user) |
-                models.Q(project__collaborator__user = user)
-            )
+        if user:
+            if not user.is_staff:
+                # For non-staff users we need to apply a filter
+                # We include consortia if:
+                #   * The consortium is public OR
+                #   * The user is the manager of the consortium OR
+                #   * The user belongs to a project in the consortium
+                return self.filter(
+                    models.Q(is_public = True) |
+                    models.Q(manager = user) |
+                    models.Q(project__collaborator__user = user)
+                )
+        # Staff users and apps authenticating with a token can see everything
+        return self
 
     def annotate_summary(self, user = None):
         """
