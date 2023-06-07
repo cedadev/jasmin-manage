@@ -2,9 +2,10 @@ from rest_framework import permissions, viewsets
 
 from ..models import Resource
 from ..serializers import ResourceSerializer
+from .base import BaseViewSet
 
 
-class ResourceViewSet(viewsets.ReadOnlyModelViewSet):
+class ResourceViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
     """
     View set for the resource model.
     """

@@ -1,3 +1,4 @@
+from .base import BaseViewSet
 from .category import CategoryViewSet
 from .collaborator import CollaboratorViewSet
 from .comment import CommentViewSet

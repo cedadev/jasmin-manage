@@ -38,6 +38,7 @@ from ..serializers import (
     RequirementSerializer,
     ServiceSerializer
 )
+from .base import BaseViewSet
 
 
 class ActionCommentSerializer(serializers.Serializer):
@@ -155,7 +156,8 @@ def project_action_with_comment(viewset_method):
 
 
 # Projects cannot be deleted via the API
-class ProjectViewSet(mixins.ListModelMixin,
+class ProjectViewSet(BaseViewSet,
+                     mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      mixins.CreateModelMixin,
                      mixins.UpdateModelMixin,
