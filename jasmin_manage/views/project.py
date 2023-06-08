@@ -346,7 +346,8 @@ class ProjectViewSet(BaseViewSet,
 
 
 # Collaborators cannot be created directly - they are created using invitations
-class ProjectCollaboratorsViewSet(mixins.ListModelMixin,
+class ProjectCollaboratorsViewSet(BaseViewSet,
+                                  mixins.ListModelMixin,
                                   viewsets.GenericViewSet):
     """
     View set for listing collaborators for a project.
