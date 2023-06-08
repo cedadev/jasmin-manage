@@ -173,11 +173,13 @@ class ProjectViewSet(BaseViewSet,
     def get_queryset(self):
         queryset = super().get_queryset()
         # Annotate the queryset with summary information to avoid the N+1 problem
-        queryset = queryset.annotate_summary(self.request.user)
-        # For a list operation, only show projects that the user is collaborating on
-        # All other operations should be on a specific project and all projects should be used
-        if self.action == 'list':
-            queryset = queryset.filter(collaborator__user = self.request.user)
+        if self.request.user:
+            queryset = queryset.annotate_summary(self.request.user)
+            # For a list operation, only show projects that the user is collaborating on
+            # All other operations should be on a specific project and all projects should be used
+            if self.action == 'list':
+                queryset = queryset.filter(collaborator__user = self.request.user)
+            return queryset
         return queryset
 
     @action(detail = True, serializer_class = EventSerializer)
