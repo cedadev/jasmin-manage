@@ -10,7 +10,7 @@ from ..exceptions import Conflict
 from ..models import Project, Requirement, Service
 from ..permissions import RequirementPermissions, ServicePermissions
 from ..serializers import RequirementSerializer, ServiceSerializer, ServiceListSerializer
-from .base import BaseViewSet
+from .base import BaseViewSet, TokenHasAtLeastOneScope
 
 # Services cannot be updated via the API
 class ServiceViewSet(BaseViewSet,
@@ -22,7 +22,7 @@ class ServiceViewSet(BaseViewSet,
     View set for the service model.
     """
     permission_classes = [ServicePermissions]
-    
+    required_scopes = ['jasmin.projects.services.all', 'jasmin.projects.all']
     queryset = Service.objects.all().prefetch_related('requirements')
 
     def perform_destroy(self, instance):
@@ -33,6 +33,14 @@ class ServiceViewSet(BaseViewSet,
         if instance.requirements.exists():
             raise Conflict('Cannot delete service with requirements.', 'has_requirements')
         super().perform_destroy(instance)
+
+    def get_permissions(self):
+        # If listing the services, edit the perimission classes to check user has permission
+        # or is authenticated using a token with one of the required scopes.
+        if self.action == 'list':
+            permission_classes = [rf_perms.OR(TokenHasAtLeastOneScope(), rf_perms.IsAdminUser())]
+            return permission_classes
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'list':
