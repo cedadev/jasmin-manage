@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'jasmin_auth',
     'jasmin_auth.apps.AdminConfig',
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
