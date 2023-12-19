@@ -29,6 +29,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = (
         ("consortium", RelatedDropdownFilter),
         "status",
+        ("tags", RelatedDropdownFilter),
     )
     list_select_related = ("consortium",)
     autocomplete_fields = ("consortium",)
