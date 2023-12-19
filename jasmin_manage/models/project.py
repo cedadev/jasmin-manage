@@ -81,7 +81,7 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     tags = models.ManyToManyField(
-        Tag, related_name="project", related_query_name="projects"
+        Tag, related_name="project", related_query_name="project"
     )
 
     def get_num_services(self):

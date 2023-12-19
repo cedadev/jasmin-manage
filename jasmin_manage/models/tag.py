@@ -11,7 +11,7 @@ class TagManager(models.Manager):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255, null=True)
 
     def natural_key(self):
         return (self.name,)
