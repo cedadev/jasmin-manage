@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 from .consortium import Consortium
+from .tag import Tag
 
 
 class ProjectManager(models.Manager):
@@ -80,7 +81,7 @@ class Project(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     tags = models.ManyToManyField(
-        "Tag", related_name="project", related_query_name="projects"
+        Tag, related_name="project", related_query_name="projects"
     )
 
     def get_num_services(self):

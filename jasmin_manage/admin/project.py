@@ -41,6 +41,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "num_tags",
         "created_at",
     )
+    filter_horizontal = ("tags",)
 
     def get_exclude(self, request, obj=None):
         exclude = tuple(super().get_exclude(request, obj) or ())
