@@ -79,7 +79,9 @@ class Project(models.Model):
         related_query_name="project",
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    tags = models.CharField(max_length=250, blank=True, null=True)
+    tags = models.ManyToManyField(
+        "Tag", related_name="project", related_query_name="projects"
+    )
 
     def get_num_services(self):
         if hasattr(self, "num_services"):

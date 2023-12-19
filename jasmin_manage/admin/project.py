@@ -6,7 +6,7 @@ from django.template.defaultfilters import pluralize
 
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
-from ..models import Collaborator, Invitation, Project, Requirement, Service
+from ..models import Collaborator, Invitation, Project, Requirement, Service, Tag
 from .util import changelist_link, change_link
 
 
@@ -20,7 +20,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "name",
         "status_formatted",
         "consortium_link",
-        "tags",
+        "num_tags",
         "num_services",
         "num_requirements",
         "num_collaborators",
@@ -38,6 +38,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "num_requirements",
         "num_collaborators",
         "num_invitations",
+        "num_tags",
         "created_at",
     )
 
@@ -65,6 +66,7 @@ class ProjectAdmin(admin.ModelAdmin):
             invitation_count=Count("invitation", distinct=True),
             service_count=Count("service", distinct=True),
             requirement_count=Count("service__requirement", distinct=True),
+            tag_count=Count("tags", distinct=True),
             # Also annotate with information about the number of requirements awaiting provisioning
             awaiting_count=Coalesce(
                 Subquery(
@@ -94,12 +96,6 @@ class ProjectAdmin(admin.ModelAdmin):
         return change_link(obj.consortium)
 
     consortium_link.short_description = "consortium"
-
-    def tags(self, obj):
-        tags = []
-        if hasattr(obj, "tags"):
-            tags.append(obj.tags)
-        return tags
 
     def num_services(self, obj):
         return changelist_link(
@@ -148,3 +144,12 @@ class ProjectAdmin(admin.ModelAdmin):
         )
 
     num_invitations.short_description = "# invitations"
+
+    def num_tags(self, obj):
+        return changelist_link(
+            Tag,
+            "{} tag{}".format(obj.tag_count, pluralize(obj.tag_count)),
+            dict(project__id__exact=obj.pk),
+        )
+
+    num_tags.short_description = "# tags"
