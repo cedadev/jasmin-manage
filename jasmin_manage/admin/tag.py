@@ -14,7 +14,7 @@ class TagAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         # Annotate the queryset with information about the number of resources and services
         qs = qs.annotate(
-            num_projects=Count("projects", distinct=True),
+            num_projects=Count("project", distinct=True),
         )
         # The annotations clear the ordering, so re-apply the default one
         return qs.order_by(*qs.query.get_meta().ordering)
