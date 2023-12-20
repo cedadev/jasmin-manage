@@ -8,3 +8,4 @@ from .quota import QuotaSerializer
 from .requirement import RequirementSerializer
 from .resource import ResourceSerializer
 from .service import ServiceSerializer, ServiceListSerializer
+from .tag import TagSerializer
