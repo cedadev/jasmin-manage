@@ -49,6 +49,7 @@ projects_router.register(
 projects_router.register(
     r"services", views.ProjectServicesViewSet, basename="project-services"
 )
+projects_router.register(r"tags", views.ProjectTagsViewSet, basename="project-tags")
 
 # Routes for requirements
 router.register(r"requirements", views.RequirementViewSet)

@@ -16,6 +16,7 @@ from .project import (
     ProjectCommentsViewSet,
     ProjectInvitationsViewSet,
     ProjectServicesViewSet,
+    ProjectTagsViewSet,
 )
 from .requirement import RequirementViewSet
 from .resource import ResourceViewSet

@@ -15,7 +15,15 @@ from tsunami.models import Event
 from tsunami.tracking import _instance_as_dict as instance_as_dict
 
 from ..exceptions import Conflict
-from ..models import Collaborator, Comment, Invitation, Project, Requirement, Service
+from ..models import (
+    Collaborator,
+    Comment,
+    Invitation,
+    Project,
+    Requirement,
+    Service,
+    Tag,
+)
 from ..permissions import (
     CollaboratorPermissions,
     CommentPermissions,
@@ -30,6 +38,7 @@ from ..serializers import (
     ProjectSerializer,
     RequirementSerializer,
     ServiceSerializer,
+    TagSerializer,
 )
 from .base import BaseViewSet
 
@@ -437,3 +446,23 @@ class ProjectServicesViewSet(
             return super().create(request, *args, **kwargs)
         else:
             raise Conflict("Project is not currently editable.", "invalid_status")
+
+
+class ProjectTagsViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet
+):
+    """
+    View set for listing and creating services for a project.
+    """
+
+    permission_classes = [ProjectPermissions]
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(project=self.kwargs["project_pk"])
+
+    @cached_property
+    def project(self):
+        return get_object_or_404(Project, pk=self.kwargs["project_pk"])
