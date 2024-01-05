@@ -7,3 +7,4 @@ from .quota import QuotaAdmin
 from .requirement import RequirementAdmin
 from .resource import ResourceAdmin
 from .service import ServiceAdmin
+from .tag import TagAdmin
