@@ -12,7 +12,7 @@ class TagAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Annotate the queryset with information about the number of resources and services
+        # Annotate the queryset with information about the number of projects
         qs = qs.annotate(
             num_projects=Count("project", distinct=True),
         )

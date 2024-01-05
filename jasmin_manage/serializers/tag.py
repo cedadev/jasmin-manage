@@ -5,7 +5,7 @@ from .base import BaseSerializer
 
 class TagSerializer(BaseSerializer):
     """
-    Serializer for the resource model.
+    Serializer for the tag model.
     """
 
     class Meta:

@@ -452,7 +452,7 @@ class ProjectTagsViewSet(
     mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet
 ):
     """
-    View set for listing and creating services for a project.
+    View set for listing and creating tags for a project.
     """
 
     permission_classes = [ProjectPermissions]

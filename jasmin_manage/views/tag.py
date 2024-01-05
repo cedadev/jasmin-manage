@@ -7,7 +7,7 @@ from .base import BaseViewSet
 
 class TagViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
     """
-    View set for the category model.
+    View set for the tag model.
     """
 
     permission_classes = [permissions.IsAuthenticated]
