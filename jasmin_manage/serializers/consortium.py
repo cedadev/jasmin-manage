@@ -51,7 +51,6 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
         for p in projects:
             name = p.name
             services = p.services.all()
-            service_data = []
             # We want total resouces for the project so init requirements dict here, not per service
             requirement_data = {}
             for s in services:
@@ -65,7 +64,6 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                         else:
                             requirement_data[resource] = amount
 
-                service_data.append(requirement_data)
             # Get collaborator information to add to the summary
             collaborators = p.collaborators.all()
             collaborators_data = []
@@ -81,7 +79,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
             project_data = {
                 "project_name": name,
                 "collaborators": collaborators_data,
-                "resource_summary": service_data,
+                "resource_summary": requirement_data,
             }
 
             data.append(project_data)
