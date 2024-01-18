@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0014_alter_requirement_location'),
+        ("jasmin_manage", "0014_alter_requirement_location"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='category',
-            name='is_public',
+            model_name="category",
+            name="is_public",
             field=models.BooleanField(default=False),
         ),
     ]

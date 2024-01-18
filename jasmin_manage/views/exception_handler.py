@@ -9,9 +9,9 @@ def get_response_data(obj):
     if isinstance(obj, list):
         return [get_response_data(item) for item in obj]
     elif isinstance(obj, dict):
-        return { key: get_response_data(value) for key, value in obj.items() }
+        return {key: get_response_data(value) for key, value in obj.items()}
     elif isinstance(obj, ErrorDetail):
-        return dict(detail = str(obj), code = obj.code)
+        return dict(detail=str(obj), code=obj.code)
     else:
         return str(obj)
 

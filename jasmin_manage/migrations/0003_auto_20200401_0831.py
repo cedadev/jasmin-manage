@@ -4,18 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0002_resourcechunk'),
+        ("jasmin_manage", "0002_resourcechunk"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='resource',
-            options={'base_manager_name': 'objects', 'ordering': ('name',)},
+            name="resource",
+            options={"base_manager_name": "objects", "ordering": ("name",)},
         ),
         migrations.RemoveField(
-            model_name='resource',
-            name='total_available',
+            model_name="resource",
+            name="total_available",
         ),
     ]

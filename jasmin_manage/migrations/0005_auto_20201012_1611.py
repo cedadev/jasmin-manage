@@ -4,36 +4,35 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0004_auto_20201012_1039'),
+        ("jasmin_manage", "0004_auto_20201012_1039"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='consortium',
-            name='_description_rendered',
+            model_name="consortium",
+            name="_description_rendered",
         ),
         migrations.RemoveField(
-            model_name='consortium',
-            name='description_markup_type',
+            model_name="consortium",
+            name="description_markup_type",
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='_description_rendered',
+            model_name="project",
+            name="_description_rendered",
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='description_markup_type',
+            model_name="project",
+            name="description_markup_type",
         ),
         migrations.AlterField(
-            model_name='consortium',
-            name='description',
-            field=models.TextField(help_text='Can contain markdown syntax.'),
+            model_name="consortium",
+            name="description",
+            field=models.TextField(help_text="Can contain markdown syntax."),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='description',
-            field=models.TextField(help_text='Can contain markdown syntax.'),
+            model_name="project",
+            name="description",
+            field=models.TextField(help_text="Can contain markdown syntax."),
         ),
     ]

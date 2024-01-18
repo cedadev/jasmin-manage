@@ -7,6 +7,7 @@ class CategorySerializer(BaseSerializer):
     """
     Serializer for the category model.
     """
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = "__all__"

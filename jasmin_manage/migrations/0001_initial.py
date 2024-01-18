@@ -11,7 +11,6 @@ import re
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -20,106 +19,325 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=250, unique=True)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=250, unique=True)),
             ],
             options={
-                'verbose_name_plural': 'categories',
-                'ordering': ('name',),
+                "verbose_name_plural": "categories",
+                "ordering": ("name",),
             },
         ),
         migrations.CreateModel(
-            name='Consortium',
+            name="Consortium",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=250, unique=True)),
-                ('description', markupfield.fields.MarkupField(rendered_field=True)),
-                ('description_markup_type', models.CharField(choices=[('', '--'), ('markdown', 'Markdown')], default='markdown', max_length=30)),
-                ('_description_rendered', models.TextField(editable=False)),
-                ('manager', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=250, unique=True)),
+                ("description", markupfield.fields.MarkupField(rendered_field=True)),
+                (
+                    "description_markup_type",
+                    models.CharField(
+                        choices=[("", "--"), ("markdown", "Markdown")],
+                        default="markdown",
+                        max_length=30,
+                    ),
+                ),
+                ("_description_rendered", models.TextField(editable=False)),
+                (
+                    "manager",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'consortia',
-                'ordering': ('name',),
+                "verbose_name_plural": "consortia",
+                "ordering": ("name",),
             },
         ),
         migrations.CreateModel(
-            name='Project',
+            name="Project",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=250, unique=True)),
-                ('description', markupfield.fields.MarkupField(rendered_field=True)),
-                ('description_markup_type', models.CharField(choices=[('', '--'), ('markdown', 'Markdown')], default='markdown', max_length=30)),
-                ('status', models.PositiveSmallIntegerField(choices=[(10, 'Editable'), (20, 'Under Review'), (30, 'Completed')], default=10)),
-                ('_description_rendered', models.TextField(editable=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('default_consortium', models.ForeignKey(blank=True, help_text='Default consortium for requirements in the project, if known.<br />Can be overridden on a per-requirement basis.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='jasmin_manage.Consortium')),
-                ('owner', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=250, unique=True)),
+                ("description", markupfield.fields.MarkupField(rendered_field=True)),
+                (
+                    "description_markup_type",
+                    models.CharField(
+                        choices=[("", "--"), ("markdown", "Markdown")],
+                        default="markdown",
+                        max_length=30,
+                    ),
+                ),
+                (
+                    "status",
+                    models.PositiveSmallIntegerField(
+                        choices=[
+                            (10, "Editable"),
+                            (20, "Under Review"),
+                            (30, "Completed"),
+                        ],
+                        default=10,
+                    ),
+                ),
+                ("_description_rendered", models.TextField(editable=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "default_consortium",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Default consortium for requirements in the project, if known.<br />Can be overridden on a per-requirement basis.",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="jasmin_manage.Consortium",
+                    ),
+                ),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ('name',),
+                "ordering": ("name",),
             },
         ),
         migrations.CreateModel(
-            name='Resource',
+            name="Resource",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Full resource name, used when the resource is referenced standalone, e.g. "Cloud Disk", "Panasas Disk".', max_length=250, unique=True)),
-                ('short_name', models.CharField(blank=True, help_text='Short resource name, used when the resource is referenced in the context of a category or service, e.g. &quot;Disk&quot;.<br />If not given, the full name is used in all contexts.', max_length=50)),
-                ('units', models.CharField(blank=True, help_text='Canonical units for the resource.<br />Leave blank for a unit-less resource, e.g. CPUs.', max_length=10, null=True)),
-                ('total_available', models.PositiveIntegerField(help_text='The total amount of the resource that is available.')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        help_text='Full resource name, used when the resource is referenced standalone, e.g. "Cloud Disk", "Panasas Disk".',
+                        max_length=250,
+                        unique=True,
+                    ),
+                ),
+                (
+                    "short_name",
+                    models.CharField(
+                        blank=True,
+                        help_text="Short resource name, used when the resource is referenced in the context of a category or service, e.g. &quot;Disk&quot;.<br />If not given, the full name is used in all contexts.",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "units",
+                    models.CharField(
+                        blank=True,
+                        help_text="Canonical units for the resource.<br />Leave blank for a unit-less resource, e.g. CPUs.",
+                        max_length=10,
+                        null=True,
+                    ),
+                ),
+                (
+                    "total_available",
+                    models.PositiveIntegerField(
+                        help_text="The total amount of the resource that is available."
+                    ),
+                ),
             ],
             options={
-                'ordering': ('name',),
+                "ordering": ("name",),
             },
         ),
         migrations.CreateModel(
-            name='Service',
+            name="Service",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=50, validators=[django.core.validators.RegexValidator(re.compile('^[-a-zA-Z0-9_]+\\Z'), 'Service name can only contain letters, numbers, underscores and hyphens.', 'invalid')])),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='services', related_query_name='service', to='jasmin_manage.Category')),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='services', related_query_name='service', to='jasmin_manage.Project')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        max_length=50,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                re.compile("^[-a-zA-Z0-9_]+\\Z"),
+                                "Service name can only contain letters, numbers, underscores and hyphens.",
+                                "invalid",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="services",
+                        related_query_name="service",
+                        to="jasmin_manage.Category",
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="services",
+                        related_query_name="service",
+                        to="jasmin_manage.Project",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('category', 'name')},
+                "unique_together": {("category", "name")},
             },
         ),
         migrations.CreateModel(
-            name='Requirement',
+            name="Requirement",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.PositiveSmallIntegerField(choices=[(10, 'Requested'), (20, 'Rejected'), (30, 'Approved'), (40, 'Awaiting Provisioning'), (50, 'Provisioned'), (60, 'Decommissioned')], default=10)),
-                ('amount', models.PositiveIntegerField()),
-                ('start_date', models.DateField(default=datetime.date.today)),
-                ('end_date', models.DateField(default=jasmin_manage.models.requirement._five_years)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('consortium', models.ForeignKey(blank=True, help_text='Leave blank to use project default consortium, if set.', on_delete=django.db.models.deletion.CASCADE, related_name='requirements', related_query_name='requirement', to='jasmin_manage.Consortium')),
-                ('resource', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requirements', related_query_name='requirement', to='jasmin_manage.Resource')),
-                ('service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='requirements', related_query_name='requirement', to='jasmin_manage.Service')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "status",
+                    models.PositiveSmallIntegerField(
+                        choices=[
+                            (10, "Requested"),
+                            (20, "Rejected"),
+                            (30, "Approved"),
+                            (40, "Awaiting Provisioning"),
+                            (50, "Provisioned"),
+                            (60, "Decommissioned"),
+                        ],
+                        default=10,
+                    ),
+                ),
+                ("amount", models.PositiveIntegerField()),
+                ("start_date", models.DateField(default=datetime.date.today)),
+                (
+                    "end_date",
+                    models.DateField(
+                        default=jasmin_manage.models.requirement._five_years
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "consortium",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Leave blank to use project default consortium, if set.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="requirements",
+                        related_query_name="requirement",
+                        to="jasmin_manage.Consortium",
+                    ),
+                ),
+                (
+                    "resource",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="requirements",
+                        related_query_name="requirement",
+                        to="jasmin_manage.Resource",
+                    ),
+                ),
+                (
+                    "service",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="requirements",
+                        related_query_name="requirement",
+                        to="jasmin_manage.Service",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('-created_at',),
+                "ordering": ("-created_at",),
             },
         ),
         migrations.AddField(
-            model_name='category',
-            name='resources',
-            field=models.ManyToManyField(related_name='_category_resources_+', to='jasmin_manage.Resource'),
+            model_name="category",
+            name="resources",
+            field=models.ManyToManyField(
+                related_name="_category_resources_+", to="jasmin_manage.Resource"
+            ),
         ),
         migrations.CreateModel(
-            name='Quota',
+            name="Quota",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.PositiveIntegerField()),
-                ('consortium', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='quotas', related_query_name='quota', to='jasmin_manage.Consortium')),
-                ('resource', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='quotas', related_query_name='quota', to='jasmin_manage.Resource')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("amount", models.PositiveIntegerField()),
+                (
+                    "consortium",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="quotas",
+                        related_query_name="quota",
+                        to="jasmin_manage.Consortium",
+                    ),
+                ),
+                (
+                    "resource",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="quotas",
+                        related_query_name="quota",
+                        to="jasmin_manage.Resource",
+                    ),
+                ),
             ],
             options={
-                'ordering': ('consortium__name', 'resource__name'),
-                'unique_together': {('consortium', 'resource')},
+                "ordering": ("consortium__name", "resource__name"),
+                "unique_together": {("consortium", "resource")},
             },
         ),
     ]
