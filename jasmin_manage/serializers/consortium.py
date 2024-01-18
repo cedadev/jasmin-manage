@@ -16,7 +16,7 @@ class ManagerSerializer(serializers.ModelSerializer):
 
 
 class QuotaSerializer(serializers.ModelSerializer):
-    """ " """
+    """Serializer to show the provisioned resources for a consortium."""
 
     resource = serializers.StringRelatedField()
 
@@ -43,19 +43,21 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
         return obj.get_num_projects()
 
     def get_project_summaries(self, obj):
+        """Create a summary of the resource provision for the consortium and the projects under that consortium."""
+        # Get projects from consortium object and loop through to build per project provioned information for resources
         projects = obj.projects.all()
         data = []
         collab_lookup = {20: "contributor", 40: "owner"}
         for p in projects:
             name = p.name
-
             services = p.services.all()
             service_data = []
+            # We want total resouces for the project so init requirements dict here, not per service
             requirement_data = {}
             for s in services:
                 requirments = s.requirements.all()
                 for r in requirments:
-                    if r.status == 50:
+                    if r.status == 50:  # This is the code for provisioned requirements
                         resource = r.resource.name
                         amount = r.amount
                         if resource in requirement_data:
@@ -64,9 +66,11 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                             requirement_data[resource] = amount
 
                 service_data.append(requirement_data)
+            # Get collaborator information to add to the summary
             collaborators = p.collaborators.all()
             collaborators_data = []
             for c in collaborators:
+                # Removed email as not sure on the permissions scoping for access to the summaries
                 user = c.user.get_username()
                 full_name = c.user.get_full_name()
                 role = collab_lookup[c.role]

@@ -7,7 +7,7 @@ from django import forms
 
 from django_admin_listfilter_dropdown.filters import (
     RelatedDropdownFilter,
-    RelatedOnlyDropdownFilter
+    RelatedOnlyDropdownFilter,
 )
 
 from rangefilter.filter import DateRangeFilter
@@ -19,61 +19,59 @@ from .util import change_link
 @admin.register(Requirement)
 class RequirementAdmin(admin.ModelAdmin):
     class Media:
-        css = {
-            "all": ('css/admin/highlight.css', )
-        }
-        js = ('js/admin/highlight.js', )
+        css = {"all": ("css/admin/highlight.css",)}
+        js = ("js/admin/highlight.js",)
 
     list_display = (
-        'id',
-        'consortium_link',
-        'project_link',
-        'service_link',
-        'resource_link',
-        'status_formatted',
-        'amount_formatted',
-        'start_date_formatted',
-        'end_date_formatted',
-        'location'
+        "id",
+        "consortium_link",
+        "project_link",
+        "service_link",
+        "resource_link",
+        "status_formatted",
+        "amount_formatted",
+        "start_date_formatted",
+        "end_date_formatted",
+        "location",
     )
-    list_select_related = ('service__project', 'service', 'resource')
+    list_select_related = ("service__project", "service", "resource")
     list_filter = (
-        ('service__project__consortium', RelatedDropdownFilter),
-        ('service__project', RelatedDropdownFilter),
-        ('resource', RelatedDropdownFilter),
-        'status',
-        ('start_date', DateRangeFilter),
-        ('end_date', DateRangeFilter),
+        ("service__project__consortium", RelatedDropdownFilter),
+        ("service__project", RelatedDropdownFilter),
+        ("resource", RelatedDropdownFilter),
+        "status",
+        ("start_date", DateRangeFilter),
+        ("end_date", DateRangeFilter),
     )
-    autocomplete_fields = ('service', 'resource')
+    autocomplete_fields = ("service", "resource")
     exclude = (
-        'service',
-        'resource',
-        'status',
-        'amount',
-        'start_date',
-        'end_date', 
-        'location'
+        "service",
+        "resource",
+        "status",
+        "amount",
+        "start_date",
+        "end_date",
+        "location",
     )
     readonly_fields = (
-        'consortium_link',
-        'project_link',
-        'service_link',
-        'resource_link',
-        'status_formatted',
-        'amount_formatted',
-        'start_date_formatted',
-        'end_date_formatted'
+        "consortium_link",
+        "project_link",
+        "service_link",
+        "resource_link",
+        "status_formatted",
+        "amount_formatted",
+        "start_date_formatted",
+        "end_date_formatted",
     )
     save_as = True
 
-    def get_exclude(self, request, obj = None):
+    def get_exclude(self, request, obj=None):
         if obj and not self.has_change_permission(request, obj):
             return super().get_exclude(request, obj)
         else:
             return ()
 
-    def get_readonly_fields(self, request, obj = None):
+    def get_readonly_fields(self, request, obj=None):
         if obj and not self.has_change_permission(request, obj):
             return super().get_readonly_fields(request, obj)
         else:
@@ -81,65 +79,74 @@ class RequirementAdmin(admin.ModelAdmin):
 
     def consortium_link(self, obj):
         return change_link(obj.service.project.consortium)
-    consortium_link.short_description = 'consortium'
+
+    consortium_link.short_description = "consortium"
 
     def project_link(self, obj):
         return change_link(obj.service.project)
-    project_link.short_description = 'project'
+
+    project_link.short_description = "project"
 
     def service_link(self, obj):
         return change_link(obj.service, obj.service.name)
-    service_link.short_description = 'service'
+
+    service_link.short_description = "service"
 
     def resource_link(self, obj):
         return change_link(obj.resource)
-    resource_link.short_description = 'resource'
+
+    resource_link.short_description = "resource"
 
     STATUS_CLASSES = dict(
-        REJECTED = 'danger',
-        APPROVED = 'info',
-        AWAITING_PROVISIONING = 'warning',
-        PROVISIONED = 'success',
-        DECOMMISSIONED = 'muted'
+        REJECTED="danger",
+        APPROVED="info",
+        AWAITING_PROVISIONING="warning",
+        PROVISIONED="success",
+        DECOMMISSIONED="muted",
     )
+
     def status_formatted(self, obj):
         status = Requirement.Status(obj.status)
         return format_html(
             '<code class="highlight {css}">{label}</code>',
-            label = status.label,
-            css = self.STATUS_CLASSES.get(status.name, '')
+            label=status.label,
+            css=self.STATUS_CLASSES.get(status.name, ""),
         )
-    status_formatted.short_description = 'status'
-    status_formatted.admin_order_field = 'status'
+
+    status_formatted.short_description = "status"
+    status_formatted.admin_order_field = "status"
 
     def amount_formatted(self, obj):
         return obj.resource.format_amount(obj.amount)
-    amount_formatted.short_description = 'amount'
-    amount_formatted.admin_order_field = 'amount'
+
+    amount_formatted.short_description = "amount"
+    amount_formatted.admin_order_field = "amount"
 
     def start_date_formatted(self, obj):
         formatted_date = formats.date_format(obj.start_date)
         # If the requirement is overdue for provisioning, print it coloured
-        if obj.start_date <= date.today() and \
-           obj.status == Requirement.Status.AWAITING_PROVISIONING:
+        if (
+            obj.start_date <= date.today()
+            and obj.status == Requirement.Status.AWAITING_PROVISIONING
+        ):
             return format_html(
-                '<span class="highlight danger">{}</span>',
-                formatted_date
+                '<span class="highlight danger">{}</span>', formatted_date
             )
         else:
             return formatted_date
-    start_date_formatted.short_description = 'start date'
-    start_date_formatted.admin_order_field = 'start_date'
+
+    start_date_formatted.short_description = "start date"
+    start_date_formatted.admin_order_field = "start_date"
 
     def end_date_formatted(self, obj):
         formatted_date = formats.date_format(obj.end_date)
         # If the requirement is overdue for decommisioning, print it coloured
         if obj.end_date < date.today() and obj.status == Requirement.Status.PROVISIONED:
             return format_html(
-                '<span class="highlight danger">{}</span>',
-                formatted_date
+                '<span class="highlight danger">{}</span>', formatted_date
             )
         else:
             return formatted_date
-    end_date_formatted.short_description = 'end date'
-    end_date_formatted.admin_order_field = 'end_date'
+
+    end_date_formatted.short_description = "end date"
+    end_date_formatted.admin_order_field = "end_date"

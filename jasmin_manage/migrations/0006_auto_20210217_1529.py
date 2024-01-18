@@ -7,131 +7,190 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('jasmin_manage', '0005_auto_20201012_1611'),
+        ("jasmin_manage", "0005_auto_20201012_1611"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='service',
-            options={'ordering': ('category__name', 'name')},
+            name="service",
+            options={"ordering": ("category__name", "name")},
         ),
         migrations.RemoveField(
-            model_name='category',
-            name='version',
+            model_name="category",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='consortium',
-            name='version',
+            model_name="consortium",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='next_requirement_number',
+            model_name="project",
+            name="next_requirement_number",
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='version',
+            model_name="project",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='quota',
-            name='version',
+            model_name="quota",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='requirement',
-            name='number',
+            model_name="requirement",
+            name="number",
         ),
         migrations.RemoveField(
-            model_name='requirement',
-            name='version',
+            model_name="requirement",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='resource',
-            name='version',
+            model_name="resource",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='resourcechunk',
-            name='version',
+            model_name="resourcechunk",
+            name="version",
         ),
         migrations.RemoveField(
-            model_name='service',
-            name='version',
+            model_name="service",
+            name="version",
         ),
         migrations.AddField(
-            model_name='category',
-            name='description',
-            field=models.TextField(default='No description.'),
+            model_name="category",
+            name="description",
+            field=models.TextField(default="No description."),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='project',
-            name='consortium',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='projects', related_query_name='project', to='jasmin_manage.consortium'),
+            model_name="project",
+            name="consortium",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="projects",
+                related_query_name="project",
+                to="jasmin_manage.consortium",
+            ),
         ),
         migrations.AddField(
-            model_name='resource',
-            name='description',
-            field=models.TextField(default='No description.'),
+            model_name="resource",
+            name="description",
+            field=models.TextField(default="No description."),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='category',
-            name='resources',
-            field=models.ManyToManyField(related_name='categories', related_query_name='category', to='jasmin_manage.Resource'),
+            model_name="category",
+            name="resources",
+            field=models.ManyToManyField(
+                related_name="categories",
+                related_query_name="category",
+                to="jasmin_manage.Resource",
+            ),
         ),
         migrations.AlterField(
-            model_name='consortium',
-            name='description',
+            model_name="consortium",
+            name="description",
             field=models.TextField(),
         ),
         migrations.AlterField(
-            model_name='quota',
-            name='amount',
+            model_name="quota",
+            name="amount",
             field=models.PositiveBigIntegerField(),
         ),
         migrations.AlterField(
-            model_name='requirement',
-            name='amount',
+            model_name="requirement",
+            name="amount",
             field=models.PositiveBigIntegerField(),
         ),
         migrations.AlterField(
-            model_name='resource',
-            name='short_name',
-            field=models.CharField(blank=True, help_text='Short resource name, used when the resource is referenced in the context of a category or service, e.g. "Disk". If not given, the full name is used in all contexts.', max_length=50),
+            model_name="resource",
+            name="short_name",
+            field=models.CharField(
+                blank=True,
+                help_text='Short resource name, used when the resource is referenced in the context of a category or service, e.g. "Disk". If not given, the full name is used in all contexts.',
+                max_length=50,
+            ),
         ),
         migrations.AlterField(
-            model_name='resource',
-            name='units',
-            field=models.CharField(blank=True, help_text='Canonical units for the resource. Leave blank for a unit-less resource, e.g. CPUs.', max_length=10, null=True),
+            model_name="resource",
+            name="units",
+            field=models.CharField(
+                blank=True,
+                help_text="Canonical units for the resource. Leave blank for a unit-less resource, e.g. CPUs.",
+                max_length=10,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='resourcechunk',
-            name='amount',
-            field=models.PositiveBigIntegerField(help_text='The amount of the resource that is in this chunk.'),
+            model_name="resourcechunk",
+            name="amount",
+            field=models.PositiveBigIntegerField(
+                help_text="The amount of the resource that is in this chunk."
+            ),
         ),
         migrations.AlterField(
-            model_name='resourcechunk',
-            name='name',
-            field=models.CharField(help_text='The name of the resource chunk, e.g. QB1, QB2.', max_length=250),
+            model_name="resourcechunk",
+            name="name",
+            field=models.CharField(
+                help_text="The name of the resource chunk, e.g. QB1, QB2.",
+                max_length=250,
+            ),
         ),
         migrations.AlterField(
-            model_name='service',
-            name='name',
-            field=models.CharField(db_index=True, max_length=50, validators=[django.core.validators.RegexValidator(message='Service name must start with a letter and contain lower-case letters, numbers, underscores and hyphens only.', regex='^[a-z][-a-z0-9_]*\\Z')]),
+            model_name="service",
+            name="name",
+            field=models.CharField(
+                db_index=True,
+                max_length=50,
+                validators=[
+                    django.core.validators.RegexValidator(
+                        message="Service name must start with a letter and contain lower-case letters, numbers, underscores and hyphens only.",
+                        regex="^[a-z][-a-z0-9_]*\\Z",
+                    )
+                ],
+            ),
         ),
         migrations.CreateModel(
-            name='Collaborator',
+            name="Collaborator",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.PositiveSmallIntegerField(choices=[(20, 'Contributor'), (40, 'Owner')], default=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='collaborators', related_query_name='collaborator', to='jasmin_manage.project')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "role",
+                    models.PositiveSmallIntegerField(
+                        choices=[(20, "Contributor"), (40, "Owner")], default=20
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="collaborators",
+                        related_query_name="collaborator",
+                        to="jasmin_manage.project",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ('project__name', 'role', 'user__username'),
-                'unique_together': {('project', 'user')},
+                "ordering": ("project__name", "role", "user__username"),
+                "unique_together": {("project", "user")},
             },
         ),
     ]
