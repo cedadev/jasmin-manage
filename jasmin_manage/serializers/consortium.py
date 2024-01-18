@@ -50,7 +50,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
             name = p.name
 
             services = p.services.all()
-            service_data = {}
+            service_data = []
             requirement_data = {}
             for s in services:
                 requirments = s.requirements.all()
@@ -63,7 +63,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                         else:
                             requirement_data[resource] = amount
 
-                service_data[s.category.name] = requirement_data
+                service_data.append(requirement_data)
             collaborators = p.collaborators.all()
             collaborators_data = []
             for c in collaborators:
