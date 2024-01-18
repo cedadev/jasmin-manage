@@ -70,9 +70,8 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                 user = c.user.get_username()
                 full_name = c.user.get_full_name()
                 role = collab_lookup[c.role]
-                email = c.user.email
                 collaborators_data.append(
-                    {"username": user, "name": full_name, "role": role, "email": email}
+                    {"username": user, "name": full_name, "role": role}
                 )
 
             project_data = {
