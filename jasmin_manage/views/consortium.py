@@ -1,16 +1,13 @@
+import rest_framework.decorators as rf_decorators
+import rest_framework.response as rf_response
 from rest_framework import mixins, permissions, viewsets
 
 from ..models import Consortium, Project, Quota
-from ..permissions import (
-    ConsortiumPermissions,
-    ConsortiumNestedViewSetPermissions,
-    ConsortiumQuotaViewSetPermissions
-)
-from ..serializers import (
-    ConsortiumSerializer,
-    ProjectSerializer,
-    QuotaSerializer
-)
+from ..permissions import (ConsortiumNestedViewSetPermissions,
+                           ConsortiumPermissions,
+                           ConsortiumQuotaViewSetPermissions)
+from ..serializers import (ConsortiumSerializer, ConsortiumSummarySerializer,
+                           ProjectSerializer, QuotaSerializer)
 from .base import BaseViewSet
 
 
@@ -20,8 +17,15 @@ class ConsortiumViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
     """
     permission_classes = [ConsortiumPermissions]
 
-    queryset = Consortium.objects.prefetch_related('manager')
+    queryset = Consortium.objects.prefetch_related('manager', 'quotas')
     serializer_class = ConsortiumSerializer
+    action_serializers = {"summary": ConsortiumSummarySerializer }
+
+    def get_serializer_class(self):
+        if hasattr(self, "action_serializers"):
+            return self.action_serializers.get(self.action, self.serializer_class)
+
+        return super().get_serializer_class()
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -31,6 +35,31 @@ class ConsortiumViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             queryset = queryset.filter_visible(self.request.user)
         return queryset
+
+    @rf_decorators.action(detail=True, required_scopes=["jasmin_manage.projects"])
+    def summary(self, request, pk=None):
+        """Create summary of projects in Consortium"""
+        serializer = ConsortiumSummarySerializer(self.get_object(), context={"request":request})
+        print(serializer.data)
+        return rf_response.Response( serializer.data)
+
+# class ConsortiumProjectsSummaryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+#     """
+#     View set for summarising projects in a consortium.
+#     """
+#     permission_classes = [ConsortiumNestedViewSetPermissions]
+
+#     queryset = Project.objects.all()
+#     serializer_class = ProjectSerializer
+
+#     def get_queryset(self):
+#         queryset = super().get_queryset()
+#         # Annotate the queryset with summary information to avoid the N+1 problem
+#         queryset = queryset.annotate_summary(self.request.user)
+#         # Filter the resources by consortium
+#         return queryset.filter(consortium = self.kwargs['consortium_pk'])
+    
+
 
 
 class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

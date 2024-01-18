@@ -1,11 +1,8 @@
 from django.urls import include, path
-
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_nested import routers
 
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
 from . import views
-
 
 # Top-level router
 router = routers.DefaultRouter()
@@ -22,7 +19,9 @@ router.register(r'comments', views.CommentViewSet)
 # Routes for consortia
 router.register(r'consortia', views.ConsortiumViewSet)
 consortia_router = routers.NestedSimpleRouter(router, r'consortia', lookup = 'consortium')
+# consortia_router.register(r'summary', views.ConsortiumViewSet, basename = 'consortium-summary')
 consortia_router.register(r'projects', views.ConsortiumProjectsViewSet, basename = 'consortium-projects')
+# consortia_router.register(r'summary', views.ConsortiumProjectsSummaryViewSet, basename = 'consortium-summary')
 consortia_router.register(r'quotas', views.ConsortiumQuotasViewSet, basename = 'consortium-quotas')
 
 # Routes for invitations

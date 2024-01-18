@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from ..models import Collaborator, Project
-
 from .base import BaseSerializer, EnumField
 
 
@@ -54,3 +53,4 @@ class ProjectSerializer(BaseSerializer):
             return Collaborator.Role(role).name
         else:
             return None
+
