@@ -79,8 +79,8 @@ def notify_slack_project_submitted_for_provisioning(event):
                     # + str(j.service.id)
                     # + "|"
                     # + j.service.name
-                    # + ">\n" 
-                    + *Resource:  * "
+                    # + ">\n"
+                    + "*Resource:  * "
                     + j.resource.name
                     + "\n *Amount:    * "
                     + str(j.amount)
