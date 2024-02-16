@@ -116,19 +116,19 @@ def notify_slack_project_submitted_for_provisioning(event):
                         + "' consortium.",
                     },
                 },
-                # {
-                #     "type": "section",
-                #     "fields": [
-                #         {
-                #             "type": "mrkdwn",
-                #             "text": ">*Comment:*\n>*"
-                #             + comments[0].created_at.strftime("%d %b %y %H:%M")
-                #             + "* ' _"
-                #             + comments[0].content
-                #             + "_ '",
-                #         }
-                #     ],
-                # },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Comment:*\n>*"
+                            + comments[0].created_at.strftime("%d %b %y %H:%M")
+                            + "* ' _"
+                            + comments[0].content
+                            + "_ '",
+                        }
+                    ],
+                },
                 # {
                 #     "type": "section",
                 #     "fields": [
