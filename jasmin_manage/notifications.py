@@ -1,16 +1,12 @@
-from django.contrib.auth import get_user_model
-
-from django.conf import settings
-
-from tsunami.helpers import model_event_listener
-
-from tsunami_notify.models import Notification
-
-from .models import Collaborator, Invitation, Project, Requirement, Comment
-
 import json
 
 import requests
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from tsunami.helpers import model_event_listener
+from tsunami_notify.models import Notification
+
+from .models import Collaborator, Comment, Invitation, Project, Requirement
 
 
 @model_event_listener(
@@ -141,6 +137,7 @@ def notify_slack_project_submitted_for_provisioning(event):
                 },
             ],
         }
+        print(json.dumps(message))
         # Send the message
         response = requests.post(
             settings.SLACK_NOTIFICATIONS["WEBHOOK_URL"], json.dumps(message)
