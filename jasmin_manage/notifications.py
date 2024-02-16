@@ -72,35 +72,9 @@ def notify_slack_project_submitted_for_provisioning(event):
         service_str = ""
         for j in requirements:
             if j.resource.units:
-                service_str = (
-                    service_str
-                    # + " \n *Service:      * <"
-                    # + settings.SLACK_NOTIFICATIONS["SERVICE_REQUEST_URL"]
-                    # + str(j.service.id)
-                    # + "|"
-                    # + j.service.name
-                    # + ">\n"
-                    + "*Resource:  * "
-                    + j.resource.name
-                    + "\n *Amount:    * "
-                    + str(j.amount)
-                    + j.resource.units
-                    + "\n"
-                )
+                service_str = f'service_str\n *Service:      * <{settings.SLACK_NOTIFICATIONS["SERVICE_REQUEST_URL"]}{str(j.service.id)}|{j.service.name}>\n*Resource:  * {j.resource.name}\n *Amount:    *{str(j.amount)}{j.resource.units}\n'
             else:
-                service_str = (
-                    service_str
-                    + " \n *Service:      * <"
-                    + settings.SLACK_NOTIFICATIONS["SERVICE_REQUEST_URL"]
-                    + str(j.service.id)
-                    + "|"
-                    + j.service.name
-                    + ">\n *Resource:  * "
-                    + j.resource.name
-                    + "\n *Amount:    * "
-                    + str(j.amount)
-                    + "\n"
-                )
+                service_str = f'service_str\n *Service:      * <{settings.SLACK_NOTIFICATIONS["SERVICE_REQUEST_URL"]}{str(j.service.id)}|{j.service.name}>\n*Resource:  * {j.resource.name}\n *Amount:    *{str(j.amount)}\n'
 
         # Compose the message using slack blocks
         message = {
