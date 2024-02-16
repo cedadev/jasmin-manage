@@ -79,12 +79,12 @@ def notify_slack_project_submitted_for_provisioning(event):
                     + str(j.service.id)
                     + "|"
                     + j.service.name
-                    + ">\n *Resource:  * "
-                    + j.resource.name
-                    + "\n *Amount:    * "
-                    + str(j.amount)
-                    + j.resource.units
-                    + "\n"
+                    + ">\n"  # *Resource:  * "
+                    # + j.resource.name
+                    # + "\n *Amount:    * "
+                    # + str(j.amount)
+                    # + j.resource.units
+                    # + "\n"
                 )
             else:
                 service_str = (
@@ -129,12 +129,12 @@ def notify_slack_project_submitted_for_provisioning(event):
                         }
                     ],
                 },
-                # {
-                #     "type": "section",
-                #     "fields": [
-                #         {"type": "mrkdwn", "text": service_str},
-                #     ],
-                # },
+                {
+                    "type": "section",
+                    "fields": [
+                        {"type": "mrkdwn", "text": service_str},
+                    ],
+                },
             ],
         }
         print(json.dumps(message))
