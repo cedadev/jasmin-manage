@@ -14,9 +14,9 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 python-dateutil = "^2.8.1"
-django = "~3.2.19"
+django = "~4.2.11"
 markdown = "^3.3.4"
 django-admin-list-filter-dropdown = "^1.0.3"
 django-admin-rangefilter = "^0.8.1"
@@ -24,19 +24,15 @@ django-oauth-toolkit = "^2.2.0"
 djangorestframework = "^3.12.4"
 drf-spectacular = "^0.15.1"
 drf-nested-routers = "^0.93.3"
-jasmin-auth-django = {git = "https://github.com/cedadev/jasmin-auth-django.git", rev = "00dce9daedec543fb7fe87f33e408ac45782f8ed"}
-django-tsunami = {git = "https://github.com/cedadev/django-tsunami.git", rev = "b4f0f4345a99229d268f37853568c0e630459988"}
-django-tsunami-notify = {git = "https://github.com/cedadev/django-tsunami-notify.git", rev = "d9f1ae8b7de95bfb700bfe5127ec188e8aa6e574"}
+jasmin-auth-django = {git = "https://github.com/cedadev/jasmin-auth-django.git", branch = "django4.2"}
+django-tsunami = {git = "https://github.com/cedadev/django-tsunami.git", branch = "django4.2"}
+django-tsunami-notify = {git = "https://github.com/cedadev/django-tsunami-notify.git", branch = "django4.2"}
 django-settings-object = {git = "https://github.com/cedadev/django-settings-object.git", rev = "2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb"}
 django-debug-toolbar = "^3.2.1"
 
 # Required for migrations for now.
 django-markupfield = "^2.0.0"
 django-concurrency = "^2.3"
-
-# This is a dependency of django-tsumani.
-# This is deprecated and can be removed once tsunami's packaging is fixed.
-setuptools = "^69.1.1"
 
 [tool.poetry.group.test.dependencies]
 tblib = "^3.0.0"
