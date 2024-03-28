@@ -7,7 +7,7 @@ from ..models import Tag
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ("name", "num_projects")
+    list_display = ("name", "num_projects", "is_public")
     search_fields = ("name",)
 
     def get_queryset(self, request):

@@ -4,13 +4,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 from django.utils.functional import cached_property
-
 from rest_framework import mixins, serializers, viewsets
-from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-
 from tsunami.models import Event
 from tsunami.tracking import _instance_as_dict as instance_as_dict
 

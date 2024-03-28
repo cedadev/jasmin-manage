@@ -1,4 +1,5 @@
 from typing import Any
+
 from django.db import models
 
 
@@ -26,9 +27,15 @@ class Tag(models.Model):
     Represents a tag for a project.
     """
 
+    class Meta:
+        ordering = ("name",)
+
     # Enforce a length of 255, allow null values and make sure they are unique.
     name = TagField(max_length=255, null=True, unique=True)
     help_text = "Lowercase letters, numbers and hypens only please."
+
+    # Indicates if the consortium is a public one
+    is_public = models.BooleanField(default=False)
 
     def natural_key(self):
         return (self.name,)
