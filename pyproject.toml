@@ -24,9 +24,9 @@ django-oauth-toolkit = "^2.2.0"
 djangorestframework = "^3.12.4"
 drf-spectacular = "^0.15.1"
 drf-nested-routers = "^0.93.3"
-jasmin-auth-django = {git = "https://github.com/cedadev/jasmin-auth-django.git", branch = "django4.2"}
-django-tsunami = {git = "https://github.com/cedadev/django-tsunami.git", branch = "django4.2"}
-django-tsunami-notify = {git = "https://github.com/cedadev/django-tsunami-notify.git", branch = "django4.2"}
+jasmin-auth-django = {git = "https://github.com/cedadev/jasmin-auth-django.git", rev = "4090d78"}
+django-tsunami = {git = "https://github.com/cedadev/django-tsunami.git", rev = "54eaed8"}
+django-tsunami-notify = {git = "https://github.com/cedadev/django-tsunami-notify.git", rev = "78e704c"}
 django-settings-object = {git = "https://github.com/cedadev/django-settings-object.git", rev = "2b66c0fc5eae92972df5210b4bc43f7d95ad9ceb"}
 django-debug-toolbar = "^3.2.1"
 
