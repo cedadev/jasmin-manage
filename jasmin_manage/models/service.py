@@ -1,5 +1,5 @@
-from django.db import models
 from django.core import validators
+from django.db import models
 
 from .category import Category
 from .project import Project
@@ -35,7 +35,7 @@ class Service(models.Model):
     )
     name = models.CharField(
         # 20 characters is long enough for a service name
-        max_length=50,
+        max_length=20,
         # Index the field for faster searches
         db_index=True,
         # Use a regex to validate the field
