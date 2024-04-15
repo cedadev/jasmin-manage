@@ -63,12 +63,10 @@ services_router = routers.NestedSimpleRouter(router, r"services", lookup="servic
 services_router.register(
     r"requirements", views.ServiceRequirementsViewSet, basename="service-requirements"
 )
-<<<<<<< HEAD
+
 
 # Routes for tags
 router.register(r"tags", views.TagViewSet)
-=======
->>>>>>> short-proj-name
 
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [
