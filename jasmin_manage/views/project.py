@@ -13,6 +13,8 @@ from tsunami.models import Event
 from tsunami.tracking import _instance_as_dict as instance_as_dict
 
 from ..exceptions import Conflict
+
+<<<<<<< HEAD
 from ..models import (
     Collaborator,
     Comment,
@@ -22,6 +24,11 @@ from ..models import (
     Service,
     Tag,
 )
+
+=======
+from ..models import Collaborator, Comment, Invitation, Project, Requirement, Service
+
+>>>>>>> short-proj-name
 from ..permissions import (
     CollaboratorPermissions,
     CommentPermissions,
@@ -30,6 +37,7 @@ from ..permissions import (
     ServicePermissions,
 )
 from ..serializers import (
+    HEAD,
     CollaboratorSerializer,
     CommentSerializer,
     InvitationSerializer,
@@ -37,6 +45,10 @@ from ..serializers import (
     RequirementSerializer,
     ServiceSerializer,
     TagSerializer,
+    <<<<<<<,
+    =======,
+    >>>>>>>,
+    short-proj-name,
 )
 from .base import BaseViewSet
 

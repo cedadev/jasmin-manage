@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0008_auto_20210217_1531'),
+        ("jasmin_manage", "0008_auto_20210217_1531"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='consortium',
-            name='is_public',
+            model_name="consortium",
+            name="is_public",
             field=models.BooleanField(default=False),
         ),
     ]

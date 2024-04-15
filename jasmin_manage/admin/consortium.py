@@ -9,7 +9,7 @@ from django.db.models import (
     OuterRef,
     Value,
     F,
-    IntegerField
+    IntegerField,
 )
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
@@ -21,23 +21,29 @@ from .util import changelist_link, change_link
 @admin.register(Consortium)
 class ConsortiumAdmin(admin.ModelAdmin):
     class Media:
-        css = {
-            "all": ('css/admin/highlight.css', )
-        }
-        js = ('js/admin/highlight.js', )
+        css = {"all": ("css/admin/highlight.css",)}
+        js = ("js/admin/highlight.js",)
 
-    list_display = ('name', 'is_public',)# 'manager_link', 'num_quotas', 'num_projects')
-    list_select_related = ('manager', )
-    search_fields = ('name', )
-    autocomplete_fields = ('manager', )
-    #readonly_fields = ('num_quotas', 'num_projects', 'num_requirements')
+    list_display = (
+        "name",
+        "is_public",
+    )  # 'manager_link', 'num_quotas', 'num_projects')
+    list_select_related = ("manager",)
+    search_fields = ("name",)
+    autocomplete_fields = ("manager",)
+    # readonly_fields = ('num_quotas', 'num_projects', 'num_requirements')
 
-    def get_exclude(self, request, obj = None):
+    def get_exclude(self, request, obj=None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('manager', 'num_quotas', 'num_projects', 'num_requirements')
+            return exclude + (
+                "manager",
+                "num_quotas",
+                "num_projects",
+                "num_requirements",
+            )
         else:
-            return exclude +('num_quotas', 'num_projects', 'num_requirements')
+            return exclude + ("num_quotas", "num_projects", "num_requirements")
 
     """ def get_readonly_fields(self, request, obj = None):
         readonly_fields = super().get_readonly_fields(request, obj)
@@ -114,7 +120,8 @@ class ConsortiumAdmin(admin.ModelAdmin):
         )
     num_requirements.short_description = '# requirements'
 """
+
     def manager_link(self, obj):
         return change_link(obj.manager)
-    manager_link.short_description = 'manager'
- 
+
+    manager_link.short_description = "manager"

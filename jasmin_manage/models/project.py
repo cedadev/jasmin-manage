@@ -68,7 +68,8 @@ class Project(models.Model):
 
     objects = ProjectManager.from_queryset(ProjectQuerySet)()
 
-    name = models.CharField(max_length=250, unique=True)
+
+    name = models.CharField(max_length=30, unique=True)
     description = models.TextField(help_text="Can contain markdown syntax.")
     status = models.PositiveSmallIntegerField(
         choices=Status.choices, default=Status.EDITABLE
@@ -83,6 +84,7 @@ class Project(models.Model):
     tags = models.ManyToManyField(
         Tag, related_name="project", related_query_name="project", blank=True
     )
+
 
     def get_num_services(self):
         if hasattr(self, "num_services"):

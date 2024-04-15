@@ -9,6 +9,7 @@ class ResourceViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
     """
     View set for the resource model.
     """
+
     permission_classes = [permissions.IsAuthenticated]
 
     queryset = Resource.objects.all()

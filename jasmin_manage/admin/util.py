@@ -11,17 +11,19 @@ def changelist_link(related_model, text, query_params):
     try:
         return format_html(
             '<a href="{}?{}">{}</a>',
-            reverse('admin:{}_changelist'.format(
-                related_model._meta.label_lower.replace('.', '_')
-            )),
+            reverse(
+                "admin:{}_changelist".format(
+                    related_model._meta.label_lower.replace(".", "_")
+                )
+            ),
             urlencode(query_params),
-            text
+            text,
         )
     except NoReverseMatch:
         return text
 
 
-def change_link(obj, text = None):
+def change_link(obj, text=None):
     """
     Returns a link to the admin view/change page for an object.
     """
@@ -31,10 +33,10 @@ def change_link(obj, text = None):
         return format_html(
             '<a href="{}">{}</a>',
             reverse(
-                'admin:{}_change'.format(obj._meta.label_lower.replace('.', '_')),
-                args = (obj.pk, )
+                "admin:{}_change".format(obj._meta.label_lower.replace(".", "_")),
+                args=(obj.pk,),
             ),
-            text
+            text,
         )
     except NoReverseMatch:
         return text

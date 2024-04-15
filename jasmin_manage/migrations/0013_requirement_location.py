@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0012_auto_20210412_1029'),
+        ("jasmin_manage", "0012_auto_20210412_1029"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='requirement',
-            name='location',
-            field=models.CharField(default='', max_length=100),
+            model_name="requirement",
+            name="location",
+            field=models.CharField(default="", max_length=100),
         ),
     ]

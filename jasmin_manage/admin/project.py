@@ -1,13 +1,12 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from django.db.models import Count, Subquery, OuterRef, Value, IntegerField
+from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
-
+from django.utils.html import format_html
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
 from ..models import Collaborator, Invitation, Project, Requirement, Service, Tag
-from .util import changelist_link, change_link
+from .util import change_link, changelist_link
 
 
 @admin.register(Project)
