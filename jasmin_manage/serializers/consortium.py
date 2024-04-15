@@ -47,10 +47,12 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
         # Get projects from consortium object and loop through to build per project provioned information for resources
         projects = obj.projects.all()
         data = []
+        # Get the resources to build dict from
         resqueryset = Resource.objects.all()
         collab_lookup = {20: "contributor", 40: "owner"}
         for p in projects:
             name = p.name
+            tags = [t['name'] for t in p.tags.values()]
             services = p.services.all()
             # We want total resouces for the project so init requirements dict here, not per service
             requirement_data = {res.name:0 for res in resqueryset}
@@ -76,6 +78,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
             project_data = {
                 "project_name": name,
+                "tags": tags, 
                 "collaborators": collaborators_data,
                 "resource_summary": requirement_data,
             }
