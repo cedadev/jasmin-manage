@@ -37,7 +37,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consortium
-        fields = ["name", "num_projects", "manager", "resources", "project_summaries"]
+        fields = ["name", "id", "num_projects", "manager", "resources", "project_summaries"]
 
     def get_num_projects(self, obj):
         return obj.get_num_projects()
