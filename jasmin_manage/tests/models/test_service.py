@@ -4,7 +4,6 @@ from django.db.models import ProtectedError
 from django.test import TestCase
 
 from ...models import Category, Consortium, Project, Service
-
 from ..utils import AssertValidationErrorsMixin
 
 
@@ -49,9 +48,9 @@ class ServiceModelTestCase(AssertValidationErrorsMixin, TestCase):
     def test_name_validation(self):
         service = Service(category=self.category, project=self.project)
         # First, try names that should pass
-        service.name = "service-1-with-hyphens"
+        service.name = "serv-1-with-hyphens"
         service.full_clean()
-        service.name = "service_2_with_underscores"
+        service.name = "serv_2_w_underscores"
         service.full_clean()
         # Now try some names that should fail
         expected_errors = {
@@ -60,20 +59,29 @@ class ServiceModelTestCase(AssertValidationErrorsMixin, TestCase):
                 "lower-case letters, numbers, underscores and hyphens only."
             ]
         }
-        service.name = "1-service-starting-with-number"
+        service.name = "1-serv-start-w-num"
         with self.assertValidationErrors(expected_errors):
             service.full_clean()
         service.name = "service_WITH_CAPS"
         with self.assertValidationErrors(expected_errors):
             service.full_clean()
-        service.name = "service with    whitespace"
+        service.name = "serv with    white"
         with self.assertValidationErrors(expected_errors):
             service.full_clean()
-        service.name = "service@with#special&chars"
+        service.name = "serv@w#spec&chars"
         with self.assertValidationErrors(expected_errors):
             service.full_clean()
-        service.name = "service-with-uñíçôdè-characters"
+        service.name = "serv-w-uñíçôdè-char"
         with self.assertValidationErrors(expected_errors):
+            service.full_clean()
+
+        expected_errors_long = {
+            "name": [
+                "Ensure this value has at most 20 characters (it has 26)."
+            ]
+        }
+        service.name = "service-name-is-toooo-long"
+        with self.assertValidationErrors(expected_errors_long):
             service.full_clean()
 
     def test_get_event_aggregates(self):
