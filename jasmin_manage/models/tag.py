@@ -31,11 +31,11 @@ class Tag(models.Model):
         ordering = ("name",)
 
     # Enforce a length of 255, allow null values and make sure they are unique.
-    name = TagField(max_length=255, null=True, unique=True)
+    name = TagField(max_length=15, null=True, unique=True)
     help_text = "Lowercase letters, numbers and hypens only please."
 
-    # Indicates if the consortium is a public one
-    is_public = models.BooleanField(default=False)
+    # # Indicates if the tag is a public one
+    # is_public = models.BooleanField(default=False)
 
     def natural_key(self):
         return (self.name,)
