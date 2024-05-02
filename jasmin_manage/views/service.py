@@ -39,9 +39,9 @@ class ServiceViewSet(
         service name query parameter in the URL.
         """
         queryset = super().get_queryset()
-        service_name = self.request.query_params.get('name')
-        if service_name is not None:
-            queryset = queryset.filter(service__name=service_name)
+        name = self.request.query_params.get('name')
+        if name is not None:
+            queryset = queryset.filter(name=name)
         return queryset
 
     def perform_destroy(self, instance):
