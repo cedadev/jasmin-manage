@@ -29,9 +29,20 @@ class ServiceViewSet(
     View set for the service model.
     """
 
+    queryset = Service.objects.all().prefetch_related("requirements")
     permission_classes = [ServicePermissions]
     required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
-    queryset = Service.objects.all().prefetch_related("requirements")
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned services by filtering against a 
+        service name query parameter in the URL.
+        """
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name is not None:
+            queryset = queryset.filter(name=name)
+        return queryset
 
     def perform_destroy(self, instance):
         # To delete a service, the project must be editable
