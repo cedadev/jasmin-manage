@@ -590,8 +590,8 @@ jsonfield = "*"
 [package.source]
 type = "git"
 url = "https://github.com/cedadev/django-tsunami.git"
-reference = "7950142c09a989b5d3e932b35f582bbca44bae9c"
-resolved_reference = "7950142c09a989b5d3e932b35f582bbca44bae9c"
+reference = "e5906da31fe08fbe7933c567544d371f6bd7dc88"
+resolved_reference = "e5906da31fe08fbe7933c567544d371f6bd7dc88"
 
 [[package]]
 name = "django-tsunami-notify"
