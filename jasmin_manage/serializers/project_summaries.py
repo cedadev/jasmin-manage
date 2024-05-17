@@ -18,6 +18,8 @@ class ProjectSummarySerializer(BaseSerializer):
 
     # Add fields for summary data
     resource_summary = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+    consortium = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         # Inject the user from the request as the owner when creating
@@ -36,11 +38,20 @@ class ProjectSummarySerializer(BaseSerializer):
                 "non_public_consortium",
             )
 
+    def get_tags(self, obj):
+        """Convert the tags into the names."""
+        tags = [t['name'] for t in obj.tags.values()]
+        return tags
+
+    def get_consortium(self, obj):
+        """Convert the consortium into its name."""
+        return obj.consortium.name
 
     def get_resource_summary(self, obj):
         """Create summary of all resources under the project"""
         services = obj.services.all()
         resqueryset = Resource.objects.all()
+        tags = [t['name'] for t in obj.tags.values()]
         # We want total resouces for the project so init requirements dict here, not per service
         requirement_data = {res.name:0 for res in resqueryset}
         for s in services:
