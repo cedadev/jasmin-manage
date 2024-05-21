@@ -6,24 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0016_auto_20231214_1542'),
+        ("jasmin_manage", "0016_auto_20231214_1542"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Tag',
+            name="Tag",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(blank=True, max_length=255, null=True)),
             ],
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='tags',
+            model_name="project",
+            name="tags",
         ),
         migrations.AddField(
-            model_name='project',
-            name='tags',
-            field=models.ManyToManyField(to='jasmin_manage.Tag'),
+            model_name="project",
+            name="tags",
+            field=models.ManyToManyField(to="jasmin_manage.Tag"),
         ),
     ]

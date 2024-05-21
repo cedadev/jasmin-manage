@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0015_category_is_public'),
+        ("jasmin_manage", "0015_category_is_public"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='project',
-            name='tags',
+            model_name="project",
+            name="tags",
             field=models.CharField(blank=True, max_length=250, null=True),
         ),
         migrations.AlterField(
-            model_name='category',
-            name='is_public',
+            model_name="category",
+            name="is_public",
             field=models.BooleanField(default=True),
         ),
     ]

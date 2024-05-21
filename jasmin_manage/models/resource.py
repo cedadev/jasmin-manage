@@ -88,7 +88,7 @@ class ResourceQuerySet(models.QuerySet):
                     models.Subquery(requirements.values(annotation)), models.Value(0)
                 )
                 for annotation in subquery_annotations
-            }
+            },
         )
 
 

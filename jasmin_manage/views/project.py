@@ -178,9 +178,9 @@ class ProjectViewSet(
     serializer_class = ProjectSerializer
 
     def get_serializer_class(self):
-        """If the sumamry parameter is there, we want to return the summary serializer, 
+        """If the sumamry parameter is there, we want to return the summary serializer,
         not the project serializer"""
-        if self.request.query_params.get('summary', False):
+        if self.request.query_params.get("summary", False):
             return ProjectSummarySerializer
         else:
             return self.serializer_class
@@ -193,7 +193,7 @@ class ProjectViewSet(
             # For a list operation, only show projects that the user is collaborating on
             # All other operations should be on a specific project and all projects should be used
             # Unless we are looking at the summary
-            if not self.request.query_params.get('summary', False):
+            if not self.request.query_params.get("summary", False):
                 if self.action == "list":
                     queryset = queryset.filter(collaborator__user=self.request.user)
                 return queryset

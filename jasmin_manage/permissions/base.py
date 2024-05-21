@@ -30,7 +30,7 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         Returns true if the user is the consortium manager for the project.
         """
-        try:        
+        try:
             return project.consortium.manager == user
         except AttributeError as e:
             print(e)

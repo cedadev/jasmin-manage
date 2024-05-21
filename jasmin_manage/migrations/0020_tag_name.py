@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0019_remove_tag_name'),
+        ("jasmin_manage", "0019_remove_tag_name"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='tag',
-            name='name',
+            model_name="tag",
+            name="name",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
     ]

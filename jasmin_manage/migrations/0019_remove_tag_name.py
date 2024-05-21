@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0018_alter_project_tags'),
+        ("jasmin_manage", "0018_alter_project_tags"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='tag',
-            name='name',
+            model_name="tag",
+            name="name",
         ),
     ]

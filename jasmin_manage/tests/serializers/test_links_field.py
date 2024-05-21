@@ -49,7 +49,7 @@ class LinksFieldTestCase(TestCase):
                 ("comments", "project-comments-list"),
                 ("invitations", "project-invitations-list"),
                 ("services", "project-services-list"),
-                ("tags", "project-tags-list")
+                ("tags", "project-tags-list"),
             ],
         )
         # Check that the extra action links were generated correctly

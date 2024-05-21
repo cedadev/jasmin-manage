@@ -6,18 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0021_alter_project_tags'),
+        ("jasmin_manage", "0021_alter_project_tags"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='project',
-            name='tags',
-            field=models.ManyToManyField(related_name='project', related_query_name='project', to='jasmin_manage.Tag'),
+            model_name="project",
+            name="tags",
+            field=models.ManyToManyField(
+                related_name="project",
+                related_query_name="project",
+                to="jasmin_manage.Tag",
+            ),
         ),
         migrations.AlterField(
-            model_name='tag',
-            name='name',
+            model_name="tag",
+            name="name",
             field=models.CharField(max_length=255, null=True),
         ),
     ]

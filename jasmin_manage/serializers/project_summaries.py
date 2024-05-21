@@ -40,7 +40,7 @@ class ProjectSummarySerializer(BaseSerializer):
 
     def get_tags(self, obj):
         """Convert the tags into the names."""
-        tags = [t['name'] for t in obj.tags.values()]
+        tags = [t["name"] for t in obj.tags.values()]
         return tags
 
     def get_consortium(self, obj):
@@ -51,9 +51,9 @@ class ProjectSummarySerializer(BaseSerializer):
         """Create summary of all resources under the project"""
         services = obj.services.all()
         resqueryset = Resource.objects.all()
-        tags = [t['name'] for t in obj.tags.values()]
+        tags = [t["name"] for t in obj.tags.values()]
         # We want total resouces for the project so init requirements dict here, not per service
-        requirement_data = {res.name:0 for res in resqueryset}
+        requirement_data = {res.name: 0 for res in resqueryset}
         for s in services:
             requirments = s.requirements.all()
             for r in requirments:

@@ -7,13 +7,15 @@ import jasmin_manage.models.tag
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('jasmin_manage', '0023_alter_tag_name'),
+        ("jasmin_manage", "0023_alter_tag_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='tag',
-            name='name',
-            field=jasmin_manage.models.tag.TagField(max_length=255, null=True, unique=True),
+            model_name="tag",
+            name="name",
+            field=jasmin_manage.models.tag.TagField(
+                max_length=255, null=True, unique=True
+            ),
         ),
     ]

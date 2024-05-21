@@ -37,7 +37,14 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consortium
-        fields = ["name", "id", "num_projects", "manager", "resources", "project_summaries"]
+        fields = [
+            "name",
+            "id",
+            "num_projects",
+            "manager",
+            "resources",
+            "project_summaries",
+        ]
 
     def get_num_projects(self, obj):
         return obj.get_num_projects()
@@ -52,10 +59,10 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
         collab_lookup = {20: "contributor", 40: "owner"}
         for p in projects:
             name = p.name
-            tags = [t['name'] for t in p.tags.values()]
+            tags = [t["name"] for t in p.tags.values()]
             services = p.services.all()
             # We want total resouces for the project so init requirements dict here, not per service
-            requirement_data = {res.name:0 for res in resqueryset}
+            requirement_data = {res.name: 0 for res in resqueryset}
             for s in services:
                 requirments = s.requirements.all()
                 for r in requirments:
@@ -78,7 +85,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
             project_data = {
                 "project_name": name,
-                "tags": tags, 
+                "tags": tags,
                 "collaborators": collaborators_data,
                 "resource_summary": requirement_data,
             }
