@@ -76,9 +76,9 @@ class ServiceModelTestCase(AssertValidationErrorsMixin, TestCase):
             service.full_clean()
 
         expected_errors_long = {
-            "name": ["Ensure this value has at most 20 characters (it has 26)."]
+            "name": ["Ensure this value has at most 30 characters (it has 36)."]
         }
-        service.name = "service-name-is-toooo-long"
+        service.name = "service-name-is-toooo-longgggggggggg"
         with self.assertValidationErrors(expected_errors_long):
             service.full_clean()
 
