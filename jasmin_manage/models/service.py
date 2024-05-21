@@ -35,7 +35,7 @@ class Service(models.Model):
     )
     name = models.CharField(
         # 20 characters is long enough for a service name
-        max_length=20,
+        max_length=30,
         # Index the field for faster searches
         db_index=True,
         # Use a regex to validate the field

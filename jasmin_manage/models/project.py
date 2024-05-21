@@ -68,7 +68,7 @@ class Project(models.Model):
 
     objects = ProjectManager.from_queryset(ProjectQuerySet)()
 
-    name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=40, unique=True)
     description = models.TextField(help_text="Can contain markdown syntax.")
     status = models.PositiveSmallIntegerField(
         choices=Status.choices, default=Status.EDITABLE
