@@ -2,6 +2,7 @@
 
 import django.core.validators
 from django.db import migrations, models
+
 import jasmin_manage.models.tag
 
 
@@ -23,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="project",
             name="name",
-            field=models.CharField(max_length=30, unique=True),
+            field=models.CharField(max_length=40, unique=True),
         ),
         migrations.AlterField(
             model_name="project",
@@ -40,7 +41,7 @@ class Migration(migrations.Migration):
             name="name",
             field=models.CharField(
                 db_index=True,
-                max_length=20,
+                max_length=30,
                 validators=[
                     django.core.validators.RegexValidator(
                         message="Service name must start with a letter and contain lower-case letters, numbers, underscores and hyphens only.",
