@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from ..models import Consortium, Project, Quota
+from ..models import Consortium, Project, Quota, Resource
 from .base import BaseSerializer
 
 
@@ -37,7 +37,14 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consortium
-        fields = ["name", "num_projects", "manager", "resources", "project_summaries"]
+        fields = [
+            "name",
+            "id",
+            "num_projects",
+            "manager",
+            "resources",
+            "project_summaries",
+        ]
 
     def get_num_projects(self, obj):
         return obj.get_num_projects()
@@ -47,22 +54,22 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
         # Get projects from consortium object and loop through to build per project provioned information for resources
         projects = obj.projects.all()
         data = []
+        # Get the resources to build dict from
+        resqueryset = Resource.objects.all()
         collab_lookup = {20: "contributor", 40: "owner"}
         for p in projects:
             name = p.name
+            tags = [t["name"] for t in p.tags.values()]
             services = p.services.all()
             # We want total resouces for the project so init requirements dict here, not per service
-            requirement_data = {}
+            requirement_data = {res.name: 0 for res in resqueryset}
             for s in services:
                 requirments = s.requirements.all()
                 for r in requirments:
                     if r.status == 50:  # This is the code for provisioned requirements
                         resource = r.resource.name
                         amount = r.amount
-                        if resource in requirement_data:
-                            requirement_data[resource] += amount
-                        else:
-                            requirement_data[resource] = amount
+                        requirement_data[resource] += amount
 
             # Get collaborator information to add to the summary
             collaborators = p.collaborators.all()
@@ -78,6 +85,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
 
             project_data = {
                 "project_name": name,
+                "tags": tags,
                 "collaborators": collaborators_data,
                 "resource_summary": requirement_data,
             }

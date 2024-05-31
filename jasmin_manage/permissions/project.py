@@ -1,5 +1,6 @@
-from .base import BaseProjectPermissions
 from _ast import Or
+
+from .base import BaseProjectPermissions
 
 
 class ProjectPermissions(BaseProjectPermissions):

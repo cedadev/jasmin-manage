@@ -4,18 +4,24 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 from django.utils.functional import cached_property
-
 from rest_framework import mixins, serializers, viewsets
-from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-
 from tsunami.models import Event
 from tsunami.tracking import _instance_as_dict as instance_as_dict
 
 from ..exceptions import Conflict
-from ..models import Collaborator, Comment, Invitation, Project, Requirement, Service
+from ..models import (
+    Collaborator,
+    Comment,
+    Invitation,
+    Project,
+    Requirement,
+    Service,
+    Tag,
+)
 from ..permissions import (
     CollaboratorPermissions,
     CommentPermissions,
@@ -28,8 +34,10 @@ from ..serializers import (
     CommentSerializer,
     InvitationSerializer,
     ProjectSerializer,
+    ProjectSummarySerializer,
     RequirementSerializer,
     ServiceSerializer,
+    TagSerializer,
 )
 from .base import BaseViewSet
 
@@ -169,6 +177,14 @@ class ProjectViewSet(
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
+    def get_serializer_class(self):
+        """If the sumamry parameter is there, we want to return the summary serializer,
+        not the project serializer"""
+        if self.request.query_params.get("summary", False):
+            return ProjectSummarySerializer
+        else:
+            return self.serializer_class
+
     def get_queryset(self):
         queryset = super().get_queryset()
         # Annotate the queryset with summary information to avoid the N+1 problem
@@ -176,9 +192,11 @@ class ProjectViewSet(
             queryset = queryset.annotate_summary(self.request.user)
             # For a list operation, only show projects that the user is collaborating on
             # All other operations should be on a specific project and all projects should be used
-            if self.action == "list":
-                queryset = queryset.filter(collaborator__user=self.request.user)
-            return queryset
+            # Unless we are looking at the summary
+            if not self.request.query_params.get("summary", False):
+                if self.action == "list":
+                    queryset = queryset.filter(collaborator__user=self.request.user)
+                return queryset
         return queryset
 
     @action(detail=True, serializer_class=EventSerializer)
@@ -437,3 +455,23 @@ class ProjectServicesViewSet(
             return super().create(request, *args, **kwargs)
         else:
             raise Conflict("Project is not currently editable.", "invalid_status")
+
+
+class ProjectTagsViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet
+):
+    """
+    View set for listing and creating tags for a project.
+    """
+
+    permission_classes = [ProjectPermissions]
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(project=self.kwargs["project_pk"])
+
+    @cached_property
+    def project(self):
+        return get_object_or_404(Project, pk=self.kwargs["project_pk"])

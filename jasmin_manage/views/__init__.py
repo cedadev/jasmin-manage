@@ -14,10 +14,12 @@ from .project import (
     ProjectCommentsViewSet,
     ProjectInvitationsViewSet,
     ProjectServicesViewSet,
+    ProjectTagsViewSet,
     ProjectViewSet,
 )
 from .project_join import ProjectJoinView
 from .requirement import RequirementViewSet
 from .resource import ResourceViewSet
 from .service import ServiceRequirementsViewSet, ServiceViewSet
+from .tag import TagViewSet
 from .user import CurrentUserView

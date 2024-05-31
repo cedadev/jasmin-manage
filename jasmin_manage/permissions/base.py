@@ -1,6 +1,5 @@
 from django.http import Http404
-
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from ..models import Collaborator
 
@@ -33,7 +32,8 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         try:
             return project.consortium.manager == user
-        except AttributeError:
+        except AttributeError as e:
+            print(e)
             return None
 
     def get_project_from_viewset(self, viewset):

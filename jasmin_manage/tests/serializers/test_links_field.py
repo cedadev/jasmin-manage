@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-
 from rest_framework import serializers
 from rest_framework.test import APIRequestFactory
 
@@ -50,6 +49,7 @@ class LinksFieldTestCase(TestCase):
                 ("comments", "project-comments-list"),
                 ("invitations", "project-invitations-list"),
                 ("services", "project-services-list"),
+                ("tags", "project-tags-list"),
             ],
         )
         # Check that the extra action links were generated correctly

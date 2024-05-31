@@ -1,7 +1,8 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 
 from .consortium import Consortium
+from .tag import Tag
 
 
 class ProjectManager(models.Manager):
@@ -36,6 +37,7 @@ class ProjectQuerySet(models.QuerySet):
         return self.annotate(
             num_collaborators=models.Count("collaborator", distinct=True),
             num_services=models.Count("service", distinct=True),
+            num_tags=models.Count("tags", distinct=True),
             num_requirements=models.Count("service__requirement", distinct=True),
             current_user_role=models.Subquery(
                 Collaborator.objects.filter(
@@ -66,7 +68,7 @@ class Project(models.Model):
 
     objects = ProjectManager.from_queryset(ProjectQuerySet)()
 
-    name = models.CharField(max_length=250, unique=True)
+    name = models.CharField(max_length=40, unique=True)
     description = models.TextField(help_text="Can contain markdown syntax.")
     status = models.PositiveSmallIntegerField(
         choices=Status.choices, default=Status.EDITABLE
@@ -78,6 +80,9 @@ class Project(models.Model):
         related_query_name="project",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    tags = models.ManyToManyField(
+        Tag, related_name="project", related_query_name="project", blank=True
+    )
 
     def get_num_services(self):
         if hasattr(self, "num_services"):

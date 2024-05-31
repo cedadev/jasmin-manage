@@ -1,5 +1,5 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class ConsortiumManager(models.Manager):
@@ -69,6 +69,7 @@ class Consortium(models.Model):
         verbose_name_plural = "consortia"
 
     objects = ConsortiumManager.from_queryset(ConsortiumQuerySet)()
+    
 
     name = models.CharField(max_length=250, unique=True)
     description = models.TextField()
@@ -76,6 +77,7 @@ class Consortium(models.Model):
     is_public = models.BooleanField(default=False)
     # Prevent a user being deleted if they are a consortium manager
     manager = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT)
+    
 
     def get_num_projects(self):
         if hasattr(self, "num_projects"):

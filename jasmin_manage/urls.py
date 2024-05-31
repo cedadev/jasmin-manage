@@ -24,6 +24,7 @@ consortia_router.register(
     r"projects", views.ConsortiumProjectsViewSet, basename="consortium-projects"
 )
 # consortia_router.register(r'summary', views.ConsortiumProjectsSummaryViewSet, basename = 'consortium-summary')
+
 consortia_router.register(
     r"quotas", views.ConsortiumQuotasViewSet, basename="consortium-quotas"
 )
@@ -48,6 +49,7 @@ projects_router.register(
 projects_router.register(
     r"services", views.ProjectServicesViewSet, basename="project-services"
 )
+projects_router.register(r"tags", views.ProjectTagsViewSet, basename="project-tags")
 
 # Routes for requirements
 router.register(r"requirements", views.RequirementViewSet)
@@ -61,6 +63,10 @@ services_router = routers.NestedSimpleRouter(router, r"services", lookup="servic
 services_router.register(
     r"requirements", views.ServiceRequirementsViewSet, basename="service-requirements"
 )
+
+
+# Routes for tags
+router.register(r"tags", views.TagViewSet)
 
 # Combine the URLs from all the routers to make the URL patterns
 urlpatterns = [

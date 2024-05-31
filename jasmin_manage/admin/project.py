@@ -1,13 +1,12 @@
 from django.contrib import admin
-from django.utils.html import format_html
-from django.db.models import Count, Subquery, OuterRef, Value, IntegerField
+from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.template.defaultfilters import pluralize
-
+from django.utils.html import format_html
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 
-from ..models import Collaborator, Invitation, Project, Requirement, Service
-from .util import changelist_link, change_link
+from ..models import Collaborator, Invitation, Project, Requirement, Service, Tag
+from .util import change_link, changelist_link
 
 
 @admin.register(Project)
@@ -20,6 +19,7 @@ class ProjectAdmin(admin.ModelAdmin):
         "name",
         "status_formatted",
         "consortium_link",
+        "num_tags",
         "num_services",
         "num_requirements",
         "num_collaborators",
@@ -28,6 +28,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = (
         ("consortium", RelatedDropdownFilter),
         "status",
+        ("tags", RelatedDropdownFilter),
     )
     list_select_related = ("consortium",)
     autocomplete_fields = ("consortium",)
@@ -37,8 +38,10 @@ class ProjectAdmin(admin.ModelAdmin):
         "num_requirements",
         "num_collaborators",
         "num_invitations",
+        "num_tags",
         "created_at",
     )
+    filter_horizontal = ("tags",)
 
     def get_exclude(self, request, obj=None):
         exclude = tuple(super().get_exclude(request, obj) or ())
@@ -64,6 +67,7 @@ class ProjectAdmin(admin.ModelAdmin):
             invitation_count=Count("invitation", distinct=True),
             service_count=Count("service", distinct=True),
             requirement_count=Count("service__requirement", distinct=True),
+            tag_count=Count("tags", distinct=True),
             # Also annotate with information about the number of requirements awaiting provisioning
             awaiting_count=Coalesce(
                 Subquery(
@@ -141,3 +145,12 @@ class ProjectAdmin(admin.ModelAdmin):
         )
 
     num_invitations.short_description = "# invitations"
+
+    def num_tags(self, obj):
+        return changelist_link(
+            Tag,
+            "{} tag{}".format(obj.tag_count, pluralize(obj.tag_count)),
+            dict(project__id__exact=obj.pk),
+        )
+
+    num_tags.short_description = "# tags"

@@ -49,7 +49,6 @@ class ConsortiumViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
         serializer = ConsortiumSummarySerializer(
             self.get_object(), context={"request": request}
         )
-        print(serializer.data)
         return rf_response.Response(serializer.data)
 
 

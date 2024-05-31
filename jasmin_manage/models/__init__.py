@@ -9,3 +9,4 @@ from .comment import Comment
 from .invitation import Invitation
 from .service import Service
 from .requirement import Requirement
+from .tag import Tag
