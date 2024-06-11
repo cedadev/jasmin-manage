@@ -21,13 +21,29 @@ def user_can_view_consortium(user, consortium):
     else:
         # Non-staff users can view a non-public consortium if they belong
         # to a project in the consortium
-        return consortium.projects.filter(collaborator__user = user).exists()
+        return consortium.projects.filter(collaborator__user=user).exists()
+
+
+def user_can_view_quota(user, consortium):
+    """
+    Returns true if the user can view the nested quota, false otherwise.
+    """
+    # Consortium managers can view the quotas
+    if consortium.manager == user:
+        return True
+    # Project collaborators and owners can view the quotas
+    elif consortium.projects.filter(collaborator__user=user).exists():
+        return True
+    # Nobody else can see the quotas
+    else:
+        return False
 
 
 class ConsortiumPermissions(IsAuthenticated):
     """
     DRF permissions class for the consortium viewset.
     """
+
     def has_object_permission(self, request, view, obj):
         if not super().has_object_permission(request, view, obj):
             return False
@@ -43,13 +59,14 @@ class ConsortiumNestedViewSetPermissions(IsAuthenticated):
     DRF permissions class for the nested consortium viewsets (for projects and quotas)
     that require the user to be the consortium manager.
     """
+
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
         # Get the consortium using the key from the viewset
-        consortium = (Consortium.objects
-            .select_related('manager')
-            .filter(pk = view.kwargs['consortium_pk'])
+        consortium = (
+            Consortium.objects.prefetch_related("manager")
+            .filter(pk=view.kwargs["consortium_pk"])
             .first()
         )
         if consortium and user_can_view_consortium(request.user, consortium):
@@ -57,6 +74,32 @@ class ConsortiumNestedViewSetPermissions(IsAuthenticated):
             # However we want to explicitly deny permission in the case where the consortium
             # is visible to the user but they are not the manager
             return request.user == consortium.manager
+        else:
+            # Raise not found in the case where the consortium does not exist, but also in the
+            # case where the consortium is not visible to the user
+            raise Http404
+
+
+class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
+    """
+    DRF permissions class for the nested consortium quota viewset that allow
+    consortium managers, project owners and project collaborators to see quotas.
+    """
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+        # Get the consortium using the key from the viewset
+        consortium = (
+            Consortium.objects.prefetch_related("manager")
+            .filter(pk=view.kwargs["consortium_pk"])
+            .first()
+        )
+        if consortium and user_can_view_quota(request.user, consortium):
+            return True
+        # If a user can see the consortium but can't see the quota, explicitly deny permission
+        elif consortium and user_can_view_consortium(request.user, consortium):
+            return False
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user

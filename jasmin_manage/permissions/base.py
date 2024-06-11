@@ -1,6 +1,5 @@
 from django.http import Http404
-
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from ..models import Collaborator
 
@@ -9,23 +8,33 @@ class BaseProjectPermissions(IsAuthenticated):
     """
     Base class for DRF permissions classes for project resources.
     """
+
     def is_project_collaborator(self, project, user):
         """
         Returns true if the user is a collaborator for the project.
         """
-        return project.collaborators.filter(user = user).exists()
+        try:
+            return project.collaborators.filter(user=user).exists()
+        except AttributeError:
+            return None
 
     def is_project_owner(self, project, user):
         """
         Returns true if the user is an owner for the project.
         """
-        return project.collaborators.filter(user = user, role = Collaborator.Role.OWNER).exists()
+        return project.collaborators.filter(
+            user=user, role=Collaborator.Role.OWNER
+        ).exists()
 
     def is_consortium_manager(self, project, user):
         """
         Returns true if the user is the consortium manager for the project.
         """
-        return project.consortium.manager == user
+        try:
+            return project.consortium.manager == user
+        except AttributeError as e:
+            print(e)
+            return None
 
     def get_project_from_viewset(self, viewset):
         """
@@ -45,13 +54,13 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         raise NotImplementedError  # pragma: nocover
 
-    def has_action_permission(self, project, user, action, obj = None):
+    def has_action_permission(self, project, user, action, obj=None):
         """
         Returns true if the user has permission for the given action and project.
         """
         raise NotImplementedError  # pragma: nocover
 
-    def _has_permission_or_404(self, request, view, project, obj = None):
+    def _has_permission_or_404(self, request, view, project, obj=None):
         """
         Returns either a boolean indicating whether the user has permission to perform
         the action or raises a 404, depending on whether project is None or not.
@@ -61,7 +70,7 @@ class BaseProjectPermissions(IsAuthenticated):
         """
         # Determine the action and the corresponding safe action
         action = view.action
-        safe_action = 'retrieve' if view.detail else 'list'
+        safe_action = "retrieve" if view.detail else "list"
         # If no action is set and the request uses a safe method, use the safe action
         # to determine permissions
         # This is important for the browsable API as the renderer interrogates permissions
@@ -69,7 +78,7 @@ class BaseProjectPermissions(IsAuthenticated):
         if action is None and request.method in SAFE_METHODS:
             action = safe_action
         # For the metadata action, use the permissions for the safe action
-        if action == 'metadata':
+        if action == "metadata":
             action = safe_action
         # Check whether the authenticated user has permission for the primary action
         has_permission = self.has_action_permission(project, request.user, action, obj)
@@ -92,7 +101,7 @@ class BaseProjectPermissions(IsAuthenticated):
             raise Http404
 
     def has_permission(self, request, view):
-        # If the parent check fails, we are done
+        # If the parent check fails, we are done (the user is not logged in.)
         if not super().has_permission(request, view):
             return False
         # If the view is a detail view, defer to the object permissions

@@ -12,26 +12,24 @@ class CollaboratorModelTestCase(AssertValidationErrorsMixin, TestCase):
     """
     Tests for the collaborator model.
     """
+
     @classmethod
     def setUpTestData(cls):
         UserModel = get_user_model()
         consortium = Consortium.objects.create(
-            name = 'Consortium 1',
-            description = 'some description',
-            manager = UserModel.objects.create_user('manager1')
+            name="Consortium 1",
+            description="some description",
+            manager=UserModel.objects.create_user("manager1"),
         )
-        cls.user = get_user_model().objects.create_user('user1')
-        cls.project = consortium.projects.create(
-            name = 'Project 1',
-            owner = cls.user
-        )
+        cls.user = get_user_model().objects.create_user("user1")
+        cls.project = consortium.projects.create(name="Project 1", owner=cls.user)
 
     def test_unique_together(self):
         # Test that project and user are unique together
-        collaborator = Collaborator(project = self.project, user = self.user)
+        collaborator = Collaborator(project=self.project, user=self.user)
         # Test that model validation raises the correct error
         expected_errors = {
-            '__all__': ['Collaborator with this Project and User already exists.'],
+            "__all__": ["Collaborator with this Project and User already exists."],
         }
         with self.assertValidationErrors(expected_errors):
             collaborator.full_clean()
@@ -51,4 +49,4 @@ class CollaboratorModelTestCase(AssertValidationErrorsMixin, TestCase):
 
     def test_to_string(self):
         collaborator = Collaborator.objects.first()
-        self.assertEqual(str(collaborator), 'Project 1 / user1 / OWNER')
+        self.assertEqual(str(collaborator), "Project 1 / user1 / OWNER")

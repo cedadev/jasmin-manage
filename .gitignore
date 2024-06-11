@@ -4,6 +4,7 @@ db.sqlite3
 .python-version
 __pycache__
 jasmin_manage_site/settings.py
+jasmin_manage/settings.py
 .coverage
 .tox
 htmlcov

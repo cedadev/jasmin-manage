@@ -6,24 +6,43 @@ import jasmin_manage.models.invitation
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0009_consortium_is_public'),
+        ("jasmin_manage", "0009_consortium_is_public"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='resource',
-            options={'ordering': ('name',)},
+            name="resource",
+            options={"ordering": ("name",)},
         ),
         migrations.CreateModel(
-            name='Invitation',
+            name="Invitation",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.EmailField(max_length=254)),
-                ('code', models.CharField(default=jasmin_manage.models.invitation.default_code, max_length=32)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='jasmin_manage.project')),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("email", models.EmailField(max_length=254)),
+                (
+                    "code",
+                    models.CharField(
+                        default=jasmin_manage.models.invitation.default_code,
+                        max_length=32,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "project",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="jasmin_manage.project",
+                    ),
+                ),
             ],
         ),
     ]

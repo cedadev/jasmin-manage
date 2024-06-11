@@ -9,6 +9,7 @@ class AssertValidationErrorsMixin:
     """
     Mixin for test cases providing a method to assert on validation messages.
     """
+
     @contextlib.contextmanager
     def assertValidationErrors(self, expected_errors):
         """
@@ -19,7 +20,7 @@ class AssertValidationErrorsMixin:
         except ValidationError as exc:
             self.assertEqual(exc.message_dict, expected_errors)
         else:
-            self.fail('ValidationError was not raised.')
+            self.fail("ValidationError was not raised.")
 
     @contextlib.contextmanager
     def assertDrfValidationErrors(self, expected_errors):
@@ -31,4 +32,4 @@ class AssertValidationErrorsMixin:
         except DrfValidationError as exc:
             self.assertEqual(exc.detail, expected_errors)
         else:
-            self.fail('DRF ValidationError was not raised.')
+            self.fail("DRF ValidationError was not raised.")

@@ -5,28 +5,33 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jasmin_manage', '0007_auto_20210217_1530'),
+        ("jasmin_manage", "0007_auto_20210217_1530"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='project',
-            name='default_consortium',
+            model_name="project",
+            name="default_consortium",
         ),
         migrations.RemoveField(
-            model_name='project',
-            name='owner',
+            model_name="project",
+            name="owner",
         ),
         migrations.RemoveField(
-            model_name='requirement',
-            name='consortium',
+            model_name="requirement",
+            name="consortium",
         ),
         migrations.AlterField(
-            model_name='project',
-            name='consortium',
-            field=models.ForeignKey(default=0, on_delete=django.db.models.deletion.CASCADE, related_name='projects', related_query_name='project', to='jasmin_manage.consortium'),
+            model_name="project",
+            name="consortium",
+            field=models.ForeignKey(
+                default=0,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="projects",
+                related_query_name="project",
+                to="jasmin_manage.consortium",
+            ),
             preserve_default=False,
         ),
     ]

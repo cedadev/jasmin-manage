@@ -8,7 +8,7 @@ from rest_framework.test import (
     APIClient,
     APIRequestFactory,
     APITestCase,
-    force_authenticate
+    force_authenticate,
 )
 
 from ...models import Collaborator
@@ -19,6 +19,7 @@ class Client(APIClient):
     Subclass of API client that stores and exposes authentication credentials
     in a more sensible way.
     """
+
     def apply_authentication(self, request):
         """
         Applies the current authentication to the given request.
@@ -32,17 +33,25 @@ class TestCase(APITestCase):
     """
     Base class for viewset test cases providing helper methods.
     """
+
     client_class = Client
 
-    def authenticate(self, user = None):
+    def authenticate(self, user=None):
         """
         Authenticate the test client as the given user, or a newly created user if not given.
         """
         # Make the user if required
-        user = user or get_user_model().objects.create_user('testuser')
+        user = user or get_user_model().objects.create_user("testuser")
         # Authenticate the test client
-        self.client.force_authenticate(user = user)
+        self.client.force_authenticate(user=user)
         return user
+
+    def authenticateAsStaff(self):
+        """
+        Authenticate the test client as a member of staff.
+        """
+        user = get_user_model().objects.create_user("teststaff", is_staff=True)
+        return self.authenticate(user)
 
     def authenticateAsProjectCollaborator(self, project, user, role):
         """
@@ -51,20 +60,24 @@ class TestCase(APITestCase):
         # Make the user if required
         user = self.authenticate(user)
         # Create the collaborator record
-        project.collaborators.create(user = user, role = role)
+        project.collaborators.create(user=user, role=role)
         return user
 
-    def authenticateAsProjectContributor(self, project, user = None):
+    def authenticateAsProjectContributor(self, project, user=None):
         """
         Authenticate the test client as a contributor for the given project.
         """
-        return self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.CONTRIBUTOR)
+        return self.authenticateAsProjectCollaborator(
+            project, user, Collaborator.Role.CONTRIBUTOR
+        )
 
-    def authenticateAsProjectOwner(self, project, user = None):
+    def authenticateAsProjectOwner(self, project, user=None):
         """
         Authenticate the test client as an owner for the given project.
         """
-        return self.authenticateAsProjectCollaborator(project, user, Collaborator.Role.OWNER)
+        return self.authenticateAsProjectCollaborator(
+            project, user, Collaborator.Role.OWNER
+        )
 
     def authenticateAsConsortiumManager(self, consortium):
         """
@@ -79,8 +92,8 @@ class TestCase(APITestCase):
         response = self.client.options(endpoint)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            set(method.strip() for method in response['allow'].split(',')),
-            set(allowed_methods)
+            set(method.strip() for method in response["allow"].split(",")),
+            set(allowed_methods),
         )
 
     def assertListResponseMatchesQuerySet(self, endpoint, queryset, serializer_class):
@@ -92,7 +105,9 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
-        serializer = serializer_class(queryset, many = True, context = dict(request = request))
+        serializer = serializer_class(
+            queryset, many=True, context=dict(request=request)
+        )
         self.assertCountEqual(response.data, serializer.data)
 
     def assertListResponseEmpty(self, endpoint):
@@ -112,10 +127,12 @@ class TestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
-        serializer = serializer_class(instance, context = dict(request = request))
+        serializer = serializer_class(instance, context=dict(request=request))
         self.assertEqual(response.data, serializer.data)
 
-    def assertCreateResponseMatchesCreatedInstance(self, endpoint, data, serializer_class):
+    def assertCreateResponseMatchesCreatedInstance(
+        self, endpoint, data, serializer_class
+    ):
         """
         Asserts that a created instance is correctly created and that the response
         data matches the created instance.
@@ -123,14 +140,16 @@ class TestCase(APITestCase):
         response = self.client.post(endpoint, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # Load the instance from the database as specified by the id in the response data
-        instance = serializer_class.Meta.model.objects.get(pk = response.data['id'])
+        instance = serializer_class.Meta.model.objects.get(pk=response.data["id"])
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
-        serializer = serializer_class(instance, context = dict(request = request))
+        serializer = serializer_class(instance, context=dict(request=request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
-    def assertUpdateResponseMatchesUpdatedInstance(self, endpoint, instance, data, serializer_class):
+    def assertUpdateResponseMatchesUpdatedInstance(
+        self, endpoint, instance, data, serializer_class
+    ):
         """
         Asserts that an update to an instance is correctly applied and that the response
         data matches the updated instance.
@@ -141,7 +160,7 @@ class TestCase(APITestCase):
         instance.refresh_from_db()
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
-        serializer = serializer_class(instance, context = dict(request = request))
+        serializer = serializer_class(instance, context=dict(request=request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
@@ -151,9 +170,11 @@ class TestCase(APITestCase):
         """
         response = self.client.delete(endpoint)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(response.content, b'')
+        self.assertEqual(response.content, b"")
 
-    def assertActionResponseMatchesUpdatedInstance(self, endpoint, instance, data, serializer_class):
+    def assertActionResponseMatchesUpdatedInstance(
+        self, endpoint, instance, data, serializer_class
+    ):
         """
         Asserts that executing an action on an instance is correctly applied and that the response
         data matches the updated instance.
@@ -164,11 +185,11 @@ class TestCase(APITestCase):
         instance.refresh_from_db()
         # Make a fake request with the same authentication as the client
         request = self.client.apply_authentication(APIRequestFactory().get(endpoint))
-        serializer = serializer_class(instance, context = dict(request = request))
+        serializer = serializer_class(instance, context=dict(request=request))
         self.assertEqual(response.data, serializer.data)
         return instance
 
-    def assertBadRequest(self, endpoint, method = "GET", data = None):
+    def assertBadRequest(self, endpoint, method="GET", data=None):
         """
         Asserts that a create with bad data results in a bad request response.
         """
@@ -178,7 +199,7 @@ class TestCase(APITestCase):
         # has the weird ErrorDetail strings in
         return json.loads(response.content)
 
-    def assertNotFound(self, endpoint, method = "GET", data = None):
+    def assertNotFound(self, endpoint, method="GET", data=None):
         """
         Asserts that the given endpoint returns a not found response.
         """
@@ -192,7 +213,7 @@ class TestCase(APITestCase):
         response = getattr(self.client, method.lower())(endpoint)
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def assertConflict(self, endpoint, method = "GET", data = None):
+    def assertConflict(self, endpoint, method="GET", data=None):
         """
         Asserts that the given endpoint produces a conflict response when called with the
         given method and data.
@@ -203,7 +224,7 @@ class TestCase(APITestCase):
         # has the weird ErrorDetail strings in
         return json.loads(response.content)
 
-    def assertPermissionDenied(self, endpoint, method = "GET", data = None):
+    def assertPermissionDenied(self, endpoint, method="GET", data=None):
         """
         Asserts that the given endpoint produces a permission denied response when called
         with the given method and data.
@@ -211,7 +232,7 @@ class TestCase(APITestCase):
         response = getattr(self.client, method.lower())(endpoint, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def assertUnauthorized(self, endpoint, method = "GET", data = None):
+    def assertUnauthorized(self, endpoint, method="GET", data=None):
         """
         Asserts that the given endpoint produces an unauthorized response when called
         with the given method and data.
@@ -220,5 +241,8 @@ class TestCase(APITestCase):
         we check for both but also check for the not_authenticated code.
         """
         response = getattr(self.client, method.lower())(endpoint, data)
-        self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
-        self.assertEqual(response.data['code'], 'not_authenticated')
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+        self.assertEqual(response.data["code"], "not_authenticated")

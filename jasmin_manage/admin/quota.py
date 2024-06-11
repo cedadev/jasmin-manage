@@ -11,42 +11,44 @@ from .util import changelist_link, change_link
 @admin.register(Quota)
 class QuotaAdmin(admin.ModelAdmin):
     class Media:
-        css = {
-            "all": ('css/admin/highlight.css', )
-        }
-        js = ('js/admin/highlight.js', )
+        css = {"all": ("css/admin/highlight.css",)}
+        js = ("js/admin/highlight.js",)
 
     list_display = (
-        'id',
-        'consortium_link',
-        'resource_link',
-        'amount_formatted',
-        'provisioned',
-        'awaiting',
-        'approved',
+        "id",
+        "consortium_link",
+        "resource_link",
+        "amount_formatted",
+        "provisioned",
+        "awaiting",
+        "approved",
     )
     list_filter = (
-        ('resource', RelatedDropdownFilter),
-        ('consortium', RelatedDropdownFilter),
+        ("resource", RelatedDropdownFilter),
+        ("consortium", RelatedDropdownFilter),
     )
-    list_select_related = ('resource', 'consortium')
+    list_select_related = ("resource", "consortium")
     show_full_result_count = False
-    readonly_fields = ('provisioned', 'awaiting', 'approved')
-    autocomplete_fields = ('consortium', 'resource')
+    readonly_fields = ("provisioned", "awaiting", "approved")
+    autocomplete_fields = ("consortium", "resource")
 
     def get_readonly_fields(self, request, obj):
         readonly_fields = super().get_readonly_fields(request, obj)
         if obj and not self.has_change_permission(request, obj):
-            return ('consortium_link', 'resource_link', 'amount_formatted', ) + readonly_fields
+            return (
+                "consortium_link",
+                "resource_link",
+                "amount_formatted",
+            ) + readonly_fields
         elif not obj:
             return ()
         else:
             return readonly_fields
 
-    def get_exclude(self, request, obj = None):
+    def get_exclude(self, request, obj=None):
         exclude = tuple(super().get_exclude(request, obj) or ())
         if obj and not self.has_change_permission(request, obj):
-            return exclude + ('consortium', 'resource', 'amount')
+            return exclude + ("consortium", "resource", "amount")
         else:
             return exclude
 
@@ -55,35 +57,38 @@ class QuotaAdmin(admin.ModelAdmin):
 
     def consortium_link(self, obj):
         return change_link(obj.consortium)
-    consortium_link.short_description = 'consortium'
+
+    consortium_link.short_description = "consortium"
 
     def resource_link(self, obj):
         return change_link(obj.resource)
-    resource_link.short_description = 'resource'
+
+    resource_link.short_description = "resource"
 
     def amount_formatted(self, obj):
         return obj.resource.format_amount(obj.amount)
-    amount_formatted.short_description = 'amount'
-    amount_formatted.admin_order_field = 'amount'
+
+    amount_formatted.short_description = "amount"
+    amount_formatted.admin_order_field = "amount"
 
     def _cell_content(self, obj, status):
-        count = getattr(obj, '{}_count'.format(status.name.lower()))
-        total = getattr(obj, '{}_total'.format(status.name.lower()))
+        count = getattr(obj, "{}_count".format(status.name.lower()))
+        total = getattr(obj, "{}_total".format(status.name.lower()))
         total_formatted = obj.resource.format_amount(total)
         # Only show the number of requirements if > 0
         if count > 0:
             return format_html(
-                '{} / {}',
+                "{} / {}",
                 total_formatted,
                 changelist_link(
                     Requirement,
-                    '{} requirement{}'.format(count, pluralize(count)),
+                    "{} requirement{}".format(count, pluralize(count)),
                     dict(
-                        service__project__consortium__id__exact = obj.consortium.pk,
-                        resource__id__exact = obj.resource.pk,
-                        status__exact = status
-                    )
-                )
+                        service__project__consortium__id__exact=obj.consortium.pk,
+                        resource__id__exact=obj.resource.pk,
+                        status__exact=status,
+                    ),
+                ),
             )
         else:
             return total_formatted

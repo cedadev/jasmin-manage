@@ -9,8 +9,9 @@ class ResourceManager(models.Manager):
     """
     Manager for the resource model.
     """
+
     def get_by_natural_key(self, name):
-        return self.get(name = name)
+        return self.get(name=name)
 
 
 class ResourceQuerySet(models.QuerySet):
@@ -21,16 +22,16 @@ class ResourceQuerySet(models.QuerySet):
         """
         # This subquery returns the total of all the chunks for the outer resource
         from .resource_chunk import ResourceChunk
-        chunks = (ResourceChunk.objects
-            .filter(resource = models.OuterRef('pk'))
+
+        chunks = (
+            ResourceChunk.objects.filter(resource=models.OuterRef("pk"))
             .order_by()
-            .values('resource')
-            .annotate(total = models.Sum('amount'))
+            .values("resource")
+            .annotate(total=models.Sum("amount"))
         )
         return self.annotate(
-            total_available = functions.Coalesce(
-                models.Subquery(chunks.values('total')),
-                models.Value(0)
+            total_available=functions.Coalesce(
+                models.Subquery(chunks.values("total")), models.Value(0)
             )
         )
 
@@ -41,52 +42,53 @@ class ResourceQuerySet(models.QuerySet):
         """
         # This subquery returns the count and total of all quotas for the outer resource
         from .quota import Quota
-        quotas = (Quota.objects
-            .filter(resource = models.OuterRef('pk'))
+
+        quotas = (
+            Quota.objects.filter(resource=models.OuterRef("pk"))
             .order_by()
-            .values('resource')
-            .annotate(count = models.Count('*'), total = models.Sum('amount'))
+            .values("resource")
+            .annotate(count=models.Count("*"), total=models.Sum("amount"))
         )
         # This subquery fetches the count and total of all requirements for the current resource for each status
         from .requirement import Requirement
+
         #   Generate the annotations for each possible status
-        subquery_annotations = dict(chain.from_iterable(
-            (
-                ('{}_count'.format(status.name.lower()), models.Count(
-                    'status',
-                    filter = models.Q(status = status)
-                )),
-                ('{}_total'.format(status.name.lower()), models.Sum(
-                    'amount',
-                    filter = models.Q(status = status)
-                ))
+        subquery_annotations = dict(
+            chain.from_iterable(
+                (
+                    (
+                        "{}_count".format(status.name.lower()),
+                        models.Count("status", filter=models.Q(status=status)),
+                    ),
+                    (
+                        "{}_total".format(status.name.lower()),
+                        models.Sum("amount", filter=models.Q(status=status)),
+                    ),
+                )
+                for status in Requirement.Status
             )
-            for status in Requirement.Status
-        ))
-        requirements = (Requirement.objects
-            .filter(resource = models.OuterRef('pk'))
+        )
+        requirements = (
+            Requirement.objects.filter(resource=models.OuterRef("pk"))
             .order_by()
-            .values('resource')
+            .values("resource")
             .annotate(**subquery_annotations)
         )
         # Apply the annotations to the current query
         return self.annotate(
-            quota_count = functions.Coalesce(
-                models.Subquery(quotas.values('count')),
-                models.Value(0)
+            quota_count=functions.Coalesce(
+                models.Subquery(quotas.values("count")), models.Value(0)
             ),
-            quota_total = functions.Coalesce(
-                models.Subquery(quotas.values('total')),
-                models.Value(0)
+            quota_total=functions.Coalesce(
+                models.Subquery(quotas.values("total")), models.Value(0)
             ),
             # Coalesce the corresponding annotation from the subquery
             **{
                 annotation: functions.Coalesce(
-                    models.Subquery(requirements.values(annotation)),
-                    models.Value(0)
+                    models.Subquery(requirements.values(annotation)), models.Value(0)
                 )
                 for annotation in subquery_annotations
-            }
+            },
         )
 
 
@@ -94,37 +96,38 @@ class Resource(models.Model):
     """
     Represents an available resource, e.g. cloud CPUs, Quobyte disk, tape.
     """
+
     class Meta:
-        ordering = ('name', )
+        ordering = ("name",)
 
     objects = ResourceManager.from_queryset(ResourceQuerySet)()
 
     name = models.CharField(
-        max_length = 250,
-        unique = True,
-        help_text = 'Full resource name, used when the resource is referenced '
-                    'standalone, e.g. "Cloud Disk", "Panasas Disk".'
+        max_length=250,
+        unique=True,
+        help_text="Full resource name, used when the resource is referenced "
+        'standalone, e.g. "Cloud Disk", "Panasas Disk".',
     )
     # The short name is optional, and is used in the context of a category/service
     short_name = models.CharField(
-        max_length = 50,
-        blank = True,
-        help_text = (
-            'Short resource name, used when the resource is referenced in the context '
+        max_length=50,
+        blank=True,
+        help_text=(
+            "Short resource name, used when the resource is referenced in the context "
             'of a category or service, e.g. "Disk". '
-            'If not given, the full name is used in all contexts.'
-        )
+            "If not given, the full name is used in all contexts."
+        ),
     )
     description = models.TextField()
     # Units can be empty for a unitless resource, e.g. CPUs.
     units = models.CharField(
-        max_length = 10,
-        null = True,
-        blank = True,
-        help_text = (
-            'Canonical units for the resource. '
-            'Leave blank for a unit-less resource, e.g. CPUs.'
-        )
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text=(
+            "Canonical units for the resource. "
+            "Leave blank for a unit-less resource, e.g. CPUs."
+        ),
     )
 
     def format_amount(self, amount):
@@ -137,10 +140,10 @@ class Resource(models.Model):
             return str(amount)
 
     def natural_key(self):
-        return (self.name, )
+        return (self.name,)
 
     def __str__(self):
         if self.units:
-            return '{} ({})'.format(self.name, self.units)
+            return "{} ({})".format(self.name, self.units)
         else:
             return self.name

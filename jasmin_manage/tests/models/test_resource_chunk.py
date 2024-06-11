@@ -11,18 +11,19 @@ class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):
     """
     Tests for the resource chunk model.
     """
+
     @classmethod
     def setUpTestData(cls):
-        cls.resource = Resource.objects.create(name = 'Resource 1')
-        cls.resource.chunks.create(name = 'Chunk 1', amount = 1000)
-        cls.resource.chunks.create(name = 'Chunk 2', amount = 1600)
+        cls.resource = Resource.objects.create(name="Resource 1")
+        cls.resource.chunks.create(name="Chunk 1", amount=1000)
+        cls.resource.chunks.create(name="Chunk 2", amount=1600)
 
     def test_unique_together(self):
         # Test that resource and name are unique together
-        chunk = ResourceChunk(resource = self.resource, name = 'Chunk 1', amount = 500)
+        chunk = ResourceChunk(resource=self.resource, name="Chunk 1", amount=500)
         # Test that model validation raises the correct error
         expected_errors = {
-            '__all__': ['Resource chunk with this Resource and Name already exists.'],
+            "__all__": ["Resource chunk with this Resource and Name already exists."],
         }
         with self.assertValidationErrors(expected_errors):
             chunk.full_clean()
@@ -33,16 +34,16 @@ class ResourceChunkModelTestCase(AssertValidationErrorsMixin, TestCase):
     def test_get_event_aggregates(self):
         chunk = ResourceChunk.objects.first()
         event_aggregates = chunk.get_event_aggregates()
-        self.assertEqual(event_aggregates, (chunk.resource, ))
+        self.assertEqual(event_aggregates, (chunk.resource,))
 
     def test_to_string(self):
         chunk = ResourceChunk.objects.first()
-        self.assertEqual(str(chunk), 'Resource 1 / Chunk 1')
+        self.assertEqual(str(chunk), "Resource 1 / Chunk 1")
 
     def test_natural_key(self):
         chunk = ResourceChunk.objects.first()
-        self.assertEqual(chunk.natural_key(), ('Resource 1', 'Chunk 1'))
+        self.assertEqual(chunk.natural_key(), ("Resource 1", "Chunk 1"))
 
     def test_get_by_natural_key(self):
-        chunk = ResourceChunk.objects.get_by_natural_key('Resource 1', 'Chunk 1')
+        chunk = ResourceChunk.objects.get_by_natural_key("Resource 1", "Chunk 1")
         self.assertEqual(chunk.pk, 1)

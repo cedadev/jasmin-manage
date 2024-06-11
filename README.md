@@ -5,7 +5,7 @@ API for managing project resources on JASMIN.
 
 ## Setting up a development environment
 
-`jasmin-manage` requires at least Python 3.7, so you must first ensure a suitable Python version is installed.
+`jasmin-manage` requires at least Python 3.8, so you must first ensure a suitable Python version is installed.
 
 First, check out the code:
 

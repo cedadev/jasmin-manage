@@ -3,6 +3,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: DO NOT USE THIS IN PRODUCTION
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 SECRET_KEY = 'notsecret'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -12,6 +13,7 @@ ALLOWED_HOSTS = []
 
 
 INSTALLED_APPS = [
+    'oauth2_provider',
     'jasmin_auth',
     'jasmin_auth.apps.AdminConfig',
     'django.contrib.auth',
@@ -29,6 +31,11 @@ INSTALLED_APPS = [
     'tsunami_notify',
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'oauth2_provider.backends.OAuth2Backend',
+]
+
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -40,6 +47,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'jasmin_auth.middleware.ImpersonateMiddleware',
     'tsunami.middleware.user_tracking',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
 ]
 
 ROOT_URLCONF = 'jasmin_manage_site.urls'
@@ -129,6 +137,11 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [],
     'EXCEPTION_HANDLER': 'jasmin_manage.views.exception_handler',
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
 }
 
 SPECTACULAR_SETTINGS = {

@@ -7,6 +7,7 @@ class ResourceSerializer(BaseSerializer):
     """
     Serializer for the resource model.
     """
+
     class Meta:
         model = Resource
-        fields = '__all__'
+        fields = "__all__"
