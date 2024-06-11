@@ -24,11 +24,10 @@ class ConsortiumAdmin(admin.ModelAdmin):
         css = {"all": ("css/admin/highlight.css",)}
         js = ("js/admin/highlight.js",)
 
-    list_display = ("name", "is_public", "manager_link", "num_quotas", "num_projects")
+    list_display = ("name", "is_public", "manager_link")
     list_select_related = ("manager",)
     search_fields = ("name",)
     autocomplete_fields = ("manager",)
-    readonly_fields = ("num_quotas", "num_projects", "num_requirements")
     
 
     def get_exclude(self, request, obj=None):
@@ -80,39 +79,6 @@ class ConsortiumAdmin(admin.ModelAdmin):
         )
         # The annotations remove the ordering, so re-apply the default ones
         return qs.order_by(*qs.query.get_meta().ordering)
-
-    def num_quotas(self, obj):
-        text = "{} quota{}".format(obj.quota_count, pluralize(obj.quota_count))
-        if obj.overprovisioned_count > 0:
-            text = "{} / {} overprovisioned".format(text, obj.overprovisioned_count)
-        content = changelist_link(Quota, text, dict(consortium__id__exact=obj.pk))
-        # If the consortium has at least one quota that is overprovisioned, highlight it
-        if obj.overprovisioned_count > 0:
-            return format_html('<span class="highlight warning">{}</span>', content)
-        else:
-            return content
-
-    num_quotas.short_description = "# quotas"
-
-    def num_projects(self, obj):
-        return changelist_link(
-            Project,
-            "{} project{}".format(obj.project_count, pluralize(obj.project_count)),
-            dict(consortium__id__exact=obj.pk),
-        )
-
-    num_projects.short_description = "# projects"
-
-    def num_requirements(self, obj):
-        return changelist_link(
-            Requirement,
-            "{} requirement{}".format(
-                obj.requirement_count, pluralize(obj.requirement_count)
-            ),
-            dict(service__project__consortium__id__exact=obj.pk),
-        )
-
-    num_requirements.short_description = "# requirements"
 
     def manager_link(self, obj):
         return change_link(obj.manager)
