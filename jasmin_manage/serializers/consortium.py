@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+import datetime as dt
 
 from ..models import Consortium, Project, Quota, Resource
 from .base import BaseSerializer
@@ -63,6 +64,9 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
             services = p.services.all()
             # We want total resouces for the project so init requirements dict here, not per service
             requirement_data = {res.name: 0 for res in resqueryset}
+            # We want the earliest and latest end date for the requirements in the project
+            earliest = dt.date(9999, 12, 30)  # Set high so first one is sooner
+            latest = dt.date(1, 1, 1)  # Set low so first one is higher
             for s in services:
                 requirments = s.requirements.all()
                 for r in requirments:
@@ -70,6 +74,10 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                         resource = r.resource.name
                         amount = r.amount
                         requirement_data[resource] += amount
+                        if r.end_date <= earliest:
+                            earliest = r.end_date
+                        if r.end_date > latest:
+                            latest = r.end_date
 
             # Get collaborator information to add to the summary
             collaborators = p.collaborators.all()
@@ -82,12 +90,18 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
                 collaborators_data.append(
                     {"username": user, "name": full_name, "role": role}
                 )
-
+            # If the end dates dates haven't changed, set value to None
+            if earliest == dt.date(9999, 12, 30):
+                earliest = None
+            if latest == dt.date(1, 1, 1):
+                latest = None
             project_data = {
+                "id": p.id,
                 "project_name": name,
                 "tags": tags,
                 "collaborators": collaborators_data,
                 "resource_summary": requirement_data,
+                "requirement_end_dates": {"earliest": earliest, "latest": latest},
             }
 
             data.append(project_data)
