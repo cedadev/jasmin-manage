@@ -52,6 +52,7 @@ class ConsortiumSerializerTestCase(TestCase):
                 "manager",
                 "num_projects",
                 "num_projects_current_user",
+                "fairshare",
                 "_links",
             },
         )

@@ -188,7 +188,18 @@ class ServiceListSerializerTestCase(TestCase):
         # Check that the right keys are present
         self.assertCountEqual(
             serializer.data.keys(),
-            {"id", "name", "requirements", "category", "project", "_links"},
+            {
+                "id",
+                "name",
+                "consortium",
+                "is_active_requirements",
+                "consortium_fairshare",
+                "project_fairshare",
+                "requirements",
+                "category",
+                "project",
+                "_links",
+            },
         )
 
     def test_list_cannot_create_with_invalid_requirement(self):
