@@ -45,6 +45,7 @@ class ConsortiumSummarySerializer(serializers.ModelSerializer):
             "manager",
             "resources",
             "project_summaries",
+            "fairshare",
         ]
 
     def get_num_projects(self, obj):
