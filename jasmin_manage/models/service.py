@@ -3,6 +3,7 @@ from django.db import models
 
 from .category import Category
 from .project import Project
+from .consortium import Consortium
 
 
 class ServiceManager(models.Manager):
@@ -33,6 +34,7 @@ class Service(models.Model):
     project = models.ForeignKey(
         Project, models.CASCADE, related_name="services", related_query_name="service"
     )
+
     name = models.CharField(
         # 20 characters is long enough for a service name
         max_length=30,
@@ -56,6 +58,10 @@ class Service(models.Model):
 
     def natural_key(self):
         return self.category.name, self.name
+
+    def get_num_active_requirements(self):
+        # Checks whether there are any active reqs. if so returns True, else False
+        return self.requirements.filter(status=50).count()
 
     natural_key.dependencies = (Category._meta.label_lower,)
 

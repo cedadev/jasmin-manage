@@ -88,6 +88,7 @@ class ProjectSerializerTestCase(TestCase):
                 "current_user_role",
                 "created_at",
                 "tags",
+                "fairshare",
                 "_links",
             },
         )

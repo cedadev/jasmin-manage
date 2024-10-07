@@ -83,6 +83,8 @@ class Project(models.Model):
     tags = models.ManyToManyField(
         Tag, related_name="project", related_query_name="project", blank=True
     )
+    # Fairshare for slurm
+    fairshare = models.IntegerField(default=1)
 
     def get_num_services(self):
         if hasattr(self, "num_services"):
