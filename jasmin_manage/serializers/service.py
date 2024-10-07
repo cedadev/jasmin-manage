@@ -122,12 +122,12 @@ class ServiceListSerializer(BaseSerializer):
 
     def get_consortium(self, obj):
         # Get the parent project's consortium
-        return obj.get_parent_consortium()
+        return obj.project.consortium.id
 
     def get_consortium_fairshare(self, obj):
         # Get the fairshare for the parent consortium
-        return obj.get_consortium_fairshare()
+        return obj.project.consortium.fairshare
 
     def get_project_fairshare(self, obj):
         # Get the fairshare for the parent consortium
-        return obj.get_project_fairshare()
+        return obj.project.fairshare

@@ -63,18 +63,6 @@ class Service(models.Model):
         # Checks whether there are any active reqs. if so returns True, else False
         return self.requirements.filter(status=50).count()
 
-    def get_parent_consortium(self):
-        # Get the consortium of the parent project
-        return self.project.consortium.id
-
-    def get_consortium_fairshare(self):
-        # Get the fairshare of the parent consortium
-        return self.project.consortium.fairshare
-
-    def get_project_fairshare(self):
-        # Get the fairshare of the parent project
-        return self.project.fairshare
-
     natural_key.dependencies = (Category._meta.label_lower,)
 
     def __str__(self):
