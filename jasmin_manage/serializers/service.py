@@ -88,6 +88,8 @@ class ServiceListSerializer(BaseSerializer):
     # Add fields for summary data
     is_active_requirements = serializers.SerializerMethodField()
     consortium = serializers.SerializerMethodField()
+    consortium_fairshare = serializers.SerializerMethodField()
+    project_fairshare = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
@@ -98,6 +100,8 @@ class ServiceListSerializer(BaseSerializer):
             "project",
             "consortium",
             "is_active_requirements",
+            "consortium_fairshare",
+            "project_fairshare",
             "requirements",
             "_links",
         ]
@@ -119,3 +123,11 @@ class ServiceListSerializer(BaseSerializer):
     def get_consortium(self, obj):
         # Get the parent project's consortium
         return obj.get_parent_consortium()
+
+    def get_consortium_fairshare(self, obj):
+        # Get the fairshare for the parent consortium
+        return obj.get_consortium_fairshare()
+
+    def get_project_fairshare(self, obj):
+        # Get the fairshare for the parent consortium
+        return obj.get_project_fairshare()
