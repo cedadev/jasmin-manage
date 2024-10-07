@@ -192,7 +192,7 @@ class ServiceListSerializerTestCase(TestCase):
                 "id",
                 "name",
                 "consortium",
-                "is_active_requirements",
+                "has_active_requirements",
                 "consortium_fairshare",
                 "project_fairshare",
                 "requirements",

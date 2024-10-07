@@ -86,7 +86,7 @@ class ServiceListSerializer(BaseSerializer):
 
     requirements = ServiceRequirementSerializer(many=True)
     # Add fields for summary data
-    is_active_requirements = serializers.SerializerMethodField()
+    has_active_requirements = serializers.SerializerMethodField()
     consortium = serializers.SerializerMethodField()
     consortium_fairshare = serializers.SerializerMethodField()
     project_fairshare = serializers.SerializerMethodField()
@@ -99,7 +99,7 @@ class ServiceListSerializer(BaseSerializer):
             "category",
             "project",
             "consortium",
-            "is_active_requirements",
+            "has_active_requirements",
             "consortium_fairshare",
             "project_fairshare",
             "requirements",
@@ -116,7 +116,7 @@ class ServiceListSerializer(BaseSerializer):
         validated_data.update(project=self.context["project"])
         return super().create(validated_data)
 
-    def get_is_active_requirements(self, obj):
+    def get_has_active_requirements(self, obj):
         # Works out if there are any active requirements in the service
         return True if obj.get_num_active_requirements() else False
 
