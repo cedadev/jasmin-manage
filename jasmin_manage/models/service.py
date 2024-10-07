@@ -3,6 +3,7 @@ from django.db import models
 
 from .category import Category
 from .project import Project
+from .consortium import Consortium
 
 
 class ServiceManager(models.Manager):
@@ -61,6 +62,10 @@ class Service(models.Model):
     def get_num_active_requirements(self):
         # Checks whether there are any active reqs. if so returns True, else False
         return self.requirements.filter(status=50).count()
+
+    def get_parent_consortium(self):
+        # Get the consortium of the parent project
+        return self.project.consortium.id
 
     natural_key.dependencies = (Category._meta.label_lower,)
 

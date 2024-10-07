@@ -87,6 +87,7 @@ class ServiceListSerializer(BaseSerializer):
     requirements = ServiceRequirementSerializer(many=True)
     # Add fields for summary data
     is_active_requirements = serializers.SerializerMethodField()
+    consortium = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
@@ -95,6 +96,7 @@ class ServiceListSerializer(BaseSerializer):
             "name",
             "category",
             "project",
+            "consortium",
             "is_active_requirements",
             "requirements",
             "_links",
@@ -113,3 +115,7 @@ class ServiceListSerializer(BaseSerializer):
     def get_is_active_requirements(self, obj):
         # Works out if there are any active requirements in the service
         return True if obj.get_num_active_requirements() else False
+
+    def get_consortium(self, obj):
+        # Get the parent project's consortium
+        return obj.get_parent_consortium()
