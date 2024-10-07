@@ -1,5 +1,6 @@
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
+from rest_framework import serializers
 
 from ..models import Service, Requirement, Resource
 
@@ -84,10 +85,20 @@ class ServiceListSerializer(BaseSerializer):
     """
 
     requirements = ServiceRequirementSerializer(many=True)
+    # Add fields for summary data
+    is_active_requirements = serializers.SerializerMethodField()
 
     class Meta:
         model = Service
-        fields = ["id", "name", "category", "project", "requirements", "_links"]
+        fields = [
+            "id",
+            "name",
+            "category",
+            "project",
+            "is_active_requirements",
+            "requirements",
+            "_links",
+        ]
         # Replace the default unique_together validator for category and name
         # in order to customise the error message
         validators = [CategoryNameUniqueTogether()]
@@ -98,3 +109,7 @@ class ServiceListSerializer(BaseSerializer):
         # Inject the project from the context into the model
         validated_data.update(project=self.context["project"])
         return super().create(validated_data)
+
+    def get_is_active_requirements(self, obj):
+        # Works out if there are any active requirements in the service
+        return True if obj.get_num_active_requirements() else False
