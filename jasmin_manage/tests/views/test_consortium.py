@@ -392,11 +392,7 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
         user.is_staff = True
         user.save()
         consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
-        self.assertListResponseMatchesQuerySet(
-            "/consortia/{}/quotas/".format(consortium.pk),
-            consortium.quotas.annotate_usage(),
-            QuotaSerializer,
-        )
+        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
 
     def test_list_non_public_user_belongs_to_project_not_manager(self):
         """
