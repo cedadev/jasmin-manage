@@ -383,10 +383,8 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
 
     def test_list_non_public_staff_user_not_manager(self):
         """
-        Tests that the list endpoint returns forbidden for a non-public consortium and a staff
+        Tests that the list endpoint returns okay for a non-public consortium and a staff
         user who is not the consortium manager.
-
-        This should be forbidden rather than not found because the user can see the consortium.
         """
         user = self.authenticate()
         user.is_staff = True
@@ -401,7 +399,7 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
     def test_list_non_public_user_belongs_to_project_not_manager(self):
         """
         Tests that the endpoint for a non-public consortium where the user owns a project
-        in the consortium return the list successfully
+        in the consortium return the list successfully.
         """
         user = self.authenticate()
         # Pick a non-public consortium
