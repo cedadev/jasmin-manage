@@ -31,6 +31,7 @@ def user_can_view_quota(user, consortium):
     # Consortium managers can view the quotas
     if consortium.manager == user:
         return True
+    # We want staff to be able to see quotas
     elif user.is_staff:
         return True
     # Project collaborators and owners can view the quotas
