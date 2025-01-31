@@ -401,7 +401,7 @@ class ConsortiumQuotasViewSetTestCase(TestCase):
     def test_list_non_public_user_belongs_to_project_not_manager(self):
         """
         Tests that the endpoint for a non-public consortium where the user owns a project
-        in the consortium return the list successfully.
+        in the consortium return the list successfully
         """
         user = self.authenticate()
         # Pick a non-public consortium
