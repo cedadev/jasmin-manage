@@ -97,6 +97,8 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     """
 
     def has_permission(self, request, view):
+        if user_is_staff(request.user):
+            return True
         if not super().has_permission(request, view):
             return False
         # Get the consortium using the key from the viewset
@@ -106,8 +108,6 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
             .first()
         )
         if consortium and user_can_view_quota(request.user, consortium):
-            return True
-        elif user_is_staff(request.user):
             return True
         # If a user can see the consortium but can't see the quota, explicitly deny permission
         elif consortium and user_can_view_consortium(request.user, consortium):
