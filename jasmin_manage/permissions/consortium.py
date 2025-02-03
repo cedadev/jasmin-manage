@@ -32,13 +32,19 @@ def user_can_view_quota(user, consortium):
     if consortium.manager == user:
         return True
 
-    # We want staff to be able to see quotas
-    elif user.is_staff:
-        return True
     # Project collaborators and owners can view the quotas
     elif consortium.projects.filter(collaborator__user=user).exists():
         return True
     # Nobody else can see the quotas
+    else:
+        return False
+
+
+def user_is_staff(user):
+    """Returns true if the user is marked as staff, false otherwise."""
+    # We want staff to be able to see quotas
+    if user.is_staff:
+        return True
     else:
         return False
 
@@ -104,6 +110,8 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
         # If a user can see the consortium but can't see the quota, explicitly deny permission
         elif consortium and user_can_view_consortium(request.user, consortium):
             return False
+        elif user_is_staff(request.user):
+            return True
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user
