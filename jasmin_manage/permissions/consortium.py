@@ -107,11 +107,11 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
         )
         if consortium and user_can_view_quota(request.user, consortium):
             return True
+        elif user_is_staff(request.user):
+            return True
         # If a user can see the consortium but can't see the quota, explicitly deny permission
         elif consortium and user_can_view_consortium(request.user, consortium):
             return False
-        elif user_is_staff(request.user):
-            return True
         else:
             # Raise not found in the case where the consortium does not exist, but also in the
             # case where the consortium is not visible to the user
