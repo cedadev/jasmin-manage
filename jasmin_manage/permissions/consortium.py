@@ -97,6 +97,7 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     """
 
     def has_permission(self, request, view):
+        print(request)
         if user_is_staff(request.user):
             return True
         if not super().has_permission(request, view):
