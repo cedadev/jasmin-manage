@@ -87,8 +87,9 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     """
 
     def has_permission(self, request, view):
-        if not super().has_permission(request, view):
-            return False
+
+        # if not super().has_permission(request, view):
+        #     return False
         # Get the consortium using the key from the viewset
         consortium = (
             Consortium.objects.prefetch_related("manager")
