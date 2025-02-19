@@ -94,7 +94,7 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
 
     permission_classes = [ConsortiumQuotaViewSetPermissions]
-    required_scopes = ["jasmin.projects.all"]
+    required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
 
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
@@ -106,14 +106,10 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         )
         return queryset.annotate_usage()
 
-    # def get_permissions(self):
-    #     if self.action == "list":
-    #         permission_classes = [
-    #             rf_perms.OR(TokenHasAtLeastOneScope(), rf_perms.IsAdminUser())
-    #         ]
-    #         return permission_classes
-    #     return super().get_permissions()
     def get_permissions(self):
-        permission_classes = [
-            rf_perms.OR(TokenHasAtLeastOneScope(), rf_perms.IsAdminUser())
-        ]
+        if self.action == "list":
+            permission_classes = [
+                rf_perms.OR(TokenHasAtLeastOneScope(), rf_perms.IsAdminUser())
+            ]
+            return permission_classes
+        return super().get_permissions()
