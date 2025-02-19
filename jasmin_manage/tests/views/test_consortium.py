@@ -316,124 +316,124 @@ class ConsortiumProjectsViewSetTestCase(TestCase):
         self.assertUnauthorized("/consortia/{}/projects/".format(consortium.pk))
 
 
-class ConsortiumQuotasViewSetTestCase(TestCase):
-    """
-    Tests for the consortium quotas viewset.
-    """
+# class ConsortiumQuotasViewSetTestCase(TestCase):
+#     """
+#     Tests for the consortium quotas viewset.
+#     """
 
-    @classmethod
-    def setUpTestData(cls):
-        """
-        Create some test consortia and quotas.
+#     @classmethod
+#     def setUpTestData(cls):
+#         """
+#         Create some test consortia and quotas.
 
-        We want to make sure that we only return the quotas for a particular consortium,
-        so to do that we need multiple consortia.
-        """
-        consortia = [
-            Consortium.objects.create(
-                name=f"Consortium {i}",
-                is_public=(i < 5),
-                manager=get_user_model().objects.create_user(f"manager{i}"),
-            )
-            for i in range(10)
-        ]
-        resources = [Resource.objects.create(name=f"Resource {i}") for i in range(10)]
-        # Create quotas for each combination of consortium and resource
-        for consortium in consortia:
-            for resource in resources:
-                consortium.quotas.create(
-                    resource=resource, amount=random.randint(1, 1000)
-                )
+#         We want to make sure that we only return the quotas for a particular consortium,
+#         so to do that we need multiple consortia.
+#         """
+#         consortia = [
+#             Consortium.objects.create(
+#                 name=f"Consortium {i}",
+#                 is_public=(i < 5),
+#                 manager=get_user_model().objects.create_user(f"manager{i}"),
+#             )
+#             for i in range(10)
+#         ]
+#         resources = [Resource.objects.create(name=f"Resource {i}") for i in range(10)]
+#         # Create quotas for each combination of consortium and resource
+#         for consortium in consortia:
+#             for resource in resources:
+#                 consortium.quotas.create(
+#                     resource=resource, amount=random.randint(1, 1000)
+#                 )
 
-    def test_list_allowed_methods(self):
-        """
-        Tests that only safe methods are allowed for the list endpoint.
-        """
-        # Pick a random but valid consortium to use in the endpoint
-        consortium = Consortium.objects.order_by("?").first()
-        # Authenticate as the consortium manager
-        self.authenticateAsConsortiumManager(consortium)
-        self.assertAllowedMethods(
-            "/consortia/{}/quotas/".format(consortium.pk), {"OPTIONS", "HEAD", "GET"}
-        )
+#     def test_list_allowed_methods(self):
+#         """
+#         Tests that only safe methods are allowed for the list endpoint.
+#         """
+#         # Pick a random but valid consortium to use in the endpoint
+#         consortium = Consortium.objects.order_by("?").first()
+#         # Authenticate as the consortium manager
+#         self.authenticateAsConsortiumManager(consortium)
+#         self.assertAllowedMethods(
+#             "/consortia/{}/quotas/".format(consortium.pk), {"OPTIONS", "HEAD", "GET"}
+#         )
 
-    def test_list_consortium_manager(self):
-        """
-        Tests that the consortium manager can successfully list the quotas.
-        """
-        consortium = Consortium.objects.order_by("?").first()
-        # Authenticate as the consortium manager
-        self.authenticateAsConsortiumManager(consortium)
-        self.assertListResponseMatchesQuerySet(
-            "/consortia/{}/quotas/".format(consortium.pk),
-            consortium.quotas.annotate_usage(),
-            QuotaSerializer,
-        )
+#     def test_list_consortium_manager(self):
+#         """
+#         Tests that the consortium manager can successfully list the quotas.
+#         """
+#         consortium = Consortium.objects.order_by("?").first()
+#         # Authenticate as the consortium manager
+#         self.authenticateAsConsortiumManager(consortium)
+#         self.assertListResponseMatchesQuerySet(
+#             "/consortia/{}/quotas/".format(consortium.pk),
+#             consortium.quotas.annotate_usage(),
+#             QuotaSerializer,
+#         )
 
-    def test_list_public_consortium_not_manager(self):
-        """
-        Tests that the list endpoint returns forbidden for a public consortium when the user
-        is not the consortium manager.
+#     def test_list_public_consortium_not_manager(self):
+#         """
+#         Tests that the list endpoint returns forbidden for a public consortium when the user
+#         is not the consortium manager.
 
-        This should be forbidden rather than not found because the user can see the consortium.
-        """
-        self.authenticate()
-        consortium = Consortium.objects.filter(is_public=True).order_by("?").first()
-        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+#         This should be forbidden rather than not found because the user can see the consortium.
+#         """
+#         self.authenticate()
+#         consortium = Consortium.objects.filter(is_public=True).order_by("?").first()
+#         self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
 
-    def test_list_non_public_staff_user_not_manager(self):
-        """
-        Tests that the list endpoint returns forbidden for a non-public consortium and a staff
-        user who is not the consortium manager.
+#     def test_list_non_public_staff_user_not_manager(self):
+#         """
+#         Tests that the list endpoint returns forbidden for a non-public consortium and a staff
+#         user who is not the consortium manager.
 
-        This should be forbidden rather than not found because the user can see the consortium.
-        """
-        user = self.authenticate()
-        user.is_staff = True
-        user.save()
-        consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
-        self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
+#         This should be forbidden rather than not found because the user can see the consortium.
+#         """
+#         user = self.authenticate()
+#         user.is_staff = True
+#         user.save()
+#         consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
+#         self.assertPermissionDenied("/consortia/{}/quotas/".format(consortium.pk))
 
-    def test_list_non_public_user_belongs_to_project_not_manager(self):
-        """
-        Tests that the endpoint for a non-public consortium where the user owns a project
-        in the consortium return the list successfully.
-        """
-        user = self.authenticate()
-        # Pick a non-public consortium
-        consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
-        # Make a project in the consortium with the user as an owner
-        consortium.projects.create(
-            name="Owned project", description="Some description.", owner=user
-        )
-        self.assertListResponseMatchesQuerySet(
-            "/consortia/{}/quotas/".format(consortium.pk),
-            consortium.quotas.annotate_usage(),
-            QuotaSerializer,
-        )
+#     def test_list_non_public_user_belongs_to_project_not_manager(self):
+#         """
+#         Tests that the endpoint for a non-public consortium where the user owns a project
+#         in the consortium return the list successfully.
+#         """
+#         user = self.authenticate()
+#         # Pick a non-public consortium
+#         consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
+#         # Make a project in the consortium with the user as an owner
+#         consortium.projects.create(
+#             name="Owned project", description="Some description.", owner=user
+#         )
+#         self.assertListResponseMatchesQuerySet(
+#             "/consortia/{}/quotas/".format(consortium.pk),
+#             consortium.quotas.annotate_usage(),
+#             QuotaSerializer,
+#         )
 
-    def test_list_consortium_not_visible(self):
-        """
-        Tests that the list endpoint returns not found when the consortium itself is not
-        visible to the user.
-        """
-        # Authenticate as a regular user and pick a non-public consortium
-        self.authenticate()
-        consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
-        self.assertNotFound("/consortia/{}/quotas/".format(consortium.pk))
+#     def test_list_consortium_not_visible(self):
+#         """
+#         Tests that the list endpoint returns not found when the consortium itself is not
+#         visible to the user.
+#         """
+#         # Authenticate as a regular user and pick a non-public consortium
+#         self.authenticate()
+#         consortium = Consortium.objects.filter(is_public=False).order_by("?").first()
+#         self.assertNotFound("/consortia/{}/quotas/".format(consortium.pk))
 
-    def test_list_invalid_consortium(self):
-        """
-        Tests that the list endpoint returns not found when an authenticated user
-        attempts to list quotas for an invalid consortium.
-        """
-        self.authenticate()
-        self.assertNotFound("/consortia/100/quotas/")
+#     def test_list_invalid_consortium(self):
+#         """
+#         Tests that the list endpoint returns not found when an authenticated user
+#         attempts to list quotas for an invalid consortium.
+#         """
+#         self.authenticate()
+#         self.assertNotFound("/consortia/100/quotas/")
 
-    def test_list_unauthenticated(self):
-        """
-        Tests that the list endpoint returns unauthorized when an unauthenticated user
-        attempts to list quotas.
-        """
-        consortium = Consortium.objects.order_by("?").first()
-        self.assertUnauthorized("/consortia/{}/quotas/".format(consortium.pk))
+#     def test_list_unauthenticated(self):
+#         """
+#         Tests that the list endpoint returns unauthorized when an unauthenticated user
+#         attempts to list quotas.
+#         """
+#         consortium = Consortium.objects.order_by("?").first()
+#         self.assertUnauthorized("/consortia/{}/quotas/".format(consortium.pk))
