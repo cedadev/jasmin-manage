@@ -109,13 +109,16 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action == "list":
-            perms = TokenHasAtLeastOneScope()
             if not self.request.user:
+                perms = TokenHasAtLeastOneScope()
                 permission_classes = [
                     rf_perms.OR(perms, rf_perms.IsAdminUser())
                 ]
             else:
-                permission_classes = [ConsortiumQuotaViewSetPermissions]
+                perms = ConsortiumQuotaViewSetPermissions()
+                permission_classes = [
+                    rf_perms.OR(perms, rf_perms.IsAdminUser())
+                ]
             return permission_classes
         return super().get_permissions()
     
