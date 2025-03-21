@@ -3,6 +3,8 @@ import rest_framework.response as rf_response
 import rest_framework.permissions as rf_perms
 from rest_framework import mixins, viewsets
 
+import oauth2_provider.contrib.rest_framework as oauth2_rf
+
 from ..models import Consortium, Project, Quota
 from ..permissions import (
     ConsortiumNestedViewSetPermissions,
@@ -92,7 +94,6 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing the quotas for a consortium.
     """
-
     permission_classes = [ConsortiumQuotaViewSetPermissions]
     required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
 
@@ -108,8 +109,9 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action == "list":
+            perms = TokenHasAtLeastOneScope()
             permission_classes = [
-                rf_perms.OR(TokenHasAtLeastOneScope(), rf_perms.IsAdminUser())
+                rf_perms.OR(perms, rf_perms.IsAdminUser())
             ]
             return permission_classes
         return super().get_permissions()
