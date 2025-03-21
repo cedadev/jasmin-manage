@@ -116,9 +116,7 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 ]
             else:
                 perms = ConsortiumQuotaViewSetPermissions()
-                permission_classes = [
-                    rf_perms.OR(perms, rf_perms.IsAdminUser())
-                ]
+                permission_classes = [perms]
             return permission_classes
         return super().get_permissions()
     
