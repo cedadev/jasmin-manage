@@ -1,6 +1,9 @@
 import rest_framework.decorators as rf_decorators
 import rest_framework.response as rf_response
-from rest_framework import mixins, permissions, viewsets
+import rest_framework.permissions as rf_perms
+from rest_framework import mixins, viewsets
+
+import oauth2_provider.contrib.rest_framework as oauth2_rf
 
 from ..models import Consortium, Project, Quota
 from ..permissions import (
@@ -14,7 +17,7 @@ from ..serializers import (
     ProjectSerializer,
     QuotaSerializer,
 )
-from .base import BaseViewSet
+from .base import BaseViewSet, TokenHasAtLeastOneScope
 
 
 class ConsortiumViewSet(BaseViewSet, viewsets.ReadOnlyModelViewSet):
@@ -91,8 +94,8 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing the quotas for a consortium.
     """
-
     permission_classes = [ConsortiumQuotaViewSetPermissions]
+    required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
 
     queryset = Quota.objects.all()
     serializer_class = QuotaSerializer
@@ -103,3 +106,15 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             super().get_queryset().filter(consortium=self.kwargs["consortium_pk"])
         )
         return queryset.annotate_usage()
+
+    def get_permissions(self):
+        if self.action == "list":
+            # Instantiate permissions for client credentials
+            token_perms = TokenHasAtLeastOneScope()
+            # Instantiate permissions for user
+            user_perms = ConsortiumQuotaViewSetPermissions()
+            permissions_classes = [
+                rf_perms.OR(token_perms, user_perms)
+            ]
+            return permissions_classes
+        return super().get_permissions()
