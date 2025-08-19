@@ -36,19 +36,27 @@ class Service(models.Model):
     )
 
     name = models.CharField(
-        # 20 characters is long enough for a service name
+        # 30 characters is long enough for a service name, and at least 3
         max_length=30,
+        # min_length=2, doesn't seem to work
         # Index the field for faster searches
         db_index=True,
         # Use a regex to validate the field
+        # This matches what is used in the JASMIN accounts portal. If it is changed here it
+        # needs changing in the accounts portal too.
         validators=[
             validators.RegexValidator(
                 regex=r"^[a-z][-a-z0-9_]*\Z",
                 message=(
-                    "Service name must start with a letter and contain "
-                    "lower-case letters, numbers, underscores and hyphens only."
+                    "Service name must start with a letter and contain lower-case "
+                    "letters, numbers, underscores and hyphens only."
                 ),
-            )
+            ),
+            validators.RegexValidator(
+                regex=r"^\d*$",
+                inverse_match=True,
+                message=("Service name cannot only contain numbers."),
+            ),
         ],
     )
 
