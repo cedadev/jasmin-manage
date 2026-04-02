@@ -3,6 +3,8 @@ from rest_framework import serializers
 from ..models import Collaborator, Project, Resource
 from .base import BaseSerializer, EnumField
 
+from datetime import datetime
+
 
 class ProjectSummarySerializer(BaseSerializer):
     """
@@ -11,7 +13,16 @@ class ProjectSummarySerializer(BaseSerializer):
 
     class Meta:
         model = Project
-        fields = ["id", "name", "consortium", "tags", "resource_summary", "status"]
+        fields = [
+            "id",
+            "name",
+            "consortium",
+            "tags",
+            "resource_summary",
+            "first_end_date",
+            "last_end_date",
+            "status",
+        ]
         create_only_fields = ("consortium",)
 
     status = EnumField(Project.Status, read_only=True)
@@ -20,6 +31,8 @@ class ProjectSummarySerializer(BaseSerializer):
     resource_summary = serializers.SerializerMethodField()
     tags = serializers.SerializerMethodField()
     consortium = serializers.SerializerMethodField()
+    first_end_date = serializers.SerializerMethodField()
+    last_end_date = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         # Inject the user from the request as the owner when creating
@@ -47,11 +60,46 @@ class ProjectSummarySerializer(BaseSerializer):
         """Convert the consortium into its name."""
         return obj.consortium.name
 
+    def get_first_end_date(self, obj):
+        """Get the first end date for the project from the requirements"""
+        first_end_date = datetime.strptime(
+            "9999-12-30", "%Y-%m-%d"
+        ).date()  # init to make sure first date is always less than
+        services = obj.services.all()
+        for s in services:
+            requirments = s.requirements.all()
+            for r in requirments:
+                if r.status == 50:  # This is the code for provisioned requirements
+                    end_date = r.end_date
+                    if end_date < first_end_date:
+                        first_end_date = end_date
+        # If we haven't matched any dates then replace with None
+        if first_end_date.year == 9999:
+            first_end_date = None
+        return first_end_date
+
+    def get_last_end_date(self, obj):
+        """Get the last end date for the project from the requirements"""
+        last_end_date = datetime.strptime(
+            "0001-01-01", "%Y-%m-%d"
+        ).date()  # init to make sure first date is always less than
+        services = obj.services.all()
+        for s in services:
+            requirments = s.requirements.all()
+            for r in requirments:
+                if r.status == 50:  # This is the code for provisioned requirements
+                    end_date = r.end_date
+                    if end_date > last_end_date:
+                        last_end_date = end_date
+        # If we haven't matched any dates then replace with None
+        if last_end_date.year == 1:
+            last_end_date = None
+        return last_end_date
+
     def get_resource_summary(self, obj):
         """Create summary of all resources under the project"""
         services = obj.services.all()
         resqueryset = Resource.objects.all()
-        tags = [t["name"] for t in obj.tags.values()]
         # We want total resouces for the project so init requirements dict here, not per service
         requirement_data = {res.name: 0 for res in resqueryset}
         for s in services:
@@ -61,4 +109,5 @@ class ProjectSummarySerializer(BaseSerializer):
                     resource = r.resource.name
                     amount = r.amount
                     requirement_data[resource] += amount
+
         return requirement_data
