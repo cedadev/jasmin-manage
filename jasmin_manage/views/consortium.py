@@ -79,6 +79,8 @@ class ConsortiumProjectsViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     permission_classes = [ConsortiumNestedViewSetPermissions]
 
+    required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
+
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
@@ -94,6 +96,7 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     View set for listing the quotas for a consortium.
     """
+
     permission_classes = [ConsortiumQuotaViewSetPermissions]
     required_scopes = ["jasmin.projects.services.all", "jasmin.projects.all"]
 
@@ -113,8 +116,6 @@ class ConsortiumQuotasViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             token_perms = TokenHasAtLeastOneScope()
             # Instantiate permissions for user
             user_perms = ConsortiumQuotaViewSetPermissions()
-            permissions_classes = [
-                rf_perms.OR(token_perms, user_perms)
-            ]
+            permissions_classes = [rf_perms.OR(token_perms, user_perms)]
             return permissions_classes
         return super().get_permissions()
