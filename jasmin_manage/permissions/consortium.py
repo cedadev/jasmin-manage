@@ -95,7 +95,6 @@ class ConsortiumQuotaViewSetPermissions(IsAuthenticated):
     DRF permissions class for the nested consortium quota viewset that allow
     consortium managers, project owners and project collaborators to see quotas.
     """
-
     def has_permission(self, request, view):
         print(request)
 
