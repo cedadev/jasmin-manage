@@ -14,7 +14,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "~3.12"
 python-dateutil = "^2.8.1"
 django = "~4.2.11"
 markdown = "^3.3.4"
@@ -33,7 +33,7 @@ django-debug-toolbar = "^4.3.0"
 # Required for migrations for now.
 django-markupfield = "^2.0.0"
 django-concurrency = "^2.3"
-django-flexi-settings = "^0.1.1"
+django-flexi-settings = {git = "ssh://git@github.com/cedadev/django-flexi-settings.git"}
 
 [tool.poetry.group.test.dependencies]
 tblib = "^3.0.0"
@@ -49,7 +49,7 @@ pylint-django = "^2.5.5"
 coverage = "^7.4.3"
 
 [tool.black]
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py312']
 
 [tool.isort]
 profile = "black"
