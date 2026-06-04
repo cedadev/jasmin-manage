@@ -33,6 +33,7 @@ django-debug-toolbar = "^4.3.0"
 # Required for migrations for now.
 django-markupfield = "^2.0.0"
 django-concurrency = "^2.3"
+django-flexi-settings = "^0.1.1"
 
 [tool.poetry.group.test.dependencies]
 tblib = "^3.0.0"
