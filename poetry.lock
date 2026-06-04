@@ -673,7 +673,7 @@ pyyaml = "^6.0.1"
 
 [package.source]
 type = "git"
-url = "ssh://git@github.com/cedadev/django-flexi-settings.git"
+url = "https://github.com/cedadev/django-flexi-settings.git"
 reference = "HEAD"
 resolved_reference = "68eb74b00e28448279e7d800889d6e39466bf0ce"
 
@@ -1716,4 +1716,4 @@ python-discovery = ">=1.4"
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.12"
-content-hash = "0dc8b9a4c015eb5a50831090c4c9c11b4f4b759db214f607f56ca4efa3031d15"
+content-hash = "18bb8d5d67691f66c9b4cb6180ec25d1c4dd3c568f5b6c33f3cde5228c85d7bd"

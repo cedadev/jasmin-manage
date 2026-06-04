@@ -33,7 +33,7 @@ django-debug-toolbar = "^4.3.0"
 # Required for migrations for now.
 django-markupfield = "^2.0.0"
 django-concurrency = "^2.3"
-django-flexi-settings = {git = "ssh://git@github.com/cedadev/django-flexi-settings.git"}
+django-flexi-settings = {git = "https://github.com/cedadev/django-flexi-settings.git"}
 
 [tool.poetry.group.test.dependencies]
 tblib = "^3.0.0"
